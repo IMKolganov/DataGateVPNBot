@@ -1,5 +1,7 @@
+using DataGateVPNBotV1.Models;
 using DataGateVPNBotV1.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -7,38 +9,27 @@ namespace DataGateVPNBotV1.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class WeatherForecastController : ControllerBase
+public class BotController : ControllerBase
 {
-    private static readonly string[] Summaries = new[]
+    private readonly IOptions<BotConfiguration> _config;
+    
+    public BotController(IOptions<BotConfiguration> config)
     {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
-
-    private readonly ILogger<WeatherForecastController> _logger;
-
-    public WeatherForecastController(ILogger<WeatherForecastController> logger)
-    {
-        _logger = logger;
+        _config = config;
     }
 
-    [HttpGet(Name = "GetWeatherForecast")]
-    public IEnumerable<WeatherForecast> Get()
+    [HttpGet(Name = "healthcheck")]
+    public IActionResult Healthcheck()
     {
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+        return Ok(200);
     }
     
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] Update update, [FromServices] ITelegramBotClient bot, 
         [FromServices] UpdateHandler handleUpdateService, CancellationToken ct)
     {
-        if (Request.Headers["X-Telegram-Bot-Api-Secret-Token"] != Config.Value.SecretToken)
-            return Forbid();
+        // if (Request.Headers["X-Telegram-Bot-Api-Secret-Token"] != _config.Value.SecretToken)
+        //     return Forbid();
         try
         {
             await handleUpdateService.HandleUpdateAsync(bot, update, ct);
