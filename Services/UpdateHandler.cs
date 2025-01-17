@@ -1,4 +1,5 @@
-﻿using DataGateVPNBotV1.Services.Interfaces;
+﻿using DataGateVPNBotV1.Models.Enums;
+using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -15,6 +16,7 @@ public class UpdateHandler : IUpdateHandler
     private readonly ITelegramBotClient _botClient;
     private readonly IServiceProvider _serviceProvider;
     private readonly IOpenVpnClientService _openVpnClientService;
+    private readonly ILocalizationService _localizationService;
     private readonly ILogger<UpdateHandler> _logger;
     private readonly InputPollOption[] PollOptions = new[]
     {
@@ -26,11 +28,13 @@ public class UpdateHandler : IUpdateHandler
         ITelegramBotClient botClient,
         IServiceProvider serviceProvider,
         IOpenVpnClientService openVpnClientService,
+        ILocalizationService localizationService,
         ILogger<UpdateHandler> logger)
     {
         _botClient = botClient ?? throw new ArgumentNullException(nameof(botClient));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
+        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     
@@ -95,19 +99,7 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> Usage(Message msg)
     {
-        const string usage = @"
-<b><u>Bot Menu</u></b>:
-/register        - register to use the VPN
-/get_my_files    - get your files for connecting to the VPN
-/make_new_file   - create a new file for connecting to the VPN
-
-/how_to_use      - receive information on how to use the VPN
-/install_client  - get a link to download the OpenVPN client for connecting to the VPN
-
-/about_bot       - receive information about this bot
-/about_project   - receive information about the project
-/contacts        - receive contacts developer
-            ";
+        string usage = await _localizationService.GetTextAsync("BotMenu", Language.Russian);
             // <b><u>Bot Menu for developer's</u></b>:
             // /photo           - send a photo
             // /inline_buttons  - send inline buttons
@@ -123,15 +115,10 @@ public class UpdateHandler : IUpdateHandler
     
     async Task<Message> AboutBot(Message msg)
     {
+        string aboutbottext = await _localizationService.GetTextAsync("AboutBot", Language.Russian);
         return await _botClient.SendMessage(
             msg.Chat,
-            "This bot helps users manage their VPN connections easily. With this bot, you can:\n" +
-            "- Get detailed instructions on how to use a VPN.\n" +
-            "- Register and obtain configuration files for VPN access.\n" +
-            "- Create new VPN configuration files if needed.\n" +
-            "- Download the OpenVPN client for seamless connection.\n" +
-            "- Learn about the bot's developer.\n\n" +
-            "The bot is designed to provide quick and secure access to VPN features, ensuring user-friendly interaction and reliable support."
+            aboutbottext
         );
     }
 

@@ -14,6 +14,7 @@ builder.Services.AddHttpClient("tgwebhook").AddTypedClient<ITelegramBotClient>(
     httpClient => new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient));
 
 builder.Services.AddScoped<TelegramRegistrationService>();
+builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 builder.Services.AddSingleton<UpdateHandler>();
 builder.Services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
 
