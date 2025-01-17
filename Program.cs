@@ -1,15 +1,22 @@
 using System.Security.Cryptography.X509Certificates;
+using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
 using DataGateVPNBotV1.Services;
+using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
-
+using Microsoft.EntityFrameworkCore;
+    
 var builder = WebApplication.CreateBuilder(args);
 
 var botConfigSection = builder.Configuration.GetSection("BotConfiguration");
 builder.Services.Configure<BotConfiguration>(botConfigSection);
 builder.Services.AddHttpClient("tgwebhook").AddTypedClient<ITelegramBotClient>(
     httpClient => new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient));
+
+builder.Services.AddScoped<TelegramRegistrationService>();
 builder.Services.AddSingleton<UpdateHandler>();
+builder.Services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
+
 builder.Services.ConfigureTelegramBotMvc();
 
 builder.Services.AddControllers();
@@ -19,10 +26,8 @@ builder.Services.AddSwaggerGen();
 
 builder.WebHost.UseUrls("http://localhost:8443", "https://localhost:8443");
 
-// Загрузите сертификат и ключ вручную
 var certificate = X509Certificate2.CreateFromPemFile("datagatetgbot.pem", "datagatetgbot.key");
 
-// Настройка Kestrel
 builder.WebHost.UseKestrel(options =>
 {
     options.ListenAnyIP(8443, listenOptions =>
@@ -30,6 +35,9 @@ builder.WebHost.UseKestrel(options =>
         listenOptions.UseHttps(certificate);
     });
 });
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
