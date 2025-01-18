@@ -250,9 +250,9 @@ public class UpdateHandler : IUpdateHandler
         {
             new[]
             {
-                InlineKeyboardButton.WithUrl("Windows", "https://openvpn.net/client-connect-vpn-for-windows/"),
-                InlineKeyboardButton.WithUrl("Android", "https://play.google.com/store/apps/details?id=net.openvpn.openvpn"),
-                InlineKeyboardButton.WithUrl("iPhone", "https://apps.apple.com/app/openvpn-connect/id590379981")
+                InlineKeyboardButton.WithUrl("🖥 Windows", "https://openvpn.net/client-connect-vpn-for-windows/"),
+                InlineKeyboardButton.WithUrl("📱 Android", "https://play.google.com/store/apps/details?id=net.openvpn.openvpn"),
+                InlineKeyboardButton.WithUrl("🍎 iPhone", "https://apps.apple.com/app/openvpn-connect/id590379981")
             },
             new[]
             {
