@@ -423,7 +423,7 @@ public class UpdateHandler : IUpdateHandler
         await _botClient.SendChatAction(msg.Chat, ChatAction.UploadPhoto);
         await Task.Delay(2000); // simulate a long task
         await using var fileStream = new FileStream("Files/bot.gif", FileMode.Open, FileAccess.Read);
-        return await _botClient.SendPhoto(msg.Chat, fileStream, caption: "Read https://telegrambots.github.io/book/");
+        return await _botClient.SendAnimation(msg.Chat, fileStream, caption: "Read https://github.com/IMKolganov/DataGateVPNBot");
     }
 
     // Send inline keyboard. You can process responses in OnCallbackQuery handler
