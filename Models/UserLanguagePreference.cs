@@ -5,6 +5,6 @@ namespace DataGateVPNBotV1.Models;
 public class UserLanguagePreference
 {
     public int Id { get; set; }
-    public int TelegramId { get; set; }
+    public long TelegramId { get; set; }
     public Language PreferredLanguage { get; set; }
 }

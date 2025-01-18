@@ -3,17 +3,19 @@ using System;
 using DataGateVPNBotV1.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DataGateVPNBotV1.Entities
+namespace DataGateVPNBotV1.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250118012418_Initial")]
+    partial class Initial
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -164,6 +166,153 @@ namespace DataGateVPNBotV1.Entities
                             Key = "HowToUseVPN",
                             Language = 3,
                             Text = "Для использования VPN выполните следующие шаги:\n1. Регистрация:\nИспользуйте команду /register для регистрации и активации доступа к VPN.\n\n2. Получение файлов конфигурации:\nПосле регистрации используйте команду /get_my_files для загрузки ваших личных конфигурационных файлов для OpenVPN.\n\n3. Установка клиента OpenVPN:\nИспользуйте команду /install_client, чтобы получить ссылку на загрузку официального клиента OpenVPN. Установите клиент OpenVPN на ваше устройство (Windows, macOS, Linux или мобильное устройство).\n\n4. Загрузка файлов конфигурации:\nОткройте клиент OpenVPN и импортируйте файл конфигурации, который вы загрузили из бота.\n\n5. Подключение к VPN:\nЗапустите клиент OpenVPN, выберите импортированную конфигурацию и нажмите 'Подключиться', чтобы установить безопасное соединение."
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Key = "ChoosePlatform",
+                            Language = 1,
+                            Text = "Choose your platform to download the OpenVPN client or learn more about what OpenVPN is."
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Key = "ChoosePlatform",
+                            Language = 2,
+                            Text = "Επιλέξτε την πλατφόρμα σας για να κατεβάσετε τον OpenVPN client ή να μάθετε περισσότερα για το τι είναι το OpenVPN."
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Key = "ChoosePlatform",
+                            Language = 3,
+                            Text = "Выберите свою платформу, чтобы скачать клиент OpenVPN или узнать больше о том, что такое OpenVPN."
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Key = "ClientConfigCreated",
+                            Language = 1,
+                            Text = "Client configuration created successfully in UpdateHandler."
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Key = "ClientConfigCreated",
+                            Language = 2,
+                            Text = "Η διαμόρφωση πελάτη δημιουργήθηκε με επιτυχία στο UpdateHandler."
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Key = "ClientConfigCreated",
+                            Language = 3,
+                            Text = "Конфигурация клиента успешно создана в UpdateHandler."
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Key = "HereIsConfig",
+                            Language = 1,
+                            Text = "Here is your OpenVPN configuration file."
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Key = "HereIsConfig",
+                            Language = 2,
+                            Text = "Εδώ είναι το αρχείο διαμόρφωσης OpenVPN σας."
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Key = "HereIsConfig",
+                            Language = 3,
+                            Text = "Вот ваш файл конфигурации OpenVPN."
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Key = "DeveloperContacts",
+                            Language = 1,
+                            Text = "📞 **Developer Contacts** 📞\n\nIf you have any questions, suggestions, or need assistance, feel free to contact me:\n\n- **Telegram**: [Contact me](https://t.me/KolganovIvan)\n- **Email**: imkolganov@gmail.com\n- **GitHub**: [Profile](https://github.com/IMKolganov)\n\nI am always happy to help and hear your feedback! 😊"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Key = "DeveloperContacts",
+                            Language = 2,
+                            Text = "📞 **Επαφές Προγραμματιστή** 📞\n\nΑν έχετε οποιεσδήποτε ερωτήσεις, προτάσεις ή χρειάζεστε βοήθεια, μη διστάσετε να επικοινωνήσετε μαζί μου:\n\n- **Telegram**: [Επικοινωνήστε μαζί μου](https://t.me/KolganovIvan)\n- **Email**: imkolganov@gmail.com\n- **GitHub**: [Προφίλ](https://github.com/IMKolganov)\n\nΕίμαι πάντα χαρούμενος να βοηθήσω και να ακούσω τα σχόλιά σας! 😊"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Key = "DeveloperContacts",
+                            Language = 3,
+                            Text = "📞 **Контакты разработчика** 📞\n\nЕсли у вас есть вопросы, предложения или нужна помощь, не стесняйтесь связаться со мной:\n\n- **Telegram**: [Связаться со мной](https://t.me/KolganovIvan)\n- **Email**: imkolganov@gmail.com\n- **GitHub**: [Профиль](https://github.com/IMKolganov)\n\nЯ всегда рад помочь и выслушать ваши отзывы! 😊"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Key = "AboutProject",
+                            Language = 1,
+                            Text = "🌐 **About this project** 🌐\n\nThis project is created with love and care, primarily for the people closest to me. 💖\n\nIt runs on a humble Raspberry Pi, which hums softly with its tiny fan, working tirelessly 24/7 next to my desk. 🛠️📡\n\nThanks to this little device, my loved ones can enjoy unrestricted access to the vast world of the internet, no matter where they are. 🌍\n\nFor me, it's not just a project, but a way to ensure that the people I care about most always stay connected and free online. ✨"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Key = "AboutProject",
+                            Language = 2,
+                            Text = "🌐 **Σχετικά με αυτό το έργο** 🌐\n\nΑυτό το έργο δημιουργήθηκε με αγάπη και φροντίδα, κυρίως για τα πιο κοντινά μου άτομα. 💖\n\nΛειτουργεί σε ένα απλό Raspberry Pi, το οποίο δουλεύει αθόρυβα με το μικρό του ανεμιστήρα, ακούραστα 24/7 δίπλα στο γραφείο μου. 🛠️📡\n\nΧάρη σε αυτήν τη μικρή συσκευή, οι αγαπημένοι μου μπορούν να απολαμβάνουν απεριόριστη πρόσβαση στον τεράστιο κόσμο του διαδικτύου, ανεξάρτητα από το πού βρίσκονται. 🌍\n\nΓια μένα, δεν είναι απλώς ένα έργο, αλλά ένας τρόπος να διασφαλίσω ότι τα άτομα που με ενδιαφέρουν περισσότερο θα παραμείνουν πάντα συνδεδεμένα και ελεύθερα στο διαδίκτυο. ✨"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Key = "AboutProject",
+                            Language = 3,
+                            Text = "🌐 **О проекте** 🌐\n\nЭтот проект создан с любовью и заботой, главным образом для самых близких мне людей. 💖\n\nОн работает на скромном Raspberry Pi, который тихо жужжит своим маленьким вентилятором, неустанно трудясь 24/7 рядом с моим столом. 🛠️📡\n\nБлагодаря этому небольшому устройству, мои близкие могут наслаждаться неограниченным доступом к огромному миру интернета, где бы они ни находились. 🌍\n\nДля меня это не просто проект, а способ убедиться, что люди, о которых я больше всего забочусь, всегда остаются на связи и свободны в интернете. ✨"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Key = "ChangeLanguage",
+                            Language = 1,
+                            Text = "/change_language - Change your language"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Key = "ChangeLanguage",
+                            Language = 2,
+                            Text = "/change_language - Αλλάξτε τη γλώσσα σας"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Key = "ChangeLanguage",
+                            Language = 3,
+                            Text = "/change_language - Изменить язык"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Key = "SuccessChangeLanguage",
+                            Language = 1,
+                            Text = "✅ You have successfully changed your language to English!"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Key = "SuccessChangeLanguage",
+                            Language = 2,
+                            Text = "✅ Έχετε αλλάξει τη γλώσσα σας σε Ελληνικά!"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Key = "SuccessChangeLanguage",
+                            Language = 3,
+                            Text = "✅ Вы успешно сменили язык на Русский!"
                         });
                 });
 
@@ -209,8 +358,8 @@ namespace DataGateVPNBotV1.Entities
                     b.Property<int>("PreferredLanguage")
                         .HasColumnType("integer");
 
-                    b.Property<int>("TelegramId")
-                        .HasColumnType("integer");
+                    b.Property<long>("TelegramId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 

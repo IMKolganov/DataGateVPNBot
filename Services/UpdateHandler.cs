@@ -16,7 +16,6 @@ public class UpdateHandler : IUpdateHandler
     private readonly ITelegramBotClient _botClient;
     private readonly IServiceProvider _serviceProvider;
     private readonly IOpenVpnClientService _openVpnClientService;
-    private readonly ILocalizationService _localizationService;
     private readonly ILogger<UpdateHandler> _logger;
     private readonly InputPollOption[] PollOptions = new[]
     {
@@ -28,13 +27,11 @@ public class UpdateHandler : IUpdateHandler
         ITelegramBotClient botClient,
         IServiceProvider serviceProvider,
         IOpenVpnClientService openVpnClientService,
-        ILocalizationService localizationService,
         ILogger<UpdateHandler> logger)
     {
         _botClient = botClient ?? throw new ArgumentNullException(nameof(botClient));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     
@@ -71,17 +68,41 @@ public class UpdateHandler : IUpdateHandler
         _logger.LogInformation("Receive message type: {MessageType}", msg.Type);
         if (msg.Text is not { } messageText)
             return;
+        
+        using var scope = _serviceProvider.CreateScope();//todo: fix this shit
+        var registrationService = scope.ServiceProvider.GetRequiredService<TelegramRegistrationService>();
+        await RegisterNewUserAsync(msg, registrationService);
+        
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
 
+        if (messageText.Equals("/English", StringComparison.OrdinalIgnoreCase) ||
+            messageText.Equals("/Русский", StringComparison.OrdinalIgnoreCase) ||
+            messageText.Equals("/Ελληνικά", StringComparison.OrdinalIgnoreCase))
+        {
+            await ChangeLanguage(msg);
+            return;
+        }
+
+        var userLanguage = await localizationService.GetUserLanguageOrNullAsync(msg.From.Id);
+        if (userLanguage == null)
+        {
+            await SelectLanguage(msg);
+            return;
+        }
+        
         Message sentMessage = await (messageText.Split(' ')[0] switch
         {
             "/about_bot" => AboutBot(msg),
             "/how_to_use" => HowToUseVPN(msg),
             "/register" => RegisterForVPN(msg),
-            // "/get_my_files" => GetMyVPNFiles(msg),
+            "/get_my_files" => throw new NotImplementedException(),
             "/make_new_file" => MakeNewVPNFile(msg),
+            "/delete_selected_file" => throw new NotImplementedException(),
+            "/delete_all_files" => throw new NotImplementedException(),
             "/install_client" => InstallClient(msg),
             "/about_project" => AboutProject(msg),
             "/contacts" => Contacts(msg),
+            "/change_language" => SelectLanguage(msg),
             
             "/photo" => SendPhoto(msg),
             "/inline_buttons" => SendInlineKeyboard(msg),
@@ -92,6 +113,7 @@ public class UpdateHandler : IUpdateHandler
             "/poll" => SendPoll(msg),
             "/poll_anonymous" => SendAnonymousPoll(msg),
             "/throw" => FailingHandler(msg),
+            
             _ => Usage(msg)
         });
         _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
@@ -99,87 +121,79 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> Usage(Message msg)
     {
-        string usage = await _localizationService.GetTextAsync("BotMenu", Language.Russian);
-            // <b><u>Bot Menu for developer's</u></b>:
-            // /photo           - send a photo
-            // /inline_buttons  - send inline buttons
-            // /keyboard        - send keyboard buttons
-            // /remove          - remove keyboard buttons
-            // /request         - request location or contact
-            // /inline_mode     - send inline-mode results list
-            // /poll            - send a poll
-            // /poll_anonymous  - send an anonymous poll
-            // /throw           - what happens if handler fails
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string usage = await localizationService.GetTextAsync("BotMenu", msg.From.Id);
         return await _botClient.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html, replyMarkup: new ReplyKeyboardRemove());
     }
     
     async Task<Message> AboutBot(Message msg)
     {
-        string aboutbottext = await _localizationService.GetTextAsync("AboutBot", Language.Russian);
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string aboutbottext = await localizationService.GetTextAsync("AboutBot", msg.From.Id);
         return await _botClient.SendMessage(
             msg.Chat,
             aboutbottext
         );
     }
 
-    public async Task<Message> RegisterForVPN(Message msg)
+    async Task<Message> RegisterForVPN(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
         var registrationService = scope.ServiceProvider.GetRequiredService<TelegramRegistrationService>();
-
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string registertext = await localizationService.GetTextAsync("Registered", msg.From.Id);
         if (msg.From != null)
-            await registrationService.RegisterUserAsync(
-                telegramId: msg.From.Id,
-                username: msg.From.Username,
-                firstName: msg.From.FirstName,
-                lastName: msg.From.LastName
-            );
-
+            await RegisterNewUserAsync(msg, registrationService);
+        
         return await _botClient.SendTextMessageAsync(
             chatId: msg.Chat.Id,
-            text: "You have successfully registered for VPN access!"
+            text: registertext
+        );
+    }
+
+    async Task RegisterNewUserAsync(Message msg, TelegramRegistrationService registrationService)
+    {
+        await registrationService.RegisterUserAsync(
+            telegramId: msg.From.Id,
+            username: msg.From.Username,
+            firstName: msg.From.FirstName,
+            lastName: msg.From.LastName
         );
     }
     async Task<Message> HowToUseVPN(Message msg)
     {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        var response = await localizationService.GetTextAsync("HowToUseVPN", msg.From.Id);
         return await _botClient.SendMessage(
             msg.Chat,
-            "To use the VPN, follow these steps:\n\n" +
-            "1. **Register**:\n" +
-            "   - Use the `/register` command to register and enable VPN access.\n\n" +
-            "2. **Get Configuration Files**:\n" +
-            "   - After registration, use the `/get_my_files` command to download your personal configuration files for OpenVPN.\n\n" +
-            "3. **Install OpenVPN Client**:\n" +
-            "   - Use the `/install_client` command to get a link to download the official OpenVPN client.\n" +
-            "   - Install the OpenVPN client on your device (Windows, macOS, Linux, or mobile).\n\n" +
-            "4. **Load Configuration Files**:\n" +
-            "   - Open the OpenVPN client.\n" +
-            "   - Import the configuration file you downloaded from the bot.\n\n" +
-            "5. **Connect to VPN**:\n" +
-            "   - Start the OpenVPN client and select the imported configuration.\n" +
-            "   - Click 'Connect' to establish a secure connection.\n\n" +
-            "If you face any issues, feel free to reach out using `/about_bot` to learn more about the bot or `/about_project` for contact details."
-        );
+            response);
     }
 
     async Task<Message> MakeNewVPNFile(Message msg)
     {
-        
         // Generate the client configuration file
         var clientConfigFile = _openVpnClientService.CreateClientConfiguration(msg.Chat.Id.ToString(), "213.133.91.43");//todo: move;
         Console.WriteLine("Client configuration created successfully in UpdateHandler.");
-
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string hereisconfigtext = await localizationService.GetTextAsync("HereIsConfig", msg.From.Id);
         // Send the .ovpn file to the user
         await using var fileStream = new FileStream(clientConfigFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
         return await _botClient.SendDocumentAsync(
             chatId: msg.Chat.Id,
             document: InputFile.FromStream(fileStream, clientConfigFile.Name),
-            caption: "Here is your OpenVPN configuration file."
+            caption: hereisconfigtext
         );
     }
 
     async Task<Message> InstallClient(Message msg)
     {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string chooseplatformtext = await localizationService.GetTextAsync("ChoosePlatform", msg.From.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -196,13 +210,16 @@ public class UpdateHandler : IUpdateHandler
 
         return await _botClient.SendMessage(
             msg.Chat,
-            "Choose your platform to download the OpenVPN client or learn more about what OpenVPN is:",
+            chooseplatformtext,
             replyMarkup: inlineMarkup
         );
     }
     
     async Task<Message> AboutProject(Message msg)
     {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string aboutprojecttext = await localizationService.GetTextAsync("AboutProject", msg.From.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -210,20 +227,19 @@ public class UpdateHandler : IUpdateHandler
                 InlineKeyboardButton.WithUrl("What is Raspberry Pi?", "https://www.raspberrypi.org/about/")
             }
         });
-
+        
         return await _botClient.SendMessage(
-            msg.Chat,
-            "🌐 **About this project** 🌐\n\n" +
-            "This project is created with love and care, primarily for the people closest to me. 💖\n\n" +
-            "It runs on a humble Raspberry Pi, which hums softly with its tiny fan, working tirelessly 24/7 next to my desk. 🛠️📡\n\n" +
-            "Thanks to this little device, my loved ones can enjoy unrestricted access to the vast world of the internet, no matter where they are. 🌍\n\n" +
-            "For me, it's not just a project, but a way to ensure that the people I care about most always stay connected and free online. ✨",
+            msg.Chat, 
+            aboutprojecttext,
             replyMarkup: inlineMarkup
         );
     }
     
     async Task<Message> Contacts(Message msg)
     {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string developercontactstext = await localizationService.GetTextAsync("DeveloperContacts", msg.From.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -232,16 +248,71 @@ public class UpdateHandler : IUpdateHandler
                 InlineKeyboardButton.WithUrl("GitHub", "https://github.com/IMKolganov")
             }
         });
-
+        
         return await _botClient.SendMessage(
             msg.Chat,
-            "📞 **Developer Contacts** 📞\n\n" +
-            "If you have any questions, suggestions, or need assistance, feel free to contact me:\n\n" +
-            "- **Telegram**: [Contact me](https://t.me/KolganovIvan)\n" +
-            "- **Email**: imkolganov@gmail.com\n" +
-            "- **GitHub**: [Profile](https://github.com/IMKolganov)\n\n" +
-            "I am always happy to help and hear your feedback! 😊",
+            developercontactstext,
             replyMarkup: inlineMarkup
+        );
+    }
+
+    async Task<Message> SelectLanguage(Message msg)
+    {
+        var replyMarkup = new ReplyKeyboardMarkup(new[]
+        {
+            new KeyboardButton[] { "/English", "/Русский", "/Ελληνικά" }
+        })
+        {
+            ResizeKeyboard = true,
+            OneTimeKeyboard = true
+        };
+
+        return await _botClient.SendTextMessageAsync(
+            chatId: msg.Chat.Id,
+            text: "🔹 You can click on your preferred language to proceed.\n" +
+                  "🔹 Выберите ваш язык, нажав на соответствующую кнопку.\n" +
+                  "🔹 Επιλέξτε τη γλώσσα σας πατώντας το αντίστοιχο κουμπί.",
+            replyMarkup: replyMarkup
+        );
+
+    }
+
+    async Task<Message> ChangeLanguage(Message msg)
+    {
+        var selectedLanguage = msg.Text;
+        Language? language = selectedLanguage switch
+        {
+            "/English" => Language.English,
+            "/Русский" => Language.Russian,
+            "/Ελληνικά" => Language.Greek,
+            _ => null
+        };
+
+        if (language == null)
+        {
+            return await _botClient.SendTextMessageAsync(
+                chatId: msg.Chat.Id,
+                text: "❌ Invalid language selection. Please try again.",
+                replyMarkup: new ReplyKeyboardMarkup(new[]
+                {
+                    new KeyboardButton[] { "/English", "/Русский", "/Ελληνικά" }
+                })
+                {
+                    ResizeKeyboard = true,
+                    OneTimeKeyboard = true
+                }
+            );
+        }
+
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        await localizationService.SetUserLanguageAsync(msg.From.Id, language.Value);
+        string confirmationMessage = await localizationService.GetTextAsync("SuccessChangeLanguage", msg.From.Id);
+        
+        return await _botClient.SendTextMessageAsync(
+            chatId: msg.Chat.Id,
+            text: confirmationMessage,
+            replyMarkup: new ReplyKeyboardRemove()
         );
     }
     
