@@ -7,6 +7,7 @@ namespace DataGateVPNBotV1.Services;
 
 public class OpenVpnClientService : IOpenVpnClientService
 {
+    private readonly ILogger<OpenVpnClientService> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly string _easyRsaPath;
     private readonly string _pkiPath;
@@ -14,8 +15,9 @@ public class OpenVpnClientService : IOpenVpnClientService
     private readonly string _tlsAuthKey;
     private readonly string _serverIp;
 
-    public OpenVpnClientService(IConfiguration configuration, IServiceProvider serviceProvider)
+    public OpenVpnClientService(ILogger<OpenVpnClientService> logger,IConfiguration configuration, IServiceProvider serviceProvider)
     {
+        _logger = logger;
         _serviceProvider = serviceProvider;
         _easyRsaPath = configuration["OpenVpn:EasyRsaPath"] ?? throw new InvalidOperationException();
         _pkiPath = Path.Combine(_easyRsaPath, "pki");
@@ -27,22 +29,33 @@ public class OpenVpnClientService : IOpenVpnClientService
     public async Task<GetAllFilesResult> GetAllClientConfigurations(long telegramId)
     {
         var issuedOvpnFiles = await GetFileInfoFromDB(telegramId);
+        _logger.LogInformation("Found {Count} issued files in database.", issuedOvpnFiles.Count);
+
         List<FileInfo> fileInfos = new List<FileInfo>();
-        
+
         foreach (var issuedOvpnFile in issuedOvpnFiles)
         {
             string existingOvpnFilePath = Path.Combine(_outputDir, $"{issuedOvpnFile.FileName}.ovpn");
+            _logger.LogInformation("Checking existence of file: {FilePath}", existingOvpnFilePath);
+
             if (File.Exists(existingOvpnFilePath))
             {
+                _logger.LogInformation("File exists: {FilePath}", existingOvpnFilePath);
                 fileInfos.Add(new FileInfo(existingOvpnFilePath));
             }
-
+            else
+            {
+                _logger.LogWarning("File not found: {FilePath}", existingOvpnFilePath);
+            }
         }
 
-        return  new GetAllFilesResult()
+        var responseMessage = await GetResponseText(telegramId);
+        _logger.LogInformation("Generated response message for user: {TelegramId}", telegramId);
+
+        return new GetAllFilesResult
         {
             FileInfo = fileInfos,
-            Message = await GetResponseText(telegramId)
+            Message = responseMessage
         };
     }
 
@@ -50,18 +63,18 @@ public class OpenVpnClientService : IOpenVpnClientService
     {
         try
         {
-            Console.WriteLine("Step 1: Checking if PKI directory exists...");
+            _logger.LogInformation("Step 1: Checking if PKI directory exists...");
             if (!Directory.Exists(_pkiPath))
             {
-                Console.WriteLine("PKI directory does not exist. Initializing PKI...");
+                _logger.LogInformation("PKI directory does not exist. Initializing PKI...");
                 RunCommand($"cd {_easyRsaPath} && ./easyrsa init-pki");
             }
             else
             {
-                Console.WriteLine("PKI directory exists. Skipping initialization...");
+                _logger.LogInformation("PKI directory exists. Skipping initialization...");
             }
 
-            Console.WriteLine("Step 1.1: Checking if configuration already exists for this client...");
+            _logger.LogInformation("Step 1.1: Checking if configuration already exists for this client...");
             string baseOvpnFileName = $"{telegramId.ToString()}.ovpn";
             string ovpnFilePath = Path.Combine(_outputDir, baseOvpnFileName);
             int attempt = 0;
@@ -77,25 +90,25 @@ public class OpenVpnClientService : IOpenVpnClientService
                 throw new InvalidOperationException($"Maximum limit of {maxAttempts + 1} configurations for client '{telegramId.ToString()}' has been reached. Cannot create more files.");
             }
 
-            Console.WriteLine("Step 2: Building client certificate...");
+            _logger.LogInformation("Step 2: Building client certificate...");
             RunCommand($"cd {_easyRsaPath} && ./easyrsa build-client-full {telegramId.ToString()}_{attempt} nopass");
 
-            Console.WriteLine("Step 3: Defining paths to certificates and keys...");
+            _logger.LogInformation("Step 3: Defining paths to certificates and keys...");
             string caCertContent = ReadPemContent(Path.Combine(_pkiPath, "ca.crt"));
             string clientCertContent = ReadPemContent(Path.Combine(_pkiPath, "issued", $"{telegramId.ToString()}_{attempt}.crt"));
             string clientKeyContent = await File.ReadAllTextAsync(Path.Combine(_pkiPath, "private", $"{telegramId.ToString()}_{attempt}.key"));
 
-            Console.WriteLine("Step 4: Generating .ovpn configuration file...");
+            _logger.LogInformation("Step 4: Generating .ovpn configuration file...");
             string ovpnContent = GenerateOvpnFile(_serverIp, caCertContent, 
                 clientCertContent, clientKeyContent, _tlsAuthKey);
 
-            Console.WriteLine("Step 5: Ensuring output directory exists...");
+            _logger.LogInformation("Step 5: Ensuring output directory exists...");
             Directory.CreateDirectory(_outputDir);
 
-            Console.WriteLine("Step 6: Writing .ovpn file...");
+            _logger.LogInformation("Step 6: Writing .ovpn file...");
             await File.WriteAllTextAsync(ovpnFilePath, ovpnContent);
 
-            Console.WriteLine($"Client configuration file created: {ovpnFilePath}");
+            _logger.LogInformation($"Client configuration file created: {ovpnFilePath}");
             var fileInfo = new FileInfo(ovpnFilePath);
             await SaveInfoInDB(telegramId, fileInfo);
             return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId)};
@@ -103,7 +116,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            _logger.LogInformation($"Error: {ex.Message}");
             throw;
         }
     }
@@ -182,8 +195,6 @@ verb 3
 
             if (process.ExitCode != 0)
                 throw new InvalidOperationException($"Command execution failed: {error}");
-
-            Console.WriteLine(output);
         }
     }
     

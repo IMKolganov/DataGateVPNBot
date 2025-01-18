@@ -260,7 +260,7 @@ public class UpdateHandler : IUpdateHandler
     {
         // Generate the client configuration file
         var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.From!.Id);
-        Console.WriteLine("Client configuration created successfully in UpdateHandler.");
+        _logger.LogInformation("Client configuration created successfully in UpdateHandler.");
         // Send the .ovpn file to the user
         await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read,
             FileShare.Read);
