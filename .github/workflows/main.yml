@@ -1,0 +1,42 @@
+name: Build and Deploy DataGateVPNBot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup .NET 6
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore ./DataGateVPNBotV1/DataGateVPNBotV1.csproj
+
+    - name: Build application
+      run: dotnet publish ./DataGateVPNBotV1/DataGateVPNBotV1.csproj -c Release -r linux-arm64 --self-contained false -o ./publish
+
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy application to Raspberry Pi
+      run: |
+        scp -r ./publish/* ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/home/${{ secrets.RPI_USER }}/DataGateVPNBot/
+        ssh ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} << 'EOF'
+          cd /home/${{ secrets.RPI_USER }}/DataGateVPNBot/
+          chmod +x DataGateVPNBotV1
+          pkill -f DataGateVPNBotV1 || true
+          nohup ./DataGateVPNBotV1 > bot.log 2>&1 &
+        EOF
