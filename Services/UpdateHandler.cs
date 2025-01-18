@@ -203,29 +203,47 @@ public class UpdateHandler : IUpdateHandler
             {
                 _logger.LogInformation("Multiple configuration files detected. Preparing media group...");
                 var mediaGroup = new List<IAlbumInputMedia>();
+                var openStreams = new List<FileStream>();
 
-                foreach (var fileInfo in clientConfigFiles.FileInfo)
+                try
                 {
-                    _logger.LogInformation("Processing file: {FileName} at {FilePath}", fileInfo.Name,
-                        fileInfo.FullName);
-                    using var fileStream = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read);
-                    var inputFile = new InputFileStream(fileStream, fileInfo.Name);
-                    var media = new InputMediaDocument(inputFile)
+                    foreach (var fileInfo in clientConfigFiles.FileInfo)
                     {
-                        Caption = fileInfo.Name
-                    };
-                    mediaGroup.Add(media);
+                        _logger.LogInformation("Processing file: {FileName} at {FilePath}", fileInfo.Name, fileInfo.FullName);
+
+                        var fileStream = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        openStreams.Add(fileStream);
+
+                        var inputFile = new InputFileStream(fileStream, fileInfo.Name);
+                        var media = new InputMediaDocument(inputFile)
+                        {
+                            Caption = fileInfo.Name
+                        };
+                        mediaGroup.Add(media);
+                    }
+
+                    _logger.LogInformation("Sending media group...");
+                    var m = await _botClient.SendMediaGroup(
+                        chatId: msg.Chat.Id,
+                        media: mediaGroup
+                    );
+                    _logger.LogInformation("Media group sent successfully.");
+
+                    return m.FirstOrDefault() ?? throw new InvalidOperationException("No messages returned after sending media group.");
                 }
-
-                _logger.LogInformation("Sending media group...");
-                var m = await _botClient.SendMediaGroup(
-                    chatId: msg.Chat.Id,
-                    media: mediaGroup
-                );
-                _logger.LogInformation("Media group sent successfully.");
-
-                return m.FirstOrDefault() ??
-                       throw new InvalidOperationException("No messages returned after sending media group.");
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred while sending media group.");
+                    throw;
+                }
+                finally
+                {
+                    foreach (var stream in openStreams)
+                    {
+                        stream.Close();
+                        _logger.LogInformation("Closed stream for file: {StreamPath}", stream.Name);
+                    }
+                }
             }
             else
             {
