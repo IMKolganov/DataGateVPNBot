@@ -33,7 +33,7 @@ jobs:
 
     - name: Deploy application to Raspberry Pi
       run: |
-        scp -r ./publish/* ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/home/${{ secrets.RPI_USER }}/DataGateVPNBot/
+        rsync -av --exclude 'appsettings.json' --exclude 'appsettings.Development.json' ./publish/ ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/home/${{ secrets.RPI_USER }}/DataGateVPNBot/
         ssh ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} << 'EOF'
           export DOTNET_ROOT=/home/${{ secrets.RPI_USER }}/.dotnet
           export PATH=$PATH:/home/${{ secrets.RPI_USER }}/.dotnet
