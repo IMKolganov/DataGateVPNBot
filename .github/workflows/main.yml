@@ -19,10 +19,10 @@ jobs:
         dotnet-version: 6.0.x
 
     - name: Restore dependencies
-      run: dotnet restore ./DataGateVPNBotV1/DataGateVPNBotV1.csproj
+      run: dotnet restore ./DataGateVPNBotV1.csproj
 
     - name: Build application
-      run: dotnet publish ./DataGateVPNBotV1/DataGateVPNBotV1.csproj -c Release -r linux-arm64 --self-contained false -o ./publish
+      run: dotnet publish ./DataGateVPNBotV1.csproj -c Release -r linux-arm64 --self-contained false -o ./publish
 
     - name: Set up SSH
       run: |
