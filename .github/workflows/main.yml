@@ -35,6 +35,9 @@ jobs:
       run: |
         scp -r ./publish/* ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/home/${{ secrets.RPI_USER }}/DataGateVPNBot/
         ssh ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} << 'EOF'
+          echo 'export DOTNET_ROOT=$HOME/.dotnet' >> ~/.bashrc
+          echo 'export PATH=$PATH:$HOME/.dotnet' >> ~/.bashrc
+          source ~/.bashrc
           cd /home/${{ secrets.RPI_USER }}/DataGateVPNBot/
           chmod +x DataGateVPNBotV1
           pkill -f DataGateVPNBotV1 || true
