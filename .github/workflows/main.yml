@@ -39,4 +39,9 @@ jobs:
           chmod +x DataGateVPNBotV1
           pkill -f DataGateVPNBotV1 || true
           nohup ./DataGateVPNBotV1 > bot.log 2>&1 &
+          sleep 5
+          echo "=== Application Status ==="
+          ps aux | grep DataGateVPNBotV1 | grep -v grep || echo "Application is not running"
+          echo "=== Application Logs ==="
+          cat bot.log || echo "No logs available"
         EOF
