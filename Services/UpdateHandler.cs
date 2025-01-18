@@ -99,15 +99,17 @@ public class UpdateHandler : IUpdateHandler
                 return;
             }
         }
-
-        Message sentMessage = await Menu(msg, messageText);
-        _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
+        
+        await MakeNewVpnFile(msg);
+        await InstallClient(msg);
+        await Usage(msg);
     }
 
     async Task<Message> Menu(Message msg, string messageText)
     {
         return await (messageText.Split(' ')[0] switch
         {
+            "/menu" => Usage(msg),
             "/about_bot" => AboutBot(msg),
             "/how_to_use" => HowToUseVpn(msg),
             "/register" => RegisterForVpn(msg),
