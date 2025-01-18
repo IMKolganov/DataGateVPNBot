@@ -78,12 +78,12 @@ public class OpenVpnClientService : IOpenVpnClientService
             }
 
             Console.WriteLine("Step 2: Building client certificate...");
-            RunCommand($"cd {_easyRsaPath} && ./easyrsa build-client-full {telegramId.ToString()} nopass");
+            RunCommand($"cd {_easyRsaPath} && ./easyrsa build-client-full {telegramId.ToString()}_{attempt} nopass");
 
             Console.WriteLine("Step 3: Defining paths to certificates and keys...");
             string caCertContent = ReadPemContent(Path.Combine(_pkiPath, "ca.crt"));
-            string clientCertContent = ReadPemContent(Path.Combine(_pkiPath, "issued", $"{telegramId.ToString()}.crt"));
-            string clientKeyContent = await File.ReadAllTextAsync(Path.Combine(_pkiPath, "private", $"{telegramId.ToString()}.key"));
+            string clientCertContent = ReadPemContent(Path.Combine(_pkiPath, "issued", $"{telegramId.ToString()}_{attempt}.crt"));
+            string clientKeyContent = await File.ReadAllTextAsync(Path.Combine(_pkiPath, "private", $"{telegramId.ToString()}_{attempt}.key"));
 
             Console.WriteLine("Step 4: Generating .ovpn configuration file...");
             string ovpnContent = GenerateOvpnFile(_serverIp, caCertContent, 
