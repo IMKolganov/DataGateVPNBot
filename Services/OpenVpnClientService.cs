@@ -1,24 +1,29 @@
 ﻿using System.Diagnostics;
+using DataGateVPNBotV1.Models.Helpers;
 using DataGateVPNBotV1.Services.Interfaces;
 
 namespace DataGateVPNBotV1.Services;
 
 public class OpenVpnClientService : IOpenVpnClientService
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly string _easyRsaPath;
     private readonly string _pkiPath;
     private readonly string _outputDir;
     private readonly string _tlsAuthKey;
+    private readonly string _serverIp;
 
-    public OpenVpnClientService(IConfiguration configuration)
+    public OpenVpnClientService(IConfiguration configuration, IServiceProvider serviceProvider)
     {
-        _easyRsaPath = configuration["OpenVpn:EasyRsaPath"];
+        _serviceProvider = serviceProvider;
+        _easyRsaPath = configuration["OpenVpn:EasyRsaPath"] ?? throw new InvalidOperationException();
         _pkiPath = Path.Combine(_easyRsaPath, "pki");
-        _outputDir = configuration["OpenVpn:OutputDir"];
-        _tlsAuthKey = configuration["OpenVpn:TlsAuthKey"];
+        _outputDir = configuration["OpenVpn:OutputDir"] ?? throw new InvalidOperationException();
+        _tlsAuthKey = configuration["OpenVpn:TlsAuthKey"] ?? throw new InvalidOperationException();
+        _serverIp = configuration["OpenVpn:ServerIp"] ?? throw new InvalidOperationException();
     }
 
-    public FileInfo CreateClientConfiguration(string clientName, string serverIp)
+    public async Task<FileCreationResult> CreateClientConfiguration(string clientName, long telegramId)
     {
         try
         {
@@ -37,8 +42,12 @@ public class OpenVpnClientService : IOpenVpnClientService
             string existingOvpnFilePath = Path.Combine(_outputDir, $"{clientName}.ovpn");
             if (File.Exists(existingOvpnFilePath))
             {
-                Console.WriteLine($"Configuration for client '{clientName}' already exists at {existingOvpnFilePath}. Returning existing file.");
-                return new FileInfo(existingOvpnFilePath);
+                Console.WriteLine($"Configuration for client '{clientName}' already exists at {existingOvpnFilePath}." +
+                                  $" Returning existing file.");
+                return new FileCreationResult
+                {
+                    FileInfo = new FileInfo(existingOvpnFilePath), Message = await GetResponseText(telegramId)
+                };
             }
 
             Console.WriteLine("Step 2: Building client certificate...");
@@ -47,20 +56,23 @@ public class OpenVpnClientService : IOpenVpnClientService
             Console.WriteLine("Step 3: Defining paths to certificates and keys...");
             string caCertContent = ReadPemContent(Path.Combine(_pkiPath, "ca.crt"));
             string clientCertContent = ReadPemContent(Path.Combine(_pkiPath, "issued", $"{clientName}.crt"));
-            string clientKeyContent = File.ReadAllText(Path.Combine(_pkiPath, "private", $"{clientName}.key"));
+            string clientKeyContent = await File.ReadAllTextAsync(Path.Combine(_pkiPath, "private", $"{clientName}.key"));
 
             Console.WriteLine("Step 4: Generating .ovpn configuration file...");
-            string ovpnContent = GenerateOvpnFile(clientName, serverIp, caCertContent, clientCertContent, clientKeyContent, _tlsAuthKey);
+            string ovpnContent = GenerateOvpnFile(_serverIp, caCertContent, 
+                clientCertContent, clientKeyContent, _tlsAuthKey);
             string ovpnFilePath = Path.Combine(_outputDir, $"{clientName}.ovpn");
 
             Console.WriteLine("Step 5: Ensuring output directory exists...");
             Directory.CreateDirectory(_outputDir);
 
             Console.WriteLine("Step 6: Writing .ovpn file...");
-            File.WriteAllText(ovpnFilePath, ovpnContent);
+            await File.WriteAllTextAsync(ovpnFilePath, ovpnContent);
 
             Console.WriteLine($"Client configuration file created: {ovpnFilePath}");
-            return new FileInfo(ovpnFilePath);
+            var fileInfo = new FileInfo(ovpnFilePath);
+            await SaveInfoInDB(telegramId, fileInfo);
+            return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId)};
             
         }
         catch (Exception ex)
@@ -70,7 +82,22 @@ public class OpenVpnClientService : IOpenVpnClientService
         }
     }
 
-    private static string GenerateOvpnFile(string clientName, string serverIp, string caCert, string clientCert, string clientKey, string tlsAuthKey)
+    private async Task<string> GetResponseText(long telegramId)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        return await localizationService.GetTextAsync("HereIsConfig", telegramId);
+    }
+
+    private async Task SaveInfoInDB(long telegramId, FileInfo fileInfo)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
+        await issuedOvpnFileService.AddIssuedOvpnFileAsync(telegramId, fileInfo);
+    }
+
+    private static string GenerateOvpnFile(string serverIp, string caCert, string clientCert, 
+        string clientKey, string tlsAuthKey)
     {
         return $@"client
 dev tun
@@ -132,7 +159,8 @@ verb 3
         var lines = File.ReadAllLines(filePath);
         return string.Join(Environment.NewLine, lines
             .SkipWhile(line => !line.StartsWith("-----BEGIN CERTIFICATE-----"))
-            .TakeWhile(line => !line.StartsWith("-----END CERTIFICATE-----")).Append("-----END CERTIFICATE-----"));
+            .TakeWhile(line => !line.StartsWith("-----END CERTIFICATE-----"))
+            .Append("-----END CERTIFICATE-----"));
     }
 
 }

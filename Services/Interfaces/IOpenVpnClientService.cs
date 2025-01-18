@@ -1,6 +1,8 @@
-﻿namespace DataGateVPNBotV1.Services.Interfaces;
+﻿using DataGateVPNBotV1.Models.Helpers;
+
+namespace DataGateVPNBotV1.Services.Interfaces;
 
 public interface IOpenVpnClientService
 {
-    FileInfo CreateClientConfiguration(string clientName, string serverIp);
+    Task<FileCreationResult> CreateClientConfiguration(string clientName, long telegramId);
 }

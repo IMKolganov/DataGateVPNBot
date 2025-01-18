@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DataGateVPNBotV1.Services;
 
-public class TelegramRegistrationService
+public class TelegramRegistrationService : ITelegramRegistrationService
 {
     private readonly ApplicationDbContext _dbContext;
 

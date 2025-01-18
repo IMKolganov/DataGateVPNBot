@@ -11,10 +11,11 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    public DbSet<TelegramUser> TelegramUsers { get; set; }
+    public DbSet<TelegramUser> TelegramUsers { get; set; } = null!;
     public DbSet<IssuedOvpnFile> IssuedOvpnFiles { get; set; } = null!;
     public DbSet<UserLanguagePreference> UserLanguagePreferences { get; set; } = null!;
     public DbSet<LocalizationText> LocalizationTexts { get; set; } = null!;
+    public DbSet<IncomingMessageLog> IncomingMessageLog { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

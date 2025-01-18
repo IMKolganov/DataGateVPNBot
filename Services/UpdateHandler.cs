@@ -17,7 +17,7 @@ public class UpdateHandler : IUpdateHandler
     private readonly IServiceProvider _serviceProvider;
     private readonly IOpenVpnClientService _openVpnClientService;
     private readonly ILogger<UpdateHandler> _logger;
-    private readonly InputPollOption[] PollOptions = new[]
+    private readonly InputPollOption[] _pollOptions = new[]
     {
         new InputPollOption("Hello"),
         new InputPollOption("World!")
@@ -70,7 +70,11 @@ public class UpdateHandler : IUpdateHandler
             return;
         
         using var scope = _serviceProvider.CreateScope();//todo: fix this shit
-        var registrationService = scope.ServiceProvider.GetRequiredService<TelegramRegistrationService>();
+        
+        var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<IIncomingMessageLogService>();
+        await incomingMessageLogService.Log(_botClient, msg);
+        
+        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         await RegisterNewUserAsync(msg, registrationService);
         
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
@@ -83,20 +87,23 @@ public class UpdateHandler : IUpdateHandler
             return;
         }
 
-        var userLanguage = await localizationService.GetUserLanguageOrNullAsync(msg.From.Id);
-        if (userLanguage == null)
+        if (msg.From != null)
         {
-            await SelectLanguage(msg);
-            return;
+            var userLanguage = await localizationService.GetUserLanguageOrNullAsync(msg.From.Id);
+            if (userLanguage == null)
+            {
+                await SelectLanguage(msg);
+                return;
+            }
         }
-        
+
         Message sentMessage = await (messageText.Split(' ')[0] switch
         {
             "/about_bot" => AboutBot(msg),
-            "/how_to_use" => HowToUseVPN(msg),
-            "/register" => RegisterForVPN(msg),
+            "/how_to_use" => HowToUseVpn(msg),
+            "/register" => RegisterForVpn(msg),
             "/get_my_files" => throw new NotImplementedException(),
-            "/make_new_file" => MakeNewVPNFile(msg),
+            "/make_new_file" => MakeNewVpnFile(msg),
             "/delete_selected_file" => throw new NotImplementedException(),
             "/delete_all_files" => throw new NotImplementedException(),
             "/install_client" => InstallClient(msg),
@@ -112,7 +119,7 @@ public class UpdateHandler : IUpdateHandler
             "/inline_mode" => StartInlineQuery(msg),
             "/poll" => SendPoll(msg),
             "/poll_anonymous" => SendAnonymousPoll(msg),
-            "/throw" => FailingHandler(msg),
+            "/throw" => FailingHandler(),
             
             _ => Usage(msg)
         });
@@ -123,7 +130,7 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string usage = await localizationService.GetTextAsync("BotMenu", msg.From.Id);
+        string usage = await localizationService.GetTextAsync("BotMenu", msg.From!.Id);
         return await _botClient.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html, replyMarkup: new ReplyKeyboardRemove());
     }
     
@@ -131,61 +138,59 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string aboutbottext = await localizationService.GetTextAsync("AboutBot", msg.From.Id);
+        string roustabout = await localizationService.GetTextAsync("AboutBot", msg.From!.Id);
         return await _botClient.SendMessage(
             msg.Chat,
-            aboutbottext
+            roustabout
         );
     }
 
-    async Task<Message> RegisterForVPN(Message msg)
+    async Task<Message> RegisterForVpn(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
-        var registrationService = scope.ServiceProvider.GetRequiredService<TelegramRegistrationService>();
+        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string registertext = await localizationService.GetTextAsync("Registered", msg.From.Id);
+        string registered = await localizationService.GetTextAsync("Registered", msg.From!.Id);
         if (msg.From != null)
             await RegisterNewUserAsync(msg, registrationService);
         
-        return await _botClient.SendTextMessageAsync(
+        return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: registertext
+            text: registered
         );
     }
 
-    async Task RegisterNewUserAsync(Message msg, TelegramRegistrationService registrationService)
+    async Task RegisterNewUserAsync(Message msg, ITelegramRegistrationService registrationService)
     {
         await registrationService.RegisterUserAsync(
-            telegramId: msg.From.Id,
+            telegramId: msg.From!.Id,
             username: msg.From.Username,
             firstName: msg.From.FirstName,
             lastName: msg.From.LastName
         );
     }
-    async Task<Message> HowToUseVPN(Message msg)
+    async Task<Message> HowToUseVpn(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        var response = await localizationService.GetTextAsync("HowToUseVPN", msg.From.Id);
+        var response = await localizationService.GetTextAsync("HowToUseVPN", msg.From!.Id);
         return await _botClient.SendMessage(
             msg.Chat,
             response);
     }
 
-    async Task<Message> MakeNewVPNFile(Message msg)
+    async Task<Message> MakeNewVpnFile(Message msg)
     {
         // Generate the client configuration file
-        var clientConfigFile = _openVpnClientService.CreateClientConfiguration(msg.Chat.Id.ToString(), "213.133.91.43");//todo: move;
+        var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(
+            msg.Chat.Id.ToString(), msg.From!.Id);
         Console.WriteLine("Client configuration created successfully in UpdateHandler.");
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string hereisconfigtext = await localizationService.GetTextAsync("HereIsConfig", msg.From.Id);
         // Send the .ovpn file to the user
-        await using var fileStream = new FileStream(clientConfigFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return await _botClient.SendDocumentAsync(
+        await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return await _botClient.SendDocument(
             chatId: msg.Chat.Id,
-            document: InputFile.FromStream(fileStream, clientConfigFile.Name),
-            caption: hereisconfigtext
+            document: InputFile.FromStream(fileStream, clientConfigFile.FileInfo.Name),
+            caption: clientConfigFile.Message
         );
     }
 
@@ -193,7 +198,7 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string chooseplatformtext = await localizationService.GetTextAsync("ChoosePlatform", msg.From.Id);
+        string chooseplatformtext = await localizationService.GetTextAsync("ChoosePlatform", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -219,7 +224,7 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string aboutprojecttext = await localizationService.GetTextAsync("AboutProject", msg.From.Id);
+        string aboutprojecttext = await localizationService.GetTextAsync("AboutProject", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -239,7 +244,7 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string developercontactstext = await localizationService.GetTextAsync("DeveloperContacts", msg.From.Id);
+        string developercontactstext = await localizationService.GetTextAsync("DeveloperContacts", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -267,7 +272,7 @@ public class UpdateHandler : IUpdateHandler
             OneTimeKeyboard = true
         };
 
-        return await _botClient.SendTextMessageAsync(
+        return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
             text: "🔹 You can click on your preferred language to proceed.\n" +
                   "🔹 Выберите ваш язык, нажав на соответствующую кнопку.\n" +
@@ -277,7 +282,7 @@ public class UpdateHandler : IUpdateHandler
 
     }
 
-    async Task<Message> ChangeLanguage(Message msg)
+    async Task ChangeLanguage(Message msg)
     {
         var selectedLanguage = msg.Text;
         Language? language = selectedLanguage switch
@@ -290,7 +295,7 @@ public class UpdateHandler : IUpdateHandler
 
         if (language == null)
         {
-            return await _botClient.SendTextMessageAsync(
+            await _botClient.SendMessage(
                 chatId: msg.Chat.Id,
                 text: "❌ Invalid language selection. Please try again.",
                 replyMarkup: new ReplyKeyboardMarkup(new[]
@@ -302,14 +307,15 @@ public class UpdateHandler : IUpdateHandler
                     OneTimeKeyboard = true
                 }
             );
+            return;
         }
 
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        await localizationService.SetUserLanguageAsync(msg.From.Id, language.Value);
+        await localizationService.SetUserLanguageAsync(msg.From!.Id, language.Value);
         string confirmationMessage = await localizationService.GetTextAsync("SuccessChangeLanguage", msg.From.Id);
-        
-        return await _botClient.SendTextMessageAsync(
+
+        await _botClient.SendMessage(
             chatId: msg.Chat.Id,
             text: confirmationMessage,
             replyMarkup: new ReplyKeyboardRemove()
@@ -365,15 +371,15 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> SendPoll(Message msg)
     {
-        return await _botClient.SendPoll(msg.Chat, "Question", PollOptions, isAnonymous: false);
+        return await _botClient.SendPoll(msg.Chat, "Question", _pollOptions, isAnonymous: false);
     }
 
     async Task<Message> SendAnonymousPoll(Message msg)
     {
-        return await _botClient.SendPoll(chatId: msg.Chat, "Question", PollOptions);
+        return await _botClient.SendPoll(chatId: msg.Chat, "Question", _pollOptions);
     }
 
-    static Task<Message> FailingHandler(Message msg)
+    static Task<Message> FailingHandler()
     {
         throw new NotImplementedException("FailingHandler");
     }
@@ -419,7 +425,7 @@ public class UpdateHandler : IUpdateHandler
     {
         // throw new NotImplementedException("OnPollAnswer");
         var answer = pollAnswer.OptionIds.FirstOrDefault();
-        var selectedOption = PollOptions[answer];
+        var selectedOption = _pollOptions[answer];
         if (pollAnswer.User != null)
             await _botClient.SendMessage(pollAnswer.User.Id, $"You've chosen: {selectedOption.Text} in poll");
     }

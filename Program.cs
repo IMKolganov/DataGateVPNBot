@@ -13,7 +13,10 @@ builder.Services.Configure<BotConfiguration>(botConfigSection);
 builder.Services.AddHttpClient("tgwebhook").AddTypedClient<ITelegramBotClient>(
     httpClient => new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient));
 
-builder.Services.AddScoped<TelegramRegistrationService>();
+
+builder.Services.AddScoped<IIssuedOvpnFileService, IssuedOvpnFileService>();
+builder.Services.AddScoped<IIncomingMessageLogService, IncomingMessageLogService>();
+builder.Services.AddScoped<ITelegramRegistrationService, TelegramRegistrationService>();
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 builder.Services.AddSingleton<UpdateHandler>();
 builder.Services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
@@ -38,7 +41,7 @@ builder.WebHost.UseKestrel(options =>
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException()));
 
 var app = builder.Build();
 
