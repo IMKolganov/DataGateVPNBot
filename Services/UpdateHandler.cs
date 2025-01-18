@@ -120,7 +120,7 @@ public class UpdateHandler : IUpdateHandler
             "/contacts" => Contacts(msg),
             "/change_language" => SelectLanguage(msg),
             
-            "/register_commands" => await RegisterCommandsAsync(msg),
+            "/register_commands" => RegisterCommandsAsync(msg),
 
             "/photo" => SendPhoto(msg),
             "/inline_buttons" => SendInlineKeyboard(msg),
