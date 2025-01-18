@@ -24,6 +24,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
             FileName = fileInfo.Name,
             FilePath = fileInfo.FullName,
             IssuedAt = DateTime.Now,
+            IssuedTo = "TgBotUsers"
         };
         
         _dbContext.IssuedOvpnFiles.Add(issuedFile);
