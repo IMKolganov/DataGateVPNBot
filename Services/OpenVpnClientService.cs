@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using DataGateVPNBotV1.Models;
 using DataGateVPNBotV1.Models.Helpers;
 using DataGateVPNBotV1.Services.Interfaces;
 
@@ -23,7 +24,29 @@ public class OpenVpnClientService : IOpenVpnClientService
         _serverIp = configuration["OpenVpn:ServerIp"] ?? throw new InvalidOperationException();
     }
 
-    public async Task<FileCreationResult> CreateClientConfiguration(string clientName, long telegramId)
+    public async Task<GetAllFilesResult> GetAllClientConfigurations(long telegramId)
+    {
+        var issuedOvpnFiles = await GetFileInfoFromDB(telegramId);
+        List<FileInfo> fileInfos = new List<FileInfo>();
+        
+        foreach (var issuedOvpnFile in issuedOvpnFiles)
+        {
+            string existingOvpnFilePath = Path.Combine(_outputDir, $"{issuedOvpnFile.FileName}.ovpn");
+            if (File.Exists(existingOvpnFilePath))
+            {
+                fileInfos.Add(new FileInfo(existingOvpnFilePath));
+            }
+
+        }
+
+        return  new GetAllFilesResult()
+        {
+            FileInfo = fileInfos,
+            Message = await GetResponseText(telegramId)
+        };
+    }
+
+    public async Task<FileCreationResult> CreateClientConfiguration(long telegramId)
     {
         try
         {
@@ -39,29 +62,32 @@ public class OpenVpnClientService : IOpenVpnClientService
             }
 
             Console.WriteLine("Step 1.1: Checking if configuration already exists for this client...");
-            string existingOvpnFilePath = Path.Combine(_outputDir, $"{clientName}.ovpn");
-            if (File.Exists(existingOvpnFilePath))
+            string baseOvpnFileName = $"{telegramId.ToString()}.ovpn";
+            string ovpnFilePath = Path.Combine(_outputDir, baseOvpnFileName);
+            int attempt = 0;
+            int maxAttempts = 9;
+
+            while (File.Exists(ovpnFilePath) && attempt < maxAttempts)
             {
-                Console.WriteLine($"Configuration for client '{clientName}' already exists at {existingOvpnFilePath}." +
-                                  $" Returning existing file.");
-                return new FileCreationResult
-                {
-                    FileInfo = new FileInfo(existingOvpnFilePath), Message = await GetResponseText(telegramId)
-                };
+                attempt++;
+                ovpnFilePath = Path.Combine(_outputDir, $"{telegramId.ToString()}_{attempt}.ovpn");
+            }
+            if (attempt >= maxAttempts)
+            {
+                throw new InvalidOperationException($"Maximum limit of {maxAttempts + 1} configurations for client '{telegramId.ToString()}' has been reached. Cannot create more files.");
             }
 
             Console.WriteLine("Step 2: Building client certificate...");
-            RunCommand($"cd {_easyRsaPath} && ./easyrsa build-client-full {clientName} nopass");
+            RunCommand($"cd {_easyRsaPath} && ./easyrsa build-client-full {telegramId.ToString()} nopass");
 
             Console.WriteLine("Step 3: Defining paths to certificates and keys...");
             string caCertContent = ReadPemContent(Path.Combine(_pkiPath, "ca.crt"));
-            string clientCertContent = ReadPemContent(Path.Combine(_pkiPath, "issued", $"{clientName}.crt"));
-            string clientKeyContent = await File.ReadAllTextAsync(Path.Combine(_pkiPath, "private", $"{clientName}.key"));
+            string clientCertContent = ReadPemContent(Path.Combine(_pkiPath, "issued", $"{telegramId.ToString()}.crt"));
+            string clientKeyContent = await File.ReadAllTextAsync(Path.Combine(_pkiPath, "private", $"{telegramId.ToString()}.key"));
 
             Console.WriteLine("Step 4: Generating .ovpn configuration file...");
             string ovpnContent = GenerateOvpnFile(_serverIp, caCertContent, 
                 clientCertContent, clientKeyContent, _tlsAuthKey);
-            string ovpnFilePath = Path.Combine(_outputDir, $"{clientName}.ovpn");
 
             Console.WriteLine("Step 5: Ensuring output directory exists...");
             Directory.CreateDirectory(_outputDir);
@@ -94,6 +120,13 @@ public class OpenVpnClientService : IOpenVpnClientService
         using var scope = _serviceProvider.CreateScope();
         var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
         await issuedOvpnFileService.AddIssuedOvpnFileAsync(telegramId, fileInfo);
+    }
+    
+    private async Task<List<IssuedOvpnFile>> GetFileInfoFromDB(long telegramId)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
+        return await issuedOvpnFileService.GetIssuedOvpnFilesByTelegramIdAsync(telegramId);
     }
 
     private static string GenerateOvpnFile(string serverIp, string caCert, string clientCert, 

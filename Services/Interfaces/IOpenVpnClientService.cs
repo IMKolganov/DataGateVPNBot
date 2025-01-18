@@ -4,5 +4,6 @@ namespace DataGateVPNBotV1.Services.Interfaces;
 
 public interface IOpenVpnClientService
 {
-    Task<FileCreationResult> CreateClientConfiguration(string clientName, long telegramId);
+    Task<GetAllFilesResult> GetAllClientConfigurations(long telegramId);
+    Task<FileCreationResult> CreateClientConfiguration(long telegramId);
 }

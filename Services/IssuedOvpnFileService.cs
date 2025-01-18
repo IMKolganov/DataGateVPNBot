@@ -34,6 +34,12 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
     {
         return await _dbContext.IssuedOvpnFiles.FindAsync(id);
     }
+    public async Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
+    {
+        return await _dbContext.IssuedOvpnFiles
+            .Where(f => f.TelegramId == telegramId)
+            .ToListAsync();
+    }
 
     public async Task<List<IssuedOvpnFile>> GetAllIssuedOvpnFilesAsync()
     {

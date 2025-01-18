@@ -17,6 +17,7 @@ public class UpdateHandler : IUpdateHandler
     private readonly IServiceProvider _serviceProvider;
     private readonly IOpenVpnClientService _openVpnClientService;
     private readonly ILogger<UpdateHandler> _logger;
+
     private readonly InputPollOption[] _pollOptions = new[]
     {
         new InputPollOption("Hello"),
@@ -34,8 +35,9 @@ public class UpdateHandler : IUpdateHandler
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-    
-    public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken cancellationToken)
+
+    public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception,
+        HandleErrorSource source, CancellationToken cancellationToken)
     {
         _logger.LogInformation("HandleError: {Exception}", exception);
         // Cooldown in case of network connection error
@@ -43,23 +45,24 @@ public class UpdateHandler : IUpdateHandler
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
     }
 
-    public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         await (update switch
         {
-            { Message: { } message }                        => OnMessage(message),
-            { EditedMessage: { } message }                  => OnMessage(message),
-            { CallbackQuery: { } callbackQuery }            => OnCallbackQuery(callbackQuery),
-            { InlineQuery: { } inlineQuery }                => OnInlineQuery(inlineQuery),
-            { ChosenInlineResult: { } chosenInlineResult }  => OnChosenInlineResult(chosenInlineResult),
-            { Poll: { } poll }                              => OnPoll(poll),
-            { PollAnswer: { } pollAnswer }                  => OnPollAnswer(pollAnswer),
+            { Message: { } message } => OnMessage(message),
+            { EditedMessage: { } message } => OnMessage(message),
+            { CallbackQuery: { } callbackQuery } => OnCallbackQuery(callbackQuery),
+            { InlineQuery: { } inlineQuery } => OnInlineQuery(inlineQuery),
+            { ChosenInlineResult: { } chosenInlineResult } => OnChosenInlineResult(chosenInlineResult),
+            { Poll: { } poll } => OnPoll(poll),
+            { PollAnswer: { } pollAnswer } => OnPollAnswer(pollAnswer),
             // ChannelPost:
             // EditedChannelPost:
             // ShippingQuery:
             // PreCheckoutQuery:
-            _                                               => UnknownUpdateHandlerAsync(update)
+            _ => UnknownUpdateHandlerAsync(update)
         });
     }
 
@@ -68,15 +71,15 @@ public class UpdateHandler : IUpdateHandler
         _logger.LogInformation("Receive message type: {MessageType}", msg.Type);
         if (msg.Text is not { } messageText)
             return;
-        
-        using var scope = _serviceProvider.CreateScope();//todo: fix this shit
-        
+
+        using var scope = _serviceProvider.CreateScope(); //todo: fix this shit
+
         var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<IIncomingMessageLogService>();
         await incomingMessageLogService.Log(_botClient, msg);
-        
+
         var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         await RegisterNewUserAsync(msg, registrationService);
-        
+
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
 
         if (messageText.Equals("/English", StringComparison.OrdinalIgnoreCase) ||
@@ -102,7 +105,7 @@ public class UpdateHandler : IUpdateHandler
             "/about_bot" => AboutBot(msg),
             "/how_to_use" => HowToUseVpn(msg),
             "/register" => RegisterForVpn(msg),
-            "/get_my_files" => throw new NotImplementedException(),
+            "/get_my_files" => GetMyFiles(msg),
             "/make_new_file" => MakeNewVpnFile(msg),
             "/delete_selected_file" => throw new NotImplementedException(),
             "/delete_all_files" => throw new NotImplementedException(),
@@ -110,7 +113,7 @@ public class UpdateHandler : IUpdateHandler
             "/about_project" => AboutProject(msg),
             "/contacts" => Contacts(msg),
             "/change_language" => SelectLanguage(msg),
-            
+
             "/photo" => SendPhoto(msg),
             "/inline_buttons" => SendInlineKeyboard(msg),
             "/keyboard" => SendReplyKeyboard(msg),
@@ -120,7 +123,7 @@ public class UpdateHandler : IUpdateHandler
             "/poll" => SendPoll(msg),
             "/poll_anonymous" => SendAnonymousPoll(msg),
             "/throw" => FailingHandler(),
-            
+
             _ => Usage(msg)
         });
         _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
@@ -131,9 +134,10 @@ public class UpdateHandler : IUpdateHandler
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
         string usage = await localizationService.GetTextAsync("BotMenu", msg.From!.Id);
-        return await _botClient.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html, replyMarkup: new ReplyKeyboardRemove());
+        return await _botClient.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html,
+            replyMarkup: new ReplyKeyboardRemove());
     }
-    
+
     async Task<Message> AboutBot(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -153,7 +157,7 @@ public class UpdateHandler : IUpdateHandler
         string registered = await localizationService.GetTextAsync("Registered", msg.From!.Id);
         if (msg.From != null)
             await RegisterNewUserAsync(msg, registrationService);
-        
+
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
             text: registered
@@ -169,6 +173,7 @@ public class UpdateHandler : IUpdateHandler
             lastName: msg.From.LastName
         );
     }
+
     async Task<Message> HowToUseVpn(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -179,14 +184,56 @@ public class UpdateHandler : IUpdateHandler
             response);
     }
 
+    async Task<Message> GetMyFiles(Message msg)
+    {
+        var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
+
+        if (clientConfigFiles.FileInfo.Count >= 2)
+        {
+            var mediaGroup = new List<IAlbumInputMedia>();
+
+            foreach (var fileInfo in clientConfigFiles.FileInfo)
+            {
+                using var fileStream = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read);
+                var inputFile = new InputFileStream(fileStream, fileInfo.Name);
+                var media = new InputMediaDocument(inputFile)
+                {
+                    Caption = fileInfo.Name
+                };
+                mediaGroup.Add(media);
+            }
+
+            // Отправляем медиа-группу
+            var m = await _botClient.SendMediaGroup(
+                chatId: msg.Chat.Id,
+                media: mediaGroup
+            );
+
+            return m.FirstOrDefault() ?? throw new InvalidOperationException();
+        }
+        else
+        {
+            var clientConfigFile = clientConfigFiles.FileInfo.FirstOrDefault()!;
+            
+            await using var fileStream = new FileStream(clientConfigFile.FullName, 
+                FileMode.Open, FileAccess.Read,
+                FileShare.Read);
+            return await _botClient.SendDocument(
+                chatId: msg.Chat.Id,
+                document: InputFile.FromStream(fileStream, clientConfigFile.Name),
+                caption: clientConfigFiles.Message
+            );
+        }
+    }
+
     async Task<Message> MakeNewVpnFile(Message msg)
     {
         // Generate the client configuration file
-        var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(
-            msg.Chat.Id.ToString(), msg.From!.Id);
+        var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.From!.Id);
         Console.WriteLine("Client configuration created successfully in UpdateHandler.");
         // Send the .ovpn file to the user
-        await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read,
+            FileShare.Read);
         return await _botClient.SendDocument(
             chatId: msg.Chat.Id,
             document: InputFile.FromStream(fileStream, clientConfigFile.FileInfo.Name),
