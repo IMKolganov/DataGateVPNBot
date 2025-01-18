@@ -100,7 +100,13 @@ public class UpdateHandler : IUpdateHandler
             }
         }
 
-        Message sentMessage = await (messageText.Split(' ')[0] switch
+        Message sentMessage = await Menu(msg, messageText);
+        _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
+    }
+
+    async Task<Message> Menu(Message msg, string messageText)
+    {
+        return await (messageText.Split(' ')[0] switch
         {
             "/about_bot" => AboutBot(msg),
             "/how_to_use" => HowToUseVpn(msg),
@@ -126,7 +132,6 @@ public class UpdateHandler : IUpdateHandler
 
             _ => Usage(msg)
         });
-        _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
     }
 
     async Task<Message> Usage(Message msg)
@@ -367,6 +372,7 @@ public class UpdateHandler : IUpdateHandler
             text: confirmationMessage,
             replyMarkup: new ReplyKeyboardRemove()
         );
+        await Menu(msg, ".");
     }
     
     async Task<Message> SendPhoto(Message msg)
