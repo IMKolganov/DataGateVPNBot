@@ -23,7 +23,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
             TelegramId = telegramId,
             FileName = fileInfo.Name,
             FilePath = fileInfo.FullName,
-            IssuedAt = DateTime.Now,
+            IssuedAt = DateTime.UtcNow,
             IssuedTo = "TgBotUsers"
         };
         
