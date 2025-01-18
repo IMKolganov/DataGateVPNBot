@@ -35,7 +35,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 
         foreach (var issuedOvpnFile in issuedOvpnFiles)
         {
-            string existingOvpnFilePath = Path.Combine(_outputDir, $"{issuedOvpnFile.FileName}.ovpn");
+            string existingOvpnFilePath = Path.Combine(_outputDir, $"{issuedOvpnFile.FileName}");
             _logger.LogInformation("Checking existence of file: {FilePath}", existingOvpnFilePath);
 
             if (File.Exists(existingOvpnFilePath))
