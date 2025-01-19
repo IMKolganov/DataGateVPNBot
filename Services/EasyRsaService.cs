@@ -77,7 +77,7 @@ public class EasyRsaService : IEasyRsaService
     {
         try
         {
-            var command = $"{Path.Combine(_easyRsaPath, "easyrsa")} {arguments}";
+            var command = $"cd {_easyRsaPath} && ./easyrsa {arguments}";
             if (confirm) command = $"echo yes | {command}";
 
             RunCommand(command);

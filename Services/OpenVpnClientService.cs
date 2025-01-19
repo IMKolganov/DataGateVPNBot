@@ -131,7 +131,9 @@ public class OpenVpnClientService : IOpenVpnClientService
     public async Task<bool> DeleteAllClientConfigurations(long telegramId)
     {
         _logger.LogInformation("Starting deletion process for client with Telegram ID: {TelegramId}", telegramId);
-    
+        _logger.LogInformation("Checking if PKI directory exists...");
+        _easyRsaService.InstallEasyRsa();
+        
         var issuedOvpnFiles = await GetFileInfoFromDataBase(telegramId);
         _logger.LogInformation("Found {Count} issued files in database for deletion.", issuedOvpnFiles.Count);
     
