@@ -40,11 +40,18 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
     {
         return await _dbContext.IssuedOvpnFiles.FindAsync(id);
     }
-    public async Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
+    public async Task<List<IssuedOvpnFile?>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
     {
         return await _dbContext.IssuedOvpnFiles
             .Where(f => f.TelegramId == telegramId && f.IsRevoked == false)
             .ToListAsync();
+    }
+
+    public async Task<IssuedOvpnFile?> GetIssuedOvpnFilesByTelegramAndFileNameIdAsync(long telegramId, string fileName)
+    {
+        return await _dbContext.IssuedOvpnFiles
+            .Where(f => f.TelegramId == telegramId && f.FileName == fileName && f.IsRevoked == false)
+            .FirstOrDefaultAsync();
     }
 
     public async Task SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(int id, long telegramId, string certName)
@@ -63,7 +70,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         await UpdateIssuedOvpnFileAsync(issuedFile);
     }
 
-    public async Task<List<IssuedOvpnFile>> GetAllIssuedOvpnFilesAsync()
+    public async Task<List<IssuedOvpnFile?>> GetAllIssuedOvpnFilesAsync()
     {
         return await _dbContext.IssuedOvpnFiles.ToListAsync();
     }

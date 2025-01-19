@@ -12,7 +12,7 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<TelegramUser> TelegramUsers { get; set; } = null!;
-    public DbSet<IssuedOvpnFile> IssuedOvpnFiles { get; set; } = null!;
+    public DbSet<IssuedOvpnFile?> IssuedOvpnFiles { get; set; } = null!;
     public DbSet<UserLanguagePreference> UserLanguagePreferences { get; set; } = null!;
     public DbSet<LocalizationText> LocalizationTexts { get; set; } = null!;
     public DbSet<IncomingMessageLog> IncomingMessageLog { get; set; } = null!;
@@ -142,7 +142,27 @@ public class ApplicationDbContext : DbContext
 
             new LocalizationText { Id = 40, Key = "MaxConfigError", Language = Language.English, Text = "Maximum limit of 10 configurations for your devices has been reached. Cannot create more files." },
             new LocalizationText { Id = 41, Key = "MaxConfigError", Language = Language.Russian, Text = "Достигнут максимальный лимит в 10 конфигураций для ваших устройств. Невозможно создать новые файлы." },
-            new LocalizationText { Id = 42, Key = "MaxConfigError", Language = Language.Greek, Text = "Έχει επιτευχθεί το μέγιστο όριο 10 διαμορφώσεων για τις συσκευές σας. Δεν μπορείτε να δημιουργήσετε περισσότερα αρχεία." }
+            new LocalizationText { Id = 42, Key = "MaxConfigError", Language = Language.Greek, Text = "Έχει επιτευχθεί το μέγιστο όριο 10 διαμορφώσεων για τις συσκευές σας. Δεν μπορείτε να δημιουργήσετε περισσότερα αρχεία." },
+            
+            new LocalizationText { Id = 43, Key = "SuccessfullyDeletedAllFile", Language = Language.English, Text = "All files have been successfully deleted." },
+            new LocalizationText { Id = 44, Key = "SuccessfullyDeletedAllFile", Language = Language.Russian, Text = "Все файлы успешно удалены." },
+            new LocalizationText { Id = 45, Key = "SuccessfullyDeletedAllFile", Language = Language.Greek, Text = "Όλα τα αρχεία διαγράφηκαν επιτυχώς." },
+            
+            new LocalizationText { Id = 46, Key = "ChooseFileForDelete", Language = Language.English, Text = "Please choose a file to delete." },
+            new LocalizationText { Id = 47, Key = "ChooseFileForDelete", Language = Language.Russian, Text = "Пожалуйста, выберите файл для удаления." },
+            new LocalizationText { Id = 48, Key = "ChooseFileForDelete", Language = Language.Greek, Text = "Παρακαλώ επιλέξτε ένα αρχείο για διαγραφή." },
+
+            new LocalizationText { Id = 49, Key = "SuccessfullyDeletedFile", Language = Language.English, Text = "The selected file has been successfully deleted." },
+            new LocalizationText { Id = 50, Key = "SuccessfullyDeletedFile", Language = Language.Russian, Text = "Выбранный файл был успешно удалён." },
+            new LocalizationText { Id = 51, Key = "SuccessfullyDeletedFile", Language = Language.Greek, Text = "Το επιλεγμένο αρχείο διαγράφηκε επιτυχώς." },
+            
+            new LocalizationText { Id = 52, Key = "AboutOpenVPN", Language = Language.English, Text = "About OpenVPN" },
+            new LocalizationText { Id = 53, Key = "AboutOpenVPN", Language = Language.Russian, Text = "О OpenVPN" },
+            new LocalizationText { Id = 54, Key = "AboutOpenVPN", Language = Language.Greek, Text = "Σχετικά με το OpenVPN" },
+
+            new LocalizationText { Id = 55, Key = "WhatIsRaspberryPi", Language = Language.English, Text = "What is Raspberry Pi?" },
+            new LocalizationText { Id = 56, Key = "WhatIsRaspberryPi", Language = Language.Russian, Text = "Что такое Raspberry Pi?" },
+            new LocalizationText { Id = 57, Key = "WhatIsRaspberryPi", Language = Language.Greek, Text = "Τι είναι το Raspberry Pi;" }
         );
     }
 }

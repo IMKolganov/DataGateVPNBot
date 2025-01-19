@@ -107,14 +107,18 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> Menu(Message msg, string messageText)
     {
-        return await (messageText.Split(' ')[0] switch
+        var commandParts = messageText.Split(' ', 2);
+        var command = commandParts[0];
+        var argument = commandParts.Length > 1 ? commandParts[1] : null;
+        
+        return await (command switch
         {
             "/about_bot" => AboutBot(msg),
             "/how_to_use" => HowToUseVpn(msg),
             "/register" => RegisterForVpn(msg),
             "/get_my_files" => GetMyFiles(msg),
             "/make_new_file" => MakeNewVpnFile(msg),
-            // "/delete_selected_file" => throw new NotImplementedException(),
+            "/delete_selected_file" => DeleteSelectedFile(msg),
             "/delete_all_files" => DeleteAllFiles(msg),
             "/install_client" => InstallClient(msg),
             "/about_project" => AboutProject(msg),
@@ -322,10 +326,48 @@ public class UpdateHandler : IUpdateHandler
     
     async Task<Message> DeleteAllFiles(Message msg)
     {
-        var deleteAllConfiguration = await _openVpnClientService.DeleteAllClientConfigurations(msg.From!.Id);
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string successfullyDeletedAllFile = await localizationService.GetTextAsync("SuccessfullyDeletedAllFile", msg.From.Id);
+        
+        await _openVpnClientService.DeleteAllClientConfigurations(msg.From!.Id);
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: deleteAllConfiguration? "Successfully": "Error",//todo: make text
+            text: successfullyDeletedAllFile,
+            replyMarkup: new ReplyKeyboardRemove()
+        );
+    }
+
+    async Task<Message> DeleteSelectedFile(Message msg)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string chooseFileForDeleteText = await localizationService.GetTextAsync("ChooseFileForDelete", msg.From!.Id);
+        
+        var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
+        var inlineMarkup = new InlineKeyboardMarkup();
+        foreach (var fileInfo in clientConfigFiles.FileInfo)
+        {
+            inlineMarkup.AddButton(fileInfo.Name, $"/delete_file {fileInfo.Name}");
+        }
+        
+        return await _botClient.SendMessage(
+            msg.Chat,
+            chooseFileForDeleteText,
+            replyMarkup: inlineMarkup
+        );
+    }
+
+    async Task<Message> DeleteFile(long telegramId, string fileName)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        string successfullyDeletedFileText = await localizationService.GetTextAsync("SuccessfullyDeletedFile", telegramId);
+        
+        await _openVpnClientService.DeleteClientConfiguration(telegramId, fileName);
+        return await _botClient.SendMessage(
+            chatId: telegramId,
+            text: successfullyDeletedFileText,
             replyMarkup: new ReplyKeyboardRemove()
         );
     }
@@ -334,7 +376,8 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string chooseplatformtext = await localizationService.GetTextAsync("ChoosePlatform", msg.From!.Id);
+        string choosePlatformText = await localizationService.GetTextAsync("ChoosePlatform", msg.From!.Id);
+        string aboutOpenVpnText = await localizationService.GetTextAsync("AboutOpenVPN", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -345,13 +388,13 @@ public class UpdateHandler : IUpdateHandler
             },
             new[]
             {
-                InlineKeyboardButton.WithUrl("About OpenVPN", "https://openvpn.net/faq/what-is-openvpn/")
+                InlineKeyboardButton.WithUrl(aboutOpenVpnText, "https://openvpn.net/faq/what-is-openvpn/")
             }
         });
 
         return await _botClient.SendMessage(
             msg.Chat,
-            chooseplatformtext,
+            choosePlatformText,
             replyMarkup: inlineMarkup
         );
     }
@@ -360,18 +403,19 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string aboutprojecttext = await localizationService.GetTextAsync("AboutProject", msg.From!.Id);
+        string aboutProjectText = await localizationService.GetTextAsync("AboutProject", msg.From!.Id);
+        string whatIsRaspberryPitext = await localizationService.GetTextAsync("WhatIsRaspberryPi", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
             {
-                InlineKeyboardButton.WithUrl("What is Raspberry Pi?", "https://www.raspberrypi.org/about/")
+                InlineKeyboardButton.WithUrl(whatIsRaspberryPitext, "https://www.raspberrypi.org/about/")
             }
         });
         
         return await _botClient.SendMessage(
             msg.Chat, 
-            aboutprojecttext,
+            aboutProjectText,
             replyMarkup: inlineMarkup
         );
     }
@@ -617,8 +661,23 @@ public class UpdateHandler : IUpdateHandler
     private async Task OnCallbackQuery(CallbackQuery callbackQuery)
     {
         _logger.LogInformation("Received inline keyboard callback from: {CallbackQueryId}", callbackQuery.Id);
-        await _botClient.AnswerCallbackQuery(callbackQuery.Id, $"Received {callbackQuery.Data}");
-        await _botClient.SendMessage(callbackQuery.Message!.Chat, $"Received {callbackQuery.Data}");
+        
+        await _botClient.AnswerCallbackQuery(callbackQuery.Id, "Processing your request...");
+
+        if (callbackQuery.Data != null && callbackQuery.Data.StartsWith("/delete_file "))
+        {
+            var fileName = callbackQuery.Data.Substring("/delete_file ".Length);
+            
+            _logger.LogInformation("Deleting file: {FileName}", fileName);
+
+            await DeleteFile(callbackQuery.From.Id, fileName);
+
+            // await _botClient.SendMessage(callbackQuery.Message.Chat, result);
+        }
+        // else
+        // {
+        //     await _botClient.SendMessage(callbackQuery.Message!.Chat, "Invalid callback data received.");
+        // }
     }
 
     #region Inline Mode
@@ -672,7 +731,7 @@ public class UpdateHandler : IUpdateHandler
             // new BotCommand { Command = "register", Description = "Register to use the VPN" },
             new BotCommand { Command = "get_my_files", Description = "Get your files for connecting to the VPN" },
             new BotCommand { Command = "make_new_file", Description = "Create a new file for connecting to the VPN" },
-            // new BotCommand { Command = "delete_selected_file", Description = "Delete a specific file" },
+            new BotCommand { Command = "delete_selected_file", Description = "Delete a specific file" },
             new BotCommand { Command = "delete_all_files", Description = "Delete all files" },
             new BotCommand { Command = "how_to_use", Description = "Instructions on how to use the VPN" },
             new BotCommand { Command = "install_client", Description = "Get a link to download OpenVPN client" },
@@ -687,7 +746,7 @@ public class UpdateHandler : IUpdateHandler
             // new BotCommand { Command = "register", Description = "Зарегистрируйтесь для использования VPN" },
             new BotCommand { Command = "get_my_files", Description = "Получите свои файлы для подключения к VPN" },
             new BotCommand { Command = "make_new_file", Description = "Создайте новый файл для подключения к VPN" },
-            // new BotCommand { Command = "delete_selected_file", Description = "Удалить выбранный файл" },
+            new BotCommand { Command = "delete_selected_file", Description = "Удалить выбранный файл" },
             new BotCommand { Command = "delete_all_files", Description = "Удалить все файлы" },
             new BotCommand { Command = "how_to_use", Description = "Инструкция по использованию VPN" },
             new BotCommand { Command = "install_client", Description = "Ссылка на загрузку клиента OpenVPN" },
@@ -702,7 +761,7 @@ public class UpdateHandler : IUpdateHandler
             // new BotCommand { Command = "register", Description = "Εγγραφείτε για να χρησιμοποιήσετε το VPN" },
             new BotCommand { Command = "get_my_files", Description = "Αποκτήστε τα αρχεία σας για σύνδεση στο VPN" },
             new BotCommand { Command = "make_new_file", Description = "Δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN" },
-            // new BotCommand { Command = "delete_selected_file", Description = "Διαγραφή συγκεκριμένου αρχείου" },
+            new BotCommand { Command = "delete_selected_file", Description = "Διαγραφή συγκεκριμένου αρχείου" },
             new BotCommand { Command = "delete_all_files", Description = "Διαγραφή όλων των αρχείων" },
             new BotCommand { Command = "how_to_use", Description = "Οδηγίες χρήσης VPN" },
             new BotCommand { Command = "install_client", Description = "Λήψη του OpenVPN client" },
