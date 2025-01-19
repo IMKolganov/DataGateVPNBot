@@ -20,6 +20,7 @@ builder.Services.AddScoped<ITelegramRegistrationService, TelegramRegistrationSer
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 builder.Services.AddSingleton<UpdateHandler>();
 builder.Services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
+builder.Services.AddSingleton<IEasyRsaService, EasyRsaService>();
 
 builder.Services.ConfigureTelegramBotMvc();
 

@@ -6,5 +6,5 @@ public interface IOpenVpnClientService
 {
     Task<GetAllFilesResult> GetAllClientConfigurations(long telegramId);
     Task<FileCreationResult> CreateClientConfiguration(long telegramId);
-    // Task<string> DeleteAllConfiguration(long telegramId);
+    Task<bool> DeleteAllClientConfigurations(long telegramId);
 }

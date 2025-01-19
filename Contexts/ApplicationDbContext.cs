@@ -32,6 +32,10 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<IssuedOvpnFile>(entity =>
         {
             entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.CertName)
+                .IsRequired()
+                .HasMaxLength(255);
 
             entity.Property(e => e.FileName)
                 .IsRequired()

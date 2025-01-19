@@ -9,7 +9,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 {
     private readonly ILogger<OpenVpnClientService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly string _easyRsaPath;
+    private readonly IEasyRsaService _easyRsaService;
     private readonly string _pkiPath;
     private readonly string _outputDir;
     private readonly string _tlsAuthKey;
@@ -17,12 +17,12 @@ public class OpenVpnClientService : IOpenVpnClientService
     private readonly int _maxAttempts = 10;
 
     public OpenVpnClientService(ILogger<OpenVpnClientService> logger, IConfiguration configuration,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider, IEasyRsaService easyRsaService)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
-        _easyRsaPath = configuration["OpenVpn:EasyRsaPath"] ?? throw new InvalidOperationException();
-        _pkiPath = Path.Combine(_easyRsaPath, "pki");
+        _easyRsaService = easyRsaService;
+        _pkiPath = Path.Combine(configuration["OpenVpn:EasyRsaPath"] ?? throw new InvalidOperationException(), "pki");
         _outputDir = configuration["OpenVpn:OutputDir"] ?? throw new InvalidOperationException();
         _tlsAuthKey = configuration["OpenVpn:TlsAuthKey"] ?? throw new InvalidOperationException();
         _serverIp = configuration["OpenVpn:ServerIp"] ?? throw new InvalidOperationException();
@@ -30,7 +30,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 
     public async Task<GetAllFilesResult> GetAllClientConfigurations(long telegramId)
     {
-        var issuedOvpnFiles = await GetFileInfoFromDB(telegramId);
+        var issuedOvpnFiles = await GetFileInfoFromDataBase(telegramId);
         _logger.LogInformation("Found {Count} issued files in database.", issuedOvpnFiles.Count);
 
         List<FileInfo> fileInfos = new List<FileInfo>();
@@ -65,23 +65,15 @@ public class OpenVpnClientService : IOpenVpnClientService
     {
         try
         {
-            var issuedOvpnFiles = await GetFileInfoFromDB(telegramId);
+            var issuedOvpnFiles = await GetFileInfoFromDataBase(telegramId);
             if (issuedOvpnFiles.Count >= _maxAttempts)
             {
                 return new FileCreationResult { FileInfo = null, Message = await GetResponseText(telegramId, "MaxConfigError") };
             }
             
             _logger.LogInformation("Step 1: Checking if PKI directory exists...");
-            if (!Directory.Exists(_pkiPath))
-            {
-                _logger.LogInformation("PKI directory does not exist. Initializing PKI...");
-                RunCommand($"cd {_easyRsaPath} && ./easyrsa init-pki");
-            }
-            else
-            {
-                _logger.LogInformation("PKI directory exists. Skipping initialization...");
-            }
-//.ovpn .crt .key / /etc/openvpn/easy-rsa/pki/reqs req
+            _easyRsaService.InstallEasyRsa();
+
             _logger.LogInformation("Step 1.1: Checking if configuration already exists for this client...");
             int attempt = 0;
             string baseOvpnFileName = $"{telegramId.ToString()}_{attempt}.ovpn";
@@ -100,17 +92,17 @@ public class OpenVpnClientService : IOpenVpnClientService
             }
 
             _logger.LogInformation("Step 2: Building client certificate...");
-            RunCommand($"cd {_easyRsaPath} && ./easyrsa build-client-full {telegramId.ToString()}_{attempt} nopass");
+            _easyRsaService.BuildCertificate($"{telegramId.ToString()}_{attempt}");
 
             _logger.LogInformation("Step 3: Defining paths to certificates and keys...");
-            string caCertContent = ReadPemContent(Path.Combine(_pkiPath, "ca.crt"));
+            string caCertContent = _easyRsaService.ReadPemContent(Path.Combine(_pkiPath, "ca.crt"));
 
             string crtPath = Path.Combine(_pkiPath, "issued", $"{telegramId.ToString()}_{attempt}.crt");
             string keyPath = Path.Combine(_pkiPath, "private", $"{telegramId.ToString()}_{attempt}.key");
             string reqPath = Path.Combine(_pkiPath, "reqs", $"{telegramId.ToString()}_{attempt}.req");
             string pemPath = Path.Combine(_pkiPath, "certs_by_serial", $"pemFile.pem");//todo: can found in /etc/openvpn/easy-rsa/pki/index.txt
             
-            string clientCertContent = ReadPemContent(crtPath);
+            string clientCertContent = _easyRsaService.ReadPemContent(crtPath);
             string clientKeyContent = await File.ReadAllTextAsync(keyPath);
 
             _logger.LogInformation("Step 4: Generating .ovpn configuration file...");
@@ -125,7 +117,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 
             _logger.LogInformation($"Client configuration file created: {ovpnFilePath}");
             var fileInfo = new FileInfo(ovpnFilePath);
-            await SaveInfoInDB(telegramId, fileInfo, crtPath, keyPath, reqPath, pemPath);
+            await SaveInfoInDataBase(telegramId, fileInfo, crtPath, keyPath, reqPath, pemPath);
             return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId,"HereIsConfig") };
 
         }
@@ -136,69 +128,35 @@ public class OpenVpnClientService : IOpenVpnClientService
         }
     }
 
-    // public async Task DeleteAllClientConfigurations(long telegramId)
-    // {
-    //     // Log the start of the deletion process
-    //     _logger.LogInformation("Starting deletion process for client with Telegram ID: {TelegramId}", telegramId);
-    //
-    //     // Get the list of issued .ovpn files for the given Telegram ID from the database
-    //     var issuedOvpnFiles = await GetFileInfoFromDB(telegramId);
-    //     _logger.LogInformation("Found {Count} issued files in database for deletion.", issuedOvpnFiles.Count);
-    //
-    //     foreach (var issuedOvpnFile in issuedOvpnFiles)
-    //     {
-    //         // Delete the .ovpn file from the output directory
-    //         string ovpnFilePath = Path.Combine(_outputDir, issuedOvpnFile.FileName);
-    //         if (File.Exists(ovpnFilePath))
-    //         {
-    //             File.Delete(ovpnFilePath);
-    //             _logger.LogInformation("Deleted .ovpn file: {FilePath}", ovpnFilePath);
-    //         }
-    //         else
-    //         {
-    //             _logger.LogWarning(".ovpn file not found for deletion: {FilePath}", ovpnFilePath);
-    //         }
-    //
-    //         // Delete the corresponding .crt file from the issued directory
-    //         string crtFilePath = Path.Combine(_pkiPath, "issued", $"{telegramId}_{issuedOvpnFile.Attempt}.crt");
-    //         if (File.Exists(crtFilePath))
-    //         {
-    //             File.Delete(crtFilePath);
-    //             _logger.LogInformation("Deleted .crt file: {FilePath}", crtFilePath);
-    //         }
-    //         else
-    //         {
-    //             _logger.LogWarning(".crt file not found for deletion: {FilePath}", crtFilePath);
-    //         }
-    //
-    //         // Delete the corresponding .key file from the private directory
-    //         string keyFilePath = Path.Combine(_pkiPath, "private", $"{telegramId}_{issuedOvpnFile.Attempt}.key");
-    //         if (File.Exists(keyFilePath))
-    //         {
-    //             File.Delete(keyFilePath);
-    //             _logger.LogInformation("Deleted .key file: {FilePath}", keyFilePath);
-    //         }
-    //         else
-    //         {
-    //             _logger.LogWarning(".key file not found for deletion: {FilePath}", keyFilePath);
-    //         }
-    //
-    //         // Delete the corresponding .req file from the reqs directory
-    //         string reqFilePath = Path.Combine(_pkiPath, "reqs", $"{telegramId}_{issuedOvpnFile.Attempt}.req");
-    //         if (File.Exists(reqFilePath))
-    //         {
-    //             File.Delete(reqFilePath);
-    //             _logger.LogInformation("Deleted .req file: {FilePath}", reqFilePath);
-    //         }
-    //         else
-    //         {
-    //             _logger.LogWarning(".req file not found for deletion: {FilePath}", reqFilePath);
-    //         }
-    //     }
-    //
-    //     // Log completion of the deletion process
-    //     _logger.LogInformation("Completed deletion process for client with Telegram ID: {TelegramId}", telegramId);
-    // }
+    public async Task<bool> DeleteAllClientConfigurations(long telegramId)
+    {
+        _logger.LogInformation("Starting deletion process for client with Telegram ID: {TelegramId}", telegramId);
+    
+        var issuedOvpnFiles = await GetFileInfoFromDataBase(telegramId);
+        _logger.LogInformation("Found {Count} issued files in database for deletion.", issuedOvpnFiles.Count);
+    
+        foreach (var issuedOvpnFile in issuedOvpnFiles)
+        {
+            if (!_easyRsaService.RevokeCertificate(issuedOvpnFile.CertName))
+            {
+                throw new Exception($"Failed to revoke certificate: {issuedOvpnFile.CertName}");
+            }
+            string ovpnFilePath = Path.Combine(_outputDir, issuedOvpnFile.FileName);
+            if (File.Exists(ovpnFilePath))
+            {
+                File.Delete(ovpnFilePath);
+                _logger.LogInformation("Deleted .ovpn file: {FilePath}", ovpnFilePath);
+            }
+            else
+            {
+                _logger.LogWarning(".ovpn file not found for deletion: {FilePath}", ovpnFilePath);
+            }
+            
+        }
+    
+        _logger.LogInformation("Completed deletion process for client with Telegram ID: {TelegramId}", telegramId);
+        return true;
+    }
 
 
     private async Task<string> GetResponseText(long telegramId, string key)
@@ -208,7 +166,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         return await localizationService.GetTextAsync(key, telegramId);
     }
 
-    private async Task SaveInfoInDB(long telegramId, FileInfo fileInfo, string crtPath, string keyPath,
+    private async Task SaveInfoInDataBase(long telegramId, FileInfo fileInfo, string crtPath, string keyPath,
         string reqPath, string pemPath)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -216,7 +174,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         await issuedOvpnFileService.AddIssuedOvpnFileAsync(telegramId, fileInfo, crtPath, keyPath, reqPath, pemPath);
     }
     
-    private async Task<List<IssuedOvpnFile>> GetFileInfoFromDB(long telegramId)
+    private async Task<List<IssuedOvpnFile>> GetFileInfoFromDataBase(long telegramId)
     {
         using var scope = _serviceProvider.CreateScope();
         var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
@@ -253,39 +211,4 @@ verb 3
 </tls-crypt>
 ";
     }
-
-    private static void RunCommand(string command)
-    {
-        var processInfo = new ProcessStartInfo("bash", $"-c \"{command}\"")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using (var process = Process.Start(processInfo))
-        {
-            if (process == null)
-                throw new InvalidOperationException("Failed to start command process.");
-
-            process.WaitForExit();
-
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException($"Command execution failed: {error}");
-        }
-    }
-    
-    private string ReadPemContent(string filePath)
-    {
-        var lines = File.ReadAllLines(filePath);
-        return string.Join(Environment.NewLine, lines
-            .SkipWhile(line => !line.StartsWith("-----BEGIN CERTIFICATE-----"))
-            .TakeWhile(line => !line.StartsWith("-----END CERTIFICATE-----"))
-            .Append("-----END CERTIFICATE-----"));
-    }
-
 }
