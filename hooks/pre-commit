@@ -53,3 +53,4 @@ cat > appsettings.Development.json << 'EOF'
 EOF
 
 git add appsettings.json
+git add appsettings.json appsettings.Development.json
