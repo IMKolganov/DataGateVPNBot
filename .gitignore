@@ -406,6 +406,7 @@ appsettings.Secrets.json
 # My settings
 bin/
 obj/
+temp/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
