@@ -19,8 +19,8 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema("xgb_rackotpg");
         base.OnModelCreating(modelBuilder);
-
         modelBuilder.Entity<TelegramUser>(entity =>
         {
             entity.HasKey(e => e.Id);

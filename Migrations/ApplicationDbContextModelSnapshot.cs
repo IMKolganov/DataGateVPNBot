@@ -17,10 +17,58 @@ namespace DataGateVPNBotV1.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("xgb_rackotpg")
                 .HasAnnotation("ProductVersion", "6.0.36")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("DataGateVPNBotV1.Models.IncomingMessageLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FilePath")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FirstName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MessageText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("TelegramId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Username")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("IncomingMessageLog", "xgb_rackotpg");
+                });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.IssuedOvpnFile", b =>
                 {
@@ -53,7 +101,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("IssuedOvpnFiles");
+                    b.ToTable("IssuedOvpnFiles", "xgb_rackotpg");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.LocalizationText", b =>
@@ -78,7 +126,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LocalizationTexts");
+                    b.ToTable("LocalizationTexts", "xgb_rackotpg");
 
                     b.HasData(
                         new
@@ -86,21 +134,21 @@ namespace DataGateVPNBotV1.Migrations
                             Id = 1,
                             Key = "BotMenu",
                             Language = 1,
-                            Text = "<b><u>Bot Menu</u></b>:\n/register - register to use the VPN\n/get_my_files - get your files for connecting to the VPN\n/make_new_file - create a new file for connecting to the VPN\n/how_to_use - receive information on how to use the VPN\n/install_client - get a link to download the OpenVPN client for connecting to the VPN\n/about_bot - receive information about this bot\n/about_project - receive information about the project\n/contacts - receive contacts developer"
+                            Text = "<b><u>Bot Menu</u></b>:\n/register - register to use the VPN\n/get_my_files - get your files for connecting to the VPN\n/make_new_file - create a new file for connecting to the VPN\n/delete_selected_file - Delete a specific file\n/delete_all_files - Delete all files\n/how_to_use - receive information on how to use the VPN\n/install_client - get a link to download the OpenVPN client for connecting to the VPN\n/about_bot - receive information about this bot\n/about_project - receive information about the project\n/contacts - receive contacts developer\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας"
                         },
                         new
                         {
                             Id = 2,
                             Key = "BotMenu",
                             Language = 2,
-                            Text = "<b><u>Μενού Bot</u></b>:\n/register - εγγραφείτε για να χρησιμοποιήσετε το VPN\n/get_my_files - αποκτήστε τα αρχεία σας για σύνδεση στο VPN\n/make_new_file - δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN\n/how_to_use - λάβετε πληροφορίες για τη χρήση του VPN\n/install_client - λάβετε σύνδεσμο για λήψη του OpenVPN client\n/about_bot - λάβετε πληροφορίες για αυτό το bot\n/about_project - λάβετε πληροφορίες για το έργο\n/contacts - λάβετε στοιχεία επικοινωνίας του προγραμματιστή"
+                            Text = "<b><u>Μενού Bot</u></b>:\n/register - εγγραφείτε για να χρησιμοποιήσετε το VPN\n/get_my_files - αποκτήστε τα αρχεία σας για σύνδεση στο VPN\n/make_new_file - δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN\n/delete_selected_file - Διαγραφή συγκεκριμένου αρχείου\n/delete_all_files - Διαγραφή όλων των αρχείων\n/how_to_use - λάβετε πληροφορίες για τη χρήση του VPN\n/install_client - λάβετε σύνδεσμο για λήψη του OpenVPN client\n/about_bot - λάβετε πληροφορίες για αυτό το bot\n/about_project - λάβετε πληροφορίες για το έργο\n/contacts - λάβετε στοιχεία επικοινωνίας του προγραμματιστή\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας"
                         },
                         new
                         {
                             Id = 3,
                             Key = "BotMenu",
                             Language = 3,
-                            Text = "<b><u>Меню бота</u></b>:\n/register - зарегистрируйтесь для использования VPN\n/get_my_files - получите свои файлы для подключения к VPN\n/make_new_file - создайте новый файл для подключения к VPN\n/how_to_use - получите информацию о том, как использовать VPN\n/install_client - получите ссылку для загрузки клиента OpenVPN\n/about_bot - информация об этом боте\n/about_project - информация о проекте\n/contacts - контакты разработчика"
+                            Text = "<b><u>Меню бота</u></b>:\n/register - зарегистрируйтесь для использования VPN\n/get_my_files - получите свои файлы для подключения к VPN\n/make_new_file - создайте новый файл для подключения к VPN\n/delete_selected_file - Удалить выбранный файл\n/delete_all_files - Удалить все файлы\n/how_to_use - получите информацию о том, как использовать VPN\n/install_client - получите ссылку для загрузки клиента OpenVPN\n/about_bot - информация об этом боте\n/about_project - информация о проекте\n/contacts - контакты разработчика\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας"
                         },
                         new
                         {
@@ -342,7 +390,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TelegramUsers");
+                    b.ToTable("TelegramUsers", "xgb_rackotpg");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.UserLanguagePreference", b =>
@@ -361,7 +409,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserLanguagePreferences");
+                    b.ToTable("UserLanguagePreferences", "xgb_rackotpg");
                 });
 #pragma warning restore 612, 618
         }

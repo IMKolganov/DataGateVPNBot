@@ -114,7 +114,7 @@ public class UpdateHandler : IUpdateHandler
             "/get_my_files" => GetMyFiles(msg),
             "/make_new_file" => MakeNewVpnFile(msg),
             "/delete_selected_file" => throw new NotImplementedException(),
-            "/delete_all_files" => throw new NotImplementedException(),
+            "/delete_all_files" => DeleteAllFiles(msg),
             "/install_client" => InstallClient(msg),
             "/about_project" => AboutProject(msg),
             "/contacts" => Contacts(msg),
@@ -288,6 +288,16 @@ public class UpdateHandler : IUpdateHandler
             chatId: msg.Chat.Id,
             document: InputFile.FromStream(fileStream, clientConfigFile.FileInfo.Name),
             caption: clientConfigFile.Message
+        );
+    }
+    
+    async Task<Message> DeleteAllFiles(Message msg)
+    {
+        // var deleteAllConfiguration = await _openVpnClientService.DeleteAllConfiguration(msg.From!.Id);
+        return await _botClient.SendMessage(
+            chatId: msg.Chat.Id,
+            text: "...",
+            replyMarkup: new ReplyKeyboardRemove()
         );
     }
 

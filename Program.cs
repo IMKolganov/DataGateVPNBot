@@ -41,7 +41,12 @@ builder.WebHost.UseKestrel(options =>
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException()));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? throw new InvalidOperationException(),
+        npgsqlOptions => npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "xgb_rackotpg")
+    )
+);
 
 var app = builder.Build();
 
