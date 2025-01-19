@@ -9,7 +9,7 @@ public class EasyRsaService : IEasyRsaService
     private readonly IServiceProvider _serviceProvider;
     private readonly string _easyRsaPath;
     private readonly string _pkiPath;
-    
+
     public EasyRsaService(ILogger<EasyRsaService> logger, IConfiguration configuration,
         IServiceProvider serviceProvider)
     {
@@ -18,7 +18,7 @@ public class EasyRsaService : IEasyRsaService
         _easyRsaPath = configuration["OpenVpn:EasyRsaPath"] ?? throw new InvalidOperationException();
         _pkiPath = Path.Combine(_easyRsaPath, "pki");
     }
-    
+
     public void InstallEasyRsa()
     {
         if (!Directory.Exists(_pkiPath))
@@ -36,7 +36,7 @@ public class EasyRsaService : IEasyRsaService
     {
         RunCommand($"cd {_easyRsaPath} && ./easyrsa build-client-full {certName} nopass");
     }
-    
+
     public string ReadPemContent(string filePath)
     {
         var lines = File.ReadAllLines(filePath);
@@ -45,7 +45,7 @@ public class EasyRsaService : IEasyRsaService
             .TakeWhile(line => !line.StartsWith("-----END CERTIFICATE-----"))
             .Append("-----END CERTIFICATE-----"));
     }
-    
+
     public bool RevokeCertificate(string clientName)
     {
         string certPath = Path.Combine(_pkiPath, "issued", $"{clientName}.crt");
@@ -55,20 +55,28 @@ public class EasyRsaService : IEasyRsaService
             return false;
         }
 
+        _logger.LogInformation($"Attempting to revoke certificate for: {clientName}");
+        _logger.LogInformation($"Using EasyRsaPath: {_easyRsaPath}");
+        _logger.LogInformation($"Using PKI Path: {_pkiPath}");
+        _logger.LogInformation($"Certificate Path: {certPath}");
+
         var revokeResult = ExecuteEasyRsaCommand($"revoke {clientName}", confirm: true);
         if (!revokeResult.IsSuccess)
         {
             _logger.LogError($"Failed to revoke certificate: {revokeResult.Error}");
+            _logger.LogInformation($"Command Output: {revokeResult.Output}");
             return false;
         }
 
+        _logger.LogInformation($"Revocation successful. Attempting to generate CRL.");
         var crlResult = ExecuteEasyRsaCommand("gen-crl");
         if (!crlResult.IsSuccess)
         {
             _logger.LogError($"Failed to generate CRL: {crlResult.Error}");
+            _logger.LogInformation($"Command Output: {crlResult.Output}");
             return false;
         }
-        
+
         _logger.LogInformation("Certificate successfully revoked and CRL updated.");
         return true;
     }
@@ -80,16 +88,25 @@ public class EasyRsaService : IEasyRsaService
             var command = $"cd {_easyRsaPath} && ./easyrsa {arguments}";
             if (confirm) command = $"echo yes | {command}";
 
-            RunCommand(command);
-            return (true, "Command executed successfully", string.Empty);
+            _logger.LogInformation($"Executing command: {command}");
+            var result = RunCommand(command);
+
+            _logger.LogInformation($"Command Output: {result.Output}");
+            _logger.LogInformation($"Command Error: {result.Error}");
+            _logger.LogInformation($"Command Exit Code: {result.ExitCode}");
+
+            return result.ExitCode == 0
+                ? (true, result.Output, string.Empty)
+                : (false, result.Output, result.Error);
         }
         catch (Exception ex)
         {
+            _logger.LogError($"Exception during command execution: {ex.Message}");
             return (false, string.Empty, ex.Message);
         }
     }
-    
-    private static void RunCommand(string command)
+
+    private (string Output, string Error, int ExitCode) RunCommand(string command)
     {
         var processInfo = new ProcessStartInfo("bash", $"-c \"{command}\"")
         {
@@ -99,18 +116,19 @@ public class EasyRsaService : IEasyRsaService
             CreateNoWindow = true
         };
 
-        using (var process = Process.Start(processInfo))
+        _logger.LogInformation($"Starting process with command: {command}");
+
+        using var process = Process.Start(processInfo);
+        if (process == null)
         {
-            if (process == null)
-                throw new InvalidOperationException("Failed to start command process.");
-
-            process.WaitForExit();
-
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException($"Command execution failed: {error}");
+            throw new InvalidOperationException("Failed to start command process.");
         }
+
+        string output = process.StandardOutput.ReadToEnd();
+        string error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        _logger.LogInformation($"Process finished with ExitCode: {process.ExitCode}");
+        return (output, error, process.ExitCode);
     }
 }
