@@ -34,7 +34,6 @@ The bot supports the following commands:
 | `/remove`                 | Remove the keyboard.                                                    |
 
 ---
-
 ## Setting up Git Hooks
 
 To set up Git hooks in this repository and ensure they are applied automatically during commits, follow these steps:
@@ -53,6 +52,24 @@ chmod +x hooks/pre-commit
 ```
 
 This will copy the required hooks from the `hooks` folder to the `.git/hooks` directory. Once installed, the hooks will automatically execute during the appropriate Git operations, such as `pre-commit`.
+
+---
+
+### Handling "dubious ownership" errors
+
+If you encounter an error like the following when running Git commands:
+
+```plaintext
+fatal: detected dubious ownership in repository at 'path-to-repository'
+```
+
+This occurs because Git detected a mismatch between the current user and the owner of the repository directory. To fix this, mark the repository as safe by running the following command:
+
+```bash
+git config --global --add safe.directory '<path-to-repository>'
+```
+
+Replace `<path-to-repository>` with the actual path to your repository. This command adds the repository to Git's global safe directory list, allowing operations to proceed without warnings.
 
 ---
 
