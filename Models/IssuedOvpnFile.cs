@@ -16,14 +16,14 @@ public class IssuedOvpnFile
     public DateTime IssuedAt { get; set; }
 
     public string IssuedTo { get; set; } = null!;
-
-    // Поля для трёх файлов: Key, Perm и Cert
-    // [Required]
-    public string KeyFilePath { get; set; } //= null!; // Путь к ключу (Key)
-
-    // [Required]
-    public string PermFilePath { get; set; } //= null!; // Путь к файлу прав (Perm)
-
-    // [Required]
-    public string CertFilePath { get; set; } //= null!; // Путь к сертификату (Cert)
+    [Required]
+    public string PemFilePath { get; set; } = null!;
+    [Required]
+    public string CertFilePath { get; set; } = null!;
+    [Required]
+    public string KeyFilePath { get; set; } = null!;
+    [Required]
+    public string ReqFilePath { get; set; } = null!;
+    [Required]
+    public bool IsRevoked { get; set; } = false;
 }

@@ -16,7 +16,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         _dbContext = dbContext;
     }
 
-    public async Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo)
+    public async Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, string crtPath, string keyPath, string reqPath)
     {
         var issuedFile = new IssuedOvpnFile()
         {
@@ -25,9 +25,10 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
             FilePath = fileInfo.FullName,
             IssuedAt = DateTime.UtcNow,
             IssuedTo = "TgBotUsers",
-            CertFilePath = "empty",
-            KeyFilePath = "empty",
-            PermFilePath = "empty"
+            CertFilePath = crtPath,
+            KeyFilePath = keyPath,
+            ReqFilePath = reqPath,
+            IsRevoked = false
         };
         
         _dbContext.IssuedOvpnFiles.Add(issuedFile);
