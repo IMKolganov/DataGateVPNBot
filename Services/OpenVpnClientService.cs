@@ -108,6 +108,8 @@ public class OpenVpnClientService : IOpenVpnClientService
             string crtPath = Path.Combine(_pkiPath, "issued", $"{telegramId.ToString()}_{attempt}.crt");
             string keyPath = Path.Combine(_pkiPath, "private", $"{telegramId.ToString()}_{attempt}.key");
             string reqPath = Path.Combine(_pkiPath, "reqs", $"{telegramId.ToString()}_{attempt}.req");
+            string pemPath = Path.Combine(_pkiPath, "certs_by_serial", $"pemFile.pem");//todo: can found in /etc/openvpn/easy-rsa/pki/index.txt
+            
             string clientCertContent = ReadPemContent(crtPath);
             string clientKeyContent = await File.ReadAllTextAsync(keyPath);
 
@@ -123,7 +125,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 
             _logger.LogInformation($"Client configuration file created: {ovpnFilePath}");
             var fileInfo = new FileInfo(ovpnFilePath);
-            await SaveInfoInDB(telegramId, fileInfo, crtPath, keyPath, reqPath);
+            await SaveInfoInDB(telegramId, fileInfo, crtPath, keyPath, reqPath, pemPath);
             return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId,"HereIsConfig") };
 
         }
@@ -206,11 +208,12 @@ public class OpenVpnClientService : IOpenVpnClientService
         return await localizationService.GetTextAsync(key, telegramId);
     }
 
-    private async Task SaveInfoInDB(long telegramId, FileInfo fileInfo, string crtPath, string keyPath, string reqPath)
+    private async Task SaveInfoInDB(long telegramId, FileInfo fileInfo, string crtPath, string keyPath,
+        string reqPath, string pemPath)
     {
         using var scope = _serviceProvider.CreateScope();
         var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
-        await issuedOvpnFileService.AddIssuedOvpnFileAsync(telegramId, fileInfo, crtPath, keyPath, reqPath);
+        await issuedOvpnFileService.AddIssuedOvpnFileAsync(telegramId, fileInfo, crtPath, keyPath, reqPath, pemPath);
     }
     
     private async Task<List<IssuedOvpnFile>> GetFileInfoFromDB(long telegramId)
