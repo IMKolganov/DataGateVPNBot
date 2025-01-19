@@ -49,16 +49,16 @@ public class ApplicationDbContext : DbContext
                 .HasMaxLength(255);
 
             entity.Property(e => e.KeyFilePath)
-                // .IsRequired()
-                .HasMaxLength(500); // Максимальная длина пути к ключу
+                .IsRequired()
+                .HasMaxLength(500);
 
-            entity.Property(e => e.PermFilePath)
-                // .IsRequired()
-                .HasMaxLength(500); // Максимальная длина пути к файлу прав
+            entity.Property(e => e.ReqFilePath)
+                .IsRequired()
+                .HasMaxLength(500);
 
             entity.Property(e => e.CertFilePath)
-                // .IsRequired()
-                .HasMaxLength(500); // Максимальная длина пути к сертификату
+                .IsRequired()
+                .HasMaxLength(500);
         });
 
         modelBuilder.Entity<UserLanguagePreference>(entity =>
@@ -130,7 +130,15 @@ public class ApplicationDbContext : DbContext
  
             new LocalizationText { Id = 34, Key = "SuccessChangeLanguage", Language = Language.English, Text = "✅ You have successfully changed your language to English!" },
             new LocalizationText { Id = 35, Key = "SuccessChangeLanguage", Language = Language.Greek, Text = "✅ Έχετε αλλάξει τη γλώσσα σας σε Ελληνικά!" },
-            new LocalizationText { Id = 36, Key = "SuccessChangeLanguage", Language = Language.Russian, Text = "✅ Вы успешно сменили язык на Русский!" }
+            new LocalizationText { Id = 36, Key = "SuccessChangeLanguage", Language = Language.Russian, Text = "✅ Вы успешно сменили язык на Русский!" },
+            
+            new LocalizationText { Id = 37, Key = "FilesNotFoundError", Language = Language.English, Text = "You have no files, but you can create them by selecting the /make_new_file command." },
+            new LocalizationText { Id = 38, Key = "FilesNotFoundError", Language = Language.Russian, Text = "У вас нет файлов, но вы можете создать их, выбрав команду /make_new_file." },
+            new LocalizationText { Id = 39, Key = "FilesNotFoundError", Language = Language.Greek, Text = "Δεν έχετε αρχεία, αλλά μπορείτε να τα δημιουργήσετε επιλέγοντας την εντολή /make_new_file." },
+
+            new LocalizationText { Id = 40, Key = "MaxConfigError", Language = Language.English, Text = "Maximum limit of 10 configurations for your devices has been reached. Cannot create more files." },
+            new LocalizationText { Id = 41, Key = "MaxConfigError", Language = Language.Russian, Text = "Достигнут максимальный лимит в 10 конфигураций для ваших устройств. Невозможно создать новые файлы." },
+            new LocalizationText { Id = 42, Key = "MaxConfigError", Language = Language.Greek, Text = "Έχει επιτευχθεί το μέγιστο όριο 10 διαμορφώσεων για τις συσκευές σας. Δεν μπορείτε να δημιουργήσετε περισσότερα αρχεία." }
         );
     }
 }

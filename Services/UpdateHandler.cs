@@ -300,18 +300,29 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> MakeNewVpnFile(Message msg)
     {
-        await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
         // Generate the client configuration file
         var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.From!.Id);
-        _logger.LogInformation("Client configuration created successfully in UpdateHandler.");
-        // Send the .ovpn file to the user
-        await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read,
-            FileShare.Read);
-        return await _botClient.SendDocument(
-            chatId: msg.Chat.Id,
-            document: InputFile.FromStream(fileStream, clientConfigFile.FileInfo.Name),
-            caption: clientConfigFile.Message
-        );
+        if (clientConfigFile.FileInfo != null)
+        {
+            _logger.LogInformation("Client configuration created successfully in UpdateHandler.");
+            await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
+            // Send the .ovpn file to the user
+            await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read,
+                FileShare.Read);
+            return await _botClient.SendDocument(
+                chatId: msg.Chat.Id,
+                document: InputFile.FromStream(fileStream, clientConfigFile.FileInfo.Name),
+                caption: clientConfigFile.Message
+            );
+        }
+        else
+        {
+            return await _botClient.SendMessage(
+                chatId: msg.Chat.Id,
+                text: clientConfigFile.Message,
+                replyMarkup: new ReplyKeyboardRemove()
+            );
+        }
     }
     
     async Task<Message> DeleteAllFiles(Message msg)
