@@ -35,7 +35,7 @@ The bot supports the following commands:
 
 ---
 
-### Setting up Git Hooks
+## Setting up Git Hooks
 
 To set up Git hooks in this repository and ensure they are applied automatically during commits, follow these steps:
 
