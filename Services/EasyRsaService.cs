@@ -77,35 +77,11 @@ public class EasyRsaService : IEasyRsaService
     {
         try
         {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = Path.Combine(_easyRsaPath, "easyrsa"),
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    RedirectStandardInput = confirm,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
+            var command = $"{Path.Combine(_easyRsaPath, "easyrsa")} {arguments}";
+            if (confirm) command = $"echo yes | {command}";
 
-            process.Start();
-
-            if (confirm)
-            {
-                // Send "yes"
-                using var writer = process.StandardInput;
-                writer.WriteLine("yes");
-            }
-
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-
-            process.WaitForExit();
-
-            return (process.ExitCode == 0, output, error);
+            RunCommand(command);
+            return (true, "Command executed successfully", string.Empty);
         }
         catch (Exception ex)
         {
