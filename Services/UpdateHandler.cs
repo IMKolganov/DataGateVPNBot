@@ -17,6 +17,7 @@ public class UpdateHandler : IUpdateHandler
     private readonly IServiceProvider _serviceProvider;
     private readonly IOpenVpnClientService _openVpnClientService;
     private readonly ILogger<UpdateHandler> _logger;
+    private readonly string _pathBotLog = "bot.log";
 
     private readonly InputPollOption[] _pollOptions = new[]
     {
@@ -435,14 +436,14 @@ public class UpdateHandler : IUpdateHandler
         await Usage(msg);
     }
     
-    async Task<Message> GetLogs(Message msg, string filePath = "log.bot", int linesToRead = 100)
+    async Task<Message> GetLogs(Message msg, int linesToRead = 100)
     {
-        if (!File.Exists(filePath))
-            throw new FileNotFoundException($"Log file not found: {filePath}");
+        if (!File.Exists(_pathBotLog))
+            throw new FileNotFoundException($"Log file not found: {_pathBotLog}");
 
         var lines = new LinkedList<string>();
 
-        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
         using (var streamReader = new StreamReader(fileStream))
         {
             string? line;
@@ -472,10 +473,10 @@ public class UpdateHandler : IUpdateHandler
     {
         await _botClient.SendChatAction(msg.Chat, ChatAction.UploadPhoto);
         await Task.Delay(2000); // simulate a long task
-        await using var fileStream = new FileStream("bot.log", FileMode.Open, FileAccess.Read);
+        await using var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read);
         return await _botClient.SendDocument(
             chatId: msg.Chat.Id,
-            document: InputFile.FromStream(fileStream, "bot.log"),
+            document: InputFile.FromStream(fileStream, _pathBotLog),
             caption:  "Read https://github.com/IMKolganov/DataGateVPNBot"
         );
     }
