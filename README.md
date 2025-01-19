@@ -35,6 +35,36 @@ The bot supports the following commands:
 
 ---
 
+### Setting up Git Hooks
+
+To set up Git hooks in this repository and ensure they are applied automatically during commits, follow these steps:
+
+```bash
+# Clone the repository to your local machine
+git clone <repository-url>
+cd <repository-folder>
+
+# Make the necessary files executable
+chmod +x setup-hooks.sh
+chmod +x hooks/pre-commit
+
+# Run the setup script to install the hooks
+./setup-hooks.sh
+```
+
+This will copy the required hooks from the `hooks` folder to the `.git/hooks` directory. Once installed, the hooks will automatically execute during the appropriate Git operations, such as `pre-commit`.
+
+---
+
+### Why is this important?
+
+```markdown
+- **On Windows**: Files do not have an "executable" flag by default. Without it, scripts cannot run, especially if you are using WSL, Git Bash, or other Linux-like shells on Windows.
+- **On macOS and Linux**: Files also need to be explicitly made executable for them to work as intended.
+
+Adding this setup ensures that all team members avoid potential issues and can easily activate hooks on their local environments.
+```
+
 ## Installation and Launch
 
 ### Prerequisites
