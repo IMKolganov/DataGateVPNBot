@@ -118,7 +118,7 @@ public class UpdateHandler : IUpdateHandler
             "/register" => RegisterForVpn(msg),
             "/get_my_files" => GetMyFiles(msg),
             "/make_new_file" => MakeNewVpnFile(msg),
-            "/delete_selected_file" =>  DeleteSelectedFile(msg),
+            "/delete_selected_file" => DeleteSelectedFile(msg),
             "/delete_all_files" => DeleteAllFiles(msg),
             "/install_client" => InstallClient(msg),
             "/about_project" => AboutProject(msg),
@@ -362,12 +362,12 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string successfullyDeletedSelectedFile = await localizationService.GetTextAsync("SuccessfullyDeletedSelectedFile", telegramId);
+        string successfullyDeletedFileText = await localizationService.GetTextAsync("SuccessfullyDeletedFile", telegramId);
         
         await _openVpnClientService.DeleteClientConfiguration(telegramId, fileName);
         return await _botClient.SendMessage(
             chatId: telegramId,
-            text: successfullyDeletedSelectedFile,
+            text: successfullyDeletedFileText,
             replyMarkup: new ReplyKeyboardRemove()
         );
     }
@@ -376,7 +376,8 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string chooseplatformtext = await localizationService.GetTextAsync("ChoosePlatform", msg.From!.Id);
+        string choosePlatformText = await localizationService.GetTextAsync("ChoosePlatform", msg.From!.Id);
+        string aboutOpenVpnText = await localizationService.GetTextAsync("AboutOpenVPN", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -387,13 +388,13 @@ public class UpdateHandler : IUpdateHandler
             },
             new[]
             {
-                InlineKeyboardButton.WithUrl("About OpenVPN", "https://openvpn.net/faq/what-is-openvpn/")
+                InlineKeyboardButton.WithUrl(aboutOpenVpnText, "https://openvpn.net/faq/what-is-openvpn/")
             }
         });
 
         return await _botClient.SendMessage(
             msg.Chat,
-            chooseplatformtext,
+            choosePlatformText,
             replyMarkup: inlineMarkup
         );
     }
@@ -402,18 +403,19 @@ public class UpdateHandler : IUpdateHandler
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string aboutprojecttext = await localizationService.GetTextAsync("AboutProject", msg.From!.Id);
+        string aboutProjectText = await localizationService.GetTextAsync("AboutProject", msg.From!.Id);
+        string whatIsRaspberryPitext = await localizationService.GetTextAsync("WhatIsRaspberryPi", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
             {
-                InlineKeyboardButton.WithUrl("What is Raspberry Pi?", "https://www.raspberrypi.org/about/")
+                InlineKeyboardButton.WithUrl(whatIsRaspberryPitext, "https://www.raspberrypi.org/about/")
             }
         });
         
         return await _botClient.SendMessage(
             msg.Chat, 
-            aboutprojecttext,
+            aboutProjectText,
             replyMarkup: inlineMarkup
         );
     }
