@@ -438,14 +438,14 @@ public class UpdateHandler : IUpdateHandler
         await Usage(msg);
     }
 
-    async Task<Message> GetLogs(Message msg, string filePath = "log.bot", int linesToRead = 100)
+    async Task<Message> GetLogs(Message msg, int linesToRead = 100)
     {
         if (!File.Exists(_pathBotLog))
             throw new FileNotFoundException($"Log file not found: {_pathBotLog}");
 
         var lines = new LinkedList<string>();
 
-        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
         {
             fileStream.Seek(0, SeekOrigin.End);
 
