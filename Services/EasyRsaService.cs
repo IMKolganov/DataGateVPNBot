@@ -86,9 +86,14 @@ public class EasyRsaService : IEasyRsaService
         try
         {
             var command = $"cd {_easyRsaPath} && ./easyrsa {arguments}";
-            if (confirm) command = $"echo yes | {command}";
+            if (confirm)
+            {
+                _logger.LogInformation($"Confirming command with 'yes': {arguments}");
+                command = $"cd {_easyRsaPath} && echo yes | ./easyrsa {arguments}";
+            }
 
             _logger.LogInformation($"Executing command: {command}");
+
             var result = RunCommand(command);
 
             _logger.LogInformation($"Command Output: {result.Output}");
