@@ -345,12 +345,26 @@ public class UpdateHandler : IUpdateHandler
         string chooseFileForDeleteText = await localizationService.GetTextAsync("ChooseFileForDelete", msg.From!.Id);
         
         var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
-        var inlineMarkup = new InlineKeyboardMarkup();
+        var rows = new List<InlineKeyboardButton[]>();
+
+        var currentRow = new List<InlineKeyboardButton>();
         foreach (var fileInfo in clientConfigFiles.FileInfo)
         {
-            inlineMarkup.AddButton(fileInfo.Name, $"/delete_file {fileInfo.Name}");
+            currentRow.Add(InlineKeyboardButton.WithCallbackData(fileInfo.Name, $"/delete_file {fileInfo.Name}"));
+
+            if (currentRow.Count == 2)
+            {
+                rows.Add(currentRow.ToArray());
+                currentRow.Clear();
+            }
         }
         
+        if (currentRow.Count > 0)
+        {
+            rows.Add(currentRow.ToArray());
+        }
+
+        var inlineMarkup = new InlineKeyboardMarkup(rows);
         return await _botClient.SendMessage(
             msg.Chat,
             chooseFileForDeleteText,
