@@ -1,4 +1,4 @@
-﻿using DataGateVPNBotV1.Models.Enums;
+using DataGateVPNBotV1.Models.Enums;
 using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -253,6 +253,7 @@ public class UpdateHandler : IUpdateHandler
             }
             else
             {
+                await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
                 _logger.LogInformation("Single configuration file detected.");
                 var clientConfigFile = clientConfigFiles.FileInfo.FirstOrDefault()
                                        ?? throw new InvalidOperationException("No configuration file found.");
@@ -282,6 +283,7 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> MakeNewVpnFile(Message msg)
     {
+        await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
         // Generate the client configuration file
         var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.From!.Id);
         _logger.LogInformation("Client configuration created successfully in UpdateHandler.");
@@ -435,7 +437,7 @@ public class UpdateHandler : IUpdateHandler
         await InstallClient(msg);
         await Usage(msg);
     }
-    
+
     async Task<Message> GetLogs(Message msg, int linesToRead = 100)
     {
         if (!File.Exists(_pathBotLog))
@@ -444,22 +446,56 @@ public class UpdateHandler : IUpdateHandler
         var lines = new LinkedList<string>();
 
         using (var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-        using (var streamReader = new StreamReader(fileStream))
         {
-            string? line;
-            while ((line = await streamReader.ReadLineAsync()) != null)
-            {
-                lines.AddLast(line);
+            fileStream.Seek(0, SeekOrigin.End);
 
-                if (lines.Count > linesToRead)
-                    lines.RemoveFirst();
+            long position = fileStream.Position;
+            int bufferSize = 1024;
+            var buffer = new char[bufferSize];
+            int bytesRead;
+            var currentLine = new LinkedList<char>();
+
+            using (var streamReader = new StreamReader(fileStream))
+            {
+                while (position > 0 && lines.Count < linesToRead)
+                {
+                    position -= bufferSize;
+                    if (position < 0)
+                    {
+                        bufferSize += (int)position;
+                        position = 0;
+                    }
+
+                    fileStream.Seek(position, SeekOrigin.Begin);
+                    bytesRead = await streamReader.ReadAsync(buffer, 0, bufferSize);
+
+                    for (int i = bytesRead - 1; i >= 0; i--)
+                    {
+                        if (buffer[i] == '\n')
+                        {
+                            lines.AddFirst(new string(currentLine.ToArray()));
+                            currentLine.Clear();
+
+                            if (lines.Count >= linesToRead)
+                                break;
+                        }
+                        else
+                        {
+                            currentLine.AddFirst(buffer[i]);
+                        }
+                    }
+                }
+
+                if (currentLine.Count > 0)
+                    lines.AddFirst(new string(currentLine.ToArray()));
             }
         }
 
         var logText = string.Join(Environment.NewLine, lines);
+
         if (logText.Length > 4096)
         {
-            logText = logText.Substring(0, 4093) + "...";
+            logText = logText.Substring(logText.Length - 4093) + "...";
         }
 
         return await _botClient.SendMessage(
@@ -468,17 +504,28 @@ public class UpdateHandler : IUpdateHandler
             replyMarkup: new ReplyKeyboardRemove()
         );
     }
-    
+
     async Task<Message> SendFileLog(Message msg)
     {
-        await _botClient.SendChatAction(msg.Chat, ChatAction.UploadPhoto);
-        await Task.Delay(2000); // simulate a long task
-        await using var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read);
-        return await _botClient.SendDocument(
-            chatId: msg.Chat.Id,
-            document: InputFile.FromStream(fileStream, _pathBotLog),
-            caption:  "Read https://github.com/IMKolganov/DataGateVPNBot"
-        );
+        if (!File.Exists(_pathBotLog))
+            throw new FileNotFoundException($"Log file not found: {_pathBotLog}");
+
+        await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
+
+        using var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        try
+        {
+            return await _botClient.SendDocument(
+                chatId: msg.Chat.Id,
+                document: InputFile.FromStream(fileStream, Path.GetFileName(_pathBotLog)),
+                caption: "Read https://github.com/IMKolganov/DataGateVPNBot"
+            );
+        }
+        catch (Telegram.Bot.Exceptions.RequestException ex)
+        {
+            Console.WriteLine($"Telegram API Error: {ex.Message}");
+            throw;
+        }
     }
     
     async Task<Message> SendPhoto(Message msg)
