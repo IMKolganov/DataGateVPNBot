@@ -121,6 +121,9 @@ public class UpdateHandler : IUpdateHandler
             "/change_language" => SelectLanguage(msg),
             
             "/register_commands" => RegisterCommandsAsync(msg),
+            
+            "/get_logs" => GetLogs(msg),
+            "/get_file_log" => SendFileLog(msg),
 
             "/photo" => SendPhoto(msg),
             "/inline_buttons" => SendInlineKeyboard(msg),
@@ -430,6 +433,51 @@ public class UpdateHandler : IUpdateHandler
         await MakeNewVpnFile(msg);
         await InstallClient(msg);
         await Usage(msg);
+    }
+    
+    async Task<Message> GetLogs(Message msg, string filePath = "log.bot", int linesToRead = 100)
+    {
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException($"Log file not found: {filePath}");
+
+        var lines = new LinkedList<string>();
+
+        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var streamReader = new StreamReader(fileStream))
+        {
+            string? line;
+            while ((line = await streamReader.ReadLineAsync()) != null)
+            {
+                lines.AddLast(line);
+
+                if (lines.Count > linesToRead)
+                    lines.RemoveFirst();
+            }
+        }
+
+        var logText = string.Join(Environment.NewLine, lines);
+        if (logText.Length > 4096)
+        {
+            logText = logText.Substring(0, 4093) + "...";
+        }
+
+        return await _botClient.SendMessage(
+            chatId: msg.Chat.Id,
+            text: logText,
+            replyMarkup: new ReplyKeyboardRemove()
+        );
+    }
+    
+    async Task<Message> SendFileLog(Message msg)
+    {
+        await _botClient.SendChatAction(msg.Chat, ChatAction.UploadPhoto);
+        await Task.Delay(2000); // simulate a long task
+        await using var fileStream = new FileStream("bot.log", FileMode.Open, FileAccess.Read);
+        return await _botClient.SendDocument(
+            chatId: msg.Chat.Id,
+            document: InputFile.FromStream(fileStream, "bot.log"),
+            caption:  "Read https://github.com/IMKolganov/DataGateVPNBot"
+        );
     }
     
     async Task<Message> SendPhoto(Message msg)
