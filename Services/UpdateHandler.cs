@@ -293,6 +293,7 @@ public class UpdateHandler : IUpdateHandler
     
     async Task<Message> DeleteAllFiles(Message msg)
     {
+        // var deleteAllConfiguration = await _openVpnClientService.DeleteAllConfiguration(msg.From!.Id);
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
             text: "...",
@@ -549,11 +550,11 @@ public class UpdateHandler : IUpdateHandler
     {
         var commandsEn = new[]
         {
-            new BotCommand { Command = "register", Description = "Register to use the VPN" },
+            // new BotCommand { Command = "register", Description = "Register to use the VPN" },
             new BotCommand { Command = "get_my_files", Description = "Get your files for connecting to the VPN" },
             new BotCommand { Command = "make_new_file", Description = "Create a new file for connecting to the VPN" },
-            new BotCommand { Command = "delete_selected_file", Description = "Delete a specific file" },
-            new BotCommand { Command = "delete_all_files", Description = "Delete all files" },
+            // new BotCommand { Command = "delete_selected_file", Description = "Delete a specific file" },
+            // new BotCommand { Command = "delete_all_files", Description = "Delete all files" },
             new BotCommand { Command = "how_to_use", Description = "Instructions on how to use the VPN" },
             new BotCommand { Command = "install_client", Description = "Get a link to download OpenVPN client" },
             new BotCommand { Command = "about_bot", Description = "Information about the bot" },
@@ -564,11 +565,11 @@ public class UpdateHandler : IUpdateHandler
 
         var commandsRu = new[]
         {
-            new BotCommand { Command = "register", Description = "Зарегистрируйтесь для использования VPN" },
+            // new BotCommand { Command = "register", Description = "Зарегистрируйтесь для использования VPN" },
             new BotCommand { Command = "get_my_files", Description = "Получите свои файлы для подключения к VPN" },
             new BotCommand { Command = "make_new_file", Description = "Создайте новый файл для подключения к VPN" },
-            new BotCommand { Command = "delete_selected_file", Description = "Удалить выбранный файл" },
-            new BotCommand { Command = "delete_all_files", Description = "Удалить все файлы" },
+            // new BotCommand { Command = "delete_selected_file", Description = "Удалить выбранный файл" },
+            // new BotCommand { Command = "delete_all_files", Description = "Удалить все файлы" },
             new BotCommand { Command = "how_to_use", Description = "Инструкция по использованию VPN" },
             new BotCommand { Command = "install_client", Description = "Ссылка на загрузку клиента OpenVPN" },
             new BotCommand { Command = "about_bot", Description = "Информация о боте" },
@@ -579,11 +580,11 @@ public class UpdateHandler : IUpdateHandler
 
         var commandsEl = new[]
         {
-            new BotCommand { Command = "register", Description = "Εγγραφείτε για να χρησιμοποιήσετε το VPN" },
+            // new BotCommand { Command = "register", Description = "Εγγραφείτε για να χρησιμοποιήσετε το VPN" },
             new BotCommand { Command = "get_my_files", Description = "Αποκτήστε τα αρχεία σας για σύνδεση στο VPN" },
             new BotCommand { Command = "make_new_file", Description = "Δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN" },
-            new BotCommand { Command = "delete_selected_file", Description = "Διαγραφή συγκεκριμένου αρχείου" },
-            new BotCommand { Command = "delete_all_files", Description = "Διαγραφή όλων των αρχείων" },
+            // new BotCommand { Command = "delete_selected_file", Description = "Διαγραφή συγκεκριμένου αρχείου" },
+            // new BotCommand { Command = "delete_all_files", Description = "Διαγραφή όλων των αρχείων" },
             new BotCommand { Command = "how_to_use", Description = "Οδηγίες χρήσης VPN" },
             new BotCommand { Command = "install_client", Description = "Λήψη του OpenVPN client" },
             new BotCommand { Command = "about_bot", Description = "Πληροφορίες για το bot" },

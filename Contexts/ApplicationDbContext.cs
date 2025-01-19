@@ -29,15 +29,38 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.FirstName).HasMaxLength(100);
             entity.Property(e => e.LastName).HasMaxLength(100);
         });
-        
         modelBuilder.Entity<IssuedOvpnFile>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.IssuedAt).IsRequired();
-            entity.Property(e => e.IssuedTo).IsRequired().HasMaxLength(255);
+
+            entity.Property(e => e.FileName)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.FilePath)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(e => e.IssuedAt)
+                .IsRequired();
+
+            entity.Property(e => e.IssuedTo)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.KeyFilePath)
+                // .IsRequired()
+                .HasMaxLength(500); // Максимальная длина пути к ключу
+
+            entity.Property(e => e.PermFilePath)
+                // .IsRequired()
+                .HasMaxLength(500); // Максимальная длина пути к файлу прав
+
+            entity.Property(e => e.CertFilePath)
+                // .IsRequired()
+                .HasMaxLength(500); // Максимальная длина пути к сертификату
         });
+
         modelBuilder.Entity<UserLanguagePreference>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -58,9 +81,12 @@ public class ApplicationDbContext : DbContext
         });
         modelBuilder.Entity<LocalizationText>().HasData(
             // Bot menu
-            new LocalizationText { Id = 1, Key = "BotMenu", Language = Language.English, Text = "<b><u>Bot Menu</u></b>:\n/register - register to use the VPN\n/get_my_files - get your files for connecting to the VPN\n/make_new_file - create a new file for connecting to the VPN\n/delete_selected_file - Delete a specific file\n/delete_all_files - Delete all files\n/how_to_use - receive information on how to use the VPN\n/install_client - get a link to download the OpenVPN client for connecting to the VPN\n/about_bot - receive information about this bot\n/about_project - receive information about the project\n/contacts - receive contacts developer\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας" },
-            new LocalizationText { Id = 2, Key = "BotMenu", Language = Language.Greek, Text = "<b><u>Μενού Bot</u></b>:\n/register - εγγραφείτε για να χρησιμοποιήσετε το VPN\n/get_my_files - αποκτήστε τα αρχεία σας για σύνδεση στο VPN\n/make_new_file - δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN\n/delete_selected_file - Διαγραφή συγκεκριμένου αρχείου\n/delete_all_files - Διαγραφή όλων των αρχείων\n/how_to_use - λάβετε πληροφορίες για τη χρήση του VPN\n/install_client - λάβετε σύνδεσμο για λήψη του OpenVPN client\n/about_bot - λάβετε πληροφορίες για αυτό το bot\n/about_project - λάβετε πληροφορίες για το έργο\n/contacts - λάβετε στοιχεία επικοινωνίας του προγραμματιστή\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας" },
-            new LocalizationText { Id = 3, Key = "BotMenu", Language = Language.Russian, Text = "<b><u>Меню бота</u></b>:\n/register - зарегистрируйтесь для использования VPN\n/get_my_files - получите свои файлы для подключения к VPN\n/make_new_file - создайте новый файл для подключения к VPN\n/delete_selected_file - Удалить выбранный файл\n/delete_all_files - Удалить все файлы\n/how_to_use - получите информацию о том, как использовать VPN\n/install_client - получите ссылку для загрузки клиента OpenVPN\n/about_bot - информация об этом боте\n/about_project - информация о проекте\n/contacts - контакты разработчика\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας" },
+            // /register - register to use the VPN\n
+            // /register - εγγραφείτε για να χρησιμοποιήσετε το VPN\n
+            // /register - зарегистрируйтесь для использования VPN\n
+            new LocalizationText { Id = 1, Key = "BotMenu", Language = Language.English, Text = "<b><u>Bot Menu</u></b>:\n/get_my_files - get your files for connecting to the VPN\n/make_new_file - create a new file for connecting to the VPN\n/delete_selected_file - Delete a specific file\n/delete_all_files - Delete all files\n/how_to_use - receive information on how to use the VPN\n/install_client - get a link to download the OpenVPN client for connecting to the VPN\n/about_bot - receive information about this bot\n/about_project - receive information about the project\n/contacts - receive contacts developer\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας" },
+            new LocalizationText { Id = 2, Key = "BotMenu", Language = Language.Greek, Text = "<b><u>Μενού Bot</u></b>:\n/get_my_files - αποκτήστε τα αρχεία σας για σύνδεση στο VPN\n/make_new_file - δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN\n/delete_selected_file - Διαγραφή συγκεκριμένου αρχείου\n/delete_all_files - Διαγραφή όλων των αρχείων\n/how_to_use - λάβετε πληροφορίες για τη χρήση του VPN\n/install_client - λάβετε σύνδεσμο για λήψη του OpenVPN client\n/about_bot - λάβετε πληροφορίες για αυτό το bot\n/about_project - λάβετε πληροφορίες για το έργο\n/contacts - λάβετε στοιχεία επικοινωνίας του προγραμματιστή\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας" },
+            new LocalizationText { Id = 3, Key = "BotMenu", Language = Language.Russian, Text = "<b><u>Меню бота</u></b>:\n/get_my_files - получите свои файлы для подключения к VPN\n/make_new_file - создайте новый файл для подключения к VPN\n/delete_selected_file - Удалить выбранный файл\n/delete_all_files - Удалить все файлы\n/how_to_use - получите информацию о том, как использовать VPN\n/install_client - получите ссылку для загрузки клиента OpenVPN\n/about_bot - информация об этом боте\n/about_project - информация о проекте\n/contacts - контакты разработчика\n/change_language - Change your language/Изменить язык/Αλλάξτε τη γλώσσα σας" },
 
             // About bot
             new LocalizationText { Id = 4, Key = "AboutBot", Language = Language.English, Text = "This bot helps users manage their VPN connections easily. With this bot, you can:\n- Get detailed instructions on how to use a VPN.\n- Register and obtain configuration files for VPN access.\n- Create new VPN configuration files if needed.\n- Download the OpenVPN client for seamless connection.\n- Learn about the bot's developer.\n\nThe bot is designed to provide quick and secure access to VPN features, ensuring user-friendly interaction and reliable support." },
