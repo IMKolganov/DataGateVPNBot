@@ -2,8 +2,6 @@
 using DataGateVPNBotV1.Models;
 using DataGateVPNBotV1.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Telegram.Bot;
-using Telegram.Bot.Types;
 
 namespace DataGateVPNBotV1.Services;
 
@@ -45,8 +43,24 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
     public async Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
     {
         return await _dbContext.IssuedOvpnFiles
-            .Where(f => f.TelegramId == telegramId)
+            .Where(f => f.TelegramId == telegramId && f.IsRevoked == false)
             .ToListAsync();
+    }
+
+    public async Task SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(int id, long telegramId, string certName)
+    {
+        var issuedFile = await _dbContext.IssuedOvpnFiles
+            .Where(f => f.Id == id && f.TelegramId == telegramId && f.CertName == certName)
+            .FirstOrDefaultAsync();
+
+        if (issuedFile == null)
+        {
+            throw new Exception("Object is not found.");
+        }
+
+        issuedFile.IsRevoked = true;
+
+        await UpdateIssuedOvpnFileAsync(issuedFile);
     }
 
     public async Task<List<IssuedOvpnFile>> GetAllIssuedOvpnFilesAsync()

@@ -153,7 +153,8 @@ public class OpenVpnClientService : IOpenVpnClientService
             {
                 _logger.LogWarning(".ovpn file not found for deletion: {FilePath}", ovpnFilePath);
             }
-            
+
+            await SetIsRevokeIssuedOvpnFile(issuedOvpnFile.Id, telegramId, issuedOvpnFile.CertName);
         }
     
         _logger.LogInformation("Completed deletion process for client with Telegram ID: {TelegramId}", telegramId);
@@ -181,6 +182,13 @@ public class OpenVpnClientService : IOpenVpnClientService
         using var scope = _serviceProvider.CreateScope();
         var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
         return await issuedOvpnFileService.GetIssuedOvpnFilesByTelegramIdAsync(telegramId);
+    }
+    
+    private async Task SetIsRevokeIssuedOvpnFile(int id, long telegramId, string certName)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
+        await issuedOvpnFileService.SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(id, telegramId, certName);
     }
 
     private static string GenerateOvpnFile(string serverIp, string caCert, string clientCert, 

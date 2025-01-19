@@ -8,6 +8,7 @@ public interface IIssuedOvpnFileService
         string pemPath);
     Task<IssuedOvpnFile?> GetIssuedOvpnFileByIdAsync(int id);
     Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId);
+    Task SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(int id, long telegramId, string certName);
     Task<List<IssuedOvpnFile>> GetAllIssuedOvpnFilesAsync();
     Task UpdateIssuedOvpnFileAsync(IssuedOvpnFile issuedFile);
     Task DeleteIssuedOvpnFileAsync(int id);
