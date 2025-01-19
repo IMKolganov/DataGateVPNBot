@@ -440,8 +440,8 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> GetLogs(Message msg, string filePath = "log.bot", int linesToRead = 100)
     {
-        if (!File.Exists(filePath))
-            throw new FileNotFoundException($"Log file not found: {filePath}");
+        if (!File.Exists(_pathBotLog))
+            throw new FileNotFoundException($"Log file not found: {_pathBotLog}");
 
         var lines = new LinkedList<string>();
 
