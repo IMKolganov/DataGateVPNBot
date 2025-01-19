@@ -142,7 +142,11 @@ public class ApplicationDbContext : DbContext
 
             new LocalizationText { Id = 40, Key = "MaxConfigError", Language = Language.English, Text = "Maximum limit of 10 configurations for your devices has been reached. Cannot create more files." },
             new LocalizationText { Id = 41, Key = "MaxConfigError", Language = Language.Russian, Text = "Достигнут максимальный лимит в 10 конфигураций для ваших устройств. Невозможно создать новые файлы." },
-            new LocalizationText { Id = 42, Key = "MaxConfigError", Language = Language.Greek, Text = "Έχει επιτευχθεί το μέγιστο όριο 10 διαμορφώσεων για τις συσκευές σας. Δεν μπορείτε να δημιουργήσετε περισσότερα αρχεία." }
+            new LocalizationText { Id = 42, Key = "MaxConfigError", Language = Language.Greek, Text = "Έχει επιτευχθεί το μέγιστο όριο 10 διαμορφώσεων για τις συσκευές σας. Δεν μπορείτε να δημιουργήσετε περισσότερα αρχεία." },
+            
+            new LocalizationText { Id = 43, Key = "SuccessfullyDeletedAllFile", Language = Language.English, Text = "All files have been successfully deleted." },
+            new LocalizationText { Id = 44, Key = "SuccessfullyDeletedAllFile", Language = Language.Russian, Text = "Все файлы успешно удалены." },
+            new LocalizationText { Id = 45, Key = "SuccessfullyDeletedAllFile", Language = Language.Greek, Text = "Όλα τα αρχεία διαγράφηκαν επιτυχώς." }
         );
     }
 }
