@@ -205,6 +205,23 @@ public class UpdateHandler : IUpdateHandler
             var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
             _logger.LogInformation("Fetched {Count} configuration files.", clientConfigFiles.FileInfo.Count);
 
+            if (clientConfigFiles.FileInfo.Count <= 0)
+            {
+                return await _botClient.SendMessage(
+                    chatId: msg.Chat.Id,
+                    text: "You have no files, but you can create them by selecting the /make_new_file command.",
+                    replyMarkup: new ReplyKeyboardRemove()
+                );
+            }
+            //todo:
+            // return languageCode switch
+            // {
+            //     "ru" => "У вас нет файлов, но вы можете создать их, выбрав команду /make_new_file.",
+            //     "el" => "Δεν έχετε αρχεία, αλλά μπορείτε να τα δημιουργήσετε επιλέγοντας την εντολή /make_new_file.",
+            //     "en" or null => "You have no files, but you can create them by selecting the /make_new_file command.",
+            //     _ => "You have no files, but you can create them by selecting the /make_new_file command."
+            // };
+
             if (clientConfigFiles.FileInfo.Count >= 2)
             {
                 _logger.LogInformation("Multiple configuration files detected. Preparing media group...");

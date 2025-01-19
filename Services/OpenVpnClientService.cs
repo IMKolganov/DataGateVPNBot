@@ -14,6 +14,7 @@ public class OpenVpnClientService : IOpenVpnClientService
     private readonly string _outputDir;
     private readonly string _tlsAuthKey;
     private readonly string _serverIp;
+    private readonly int _maxAttempts = 10;
 
     public OpenVpnClientService(ILogger<OpenVpnClientService> logger, IConfiguration configuration,
         IServiceProvider serviceProvider)
@@ -50,7 +51,7 @@ public class OpenVpnClientService : IOpenVpnClientService
             }
         }
 
-        var responseMessage = await GetResponseText(telegramId);
+        var responseMessage = await GetResponseText(telegramId, "HereIsConfig");
         _logger.LogInformation("Generated response message for user: {TelegramId}", telegramId);
 
         return new GetAllFilesResult
@@ -64,6 +65,13 @@ public class OpenVpnClientService : IOpenVpnClientService
     {
         try
         {
+            var issuedOvpnFiles = await GetFileInfoFromDB(telegramId);
+            if (issuedOvpnFiles.Count >= _maxAttempts)
+            {
+                return new FileCreationResult { FileInfo = null, Message = await GetResponseText(telegramId, "MaxConfigError") };
+                // $"Maximum limit of {_maxAttempts} configurations for your devices has been reached. Cannot create more files.";
+            }
+            
             _logger.LogInformation("Step 1: Checking if PKI directory exists...");
             if (!Directory.Exists(_pkiPath))
             {
@@ -76,21 +84,20 @@ public class OpenVpnClientService : IOpenVpnClientService
             }
 
             _logger.LogInformation("Step 1.1: Checking if configuration already exists for this client...");
-            string baseOvpnFileName = $"{telegramId.ToString()}.ovpn";
-            string ovpnFilePath = Path.Combine(_outputDir, baseOvpnFileName);
             int attempt = 0;
-            int maxAttempts = 9;
+            string baseOvpnFileName = $"{telegramId.ToString()}_{attempt}.ovpn";
+            string ovpnFilePath = Path.Combine(_outputDir, baseOvpnFileName);
 
-            while (File.Exists(ovpnFilePath) && attempt < maxAttempts)
+            while (File.Exists(ovpnFilePath) && attempt < _maxAttempts)
             {
                 attempt++;
                 ovpnFilePath = Path.Combine(_outputDir, $"{telegramId.ToString()}_{attempt}.ovpn");
             }
 
-            if (attempt >= maxAttempts)
+            if (attempt >= _maxAttempts)
             {
                 throw new InvalidOperationException(
-                    $"Maximum limit of {maxAttempts + 1} configurations for client '{telegramId.ToString()}' has been reached. Cannot create more files.");
+                    $"Maximum limit of {_maxAttempts} configurations for client '{telegramId.ToString()}' has been reached. Cannot create more files.");
             }
 
             _logger.LogInformation("Step 2: Building client certificate...");
@@ -117,7 +124,7 @@ public class OpenVpnClientService : IOpenVpnClientService
             _logger.LogInformation($"Client configuration file created: {ovpnFilePath}");
             var fileInfo = new FileInfo(ovpnFilePath);
             await SaveInfoInDB(telegramId, fileInfo);
-            return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId) };
+            return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId,"HereIsConfig") };
 
         }
         catch (Exception ex)
@@ -192,11 +199,11 @@ public class OpenVpnClientService : IOpenVpnClientService
     // }
 
 
-    private async Task<string> GetResponseText(long telegramId)
+    private async Task<string> GetResponseText(long telegramId, string key)
     {
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        return await localizationService.GetTextAsync("HereIsConfig", telegramId);
+        return await localizationService.GetTextAsync(key, telegramId);
     }
 
     private async Task SaveInfoInDB(long telegramId, FileInfo fileInfo)
