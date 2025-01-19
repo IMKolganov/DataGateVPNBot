@@ -22,6 +22,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         var issuedFile = new IssuedOvpnFile()
         {
             TelegramId = telegramId,
+            CertName = Path.GetFileNameWithoutExtension(fileInfo.Name),
             FileName = fileInfo.Name,
             FilePath = fileInfo.FullName,
             IssuedAt = DateTime.UtcNow,
@@ -59,10 +60,16 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         if (existingFile != null)
         {
             existingFile.TelegramId = issuedFile.TelegramId;
+            existingFile.CertName = issuedFile.CertName;
             existingFile.FileName = issuedFile.FileName;
             existingFile.FilePath = issuedFile.FilePath;
             existingFile.IssuedAt = issuedFile.IssuedAt;
             existingFile.IssuedTo = issuedFile.IssuedTo;
+            existingFile.CertFilePath = issuedFile.CertFilePath;
+            existingFile.KeyFilePath = issuedFile.KeyFilePath;
+            existingFile.ReqFilePath = issuedFile.ReqFilePath;
+            existingFile.PemFilePath = issuedFile.PemFilePath;
+            existingFile.IsRevoked = issuedFile.IsRevoked;
 
             await _dbContext.SaveChangesAsync();
         }

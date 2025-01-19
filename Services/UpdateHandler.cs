@@ -322,10 +322,10 @@ public class UpdateHandler : IUpdateHandler
     
     async Task<Message> DeleteAllFiles(Message msg)
     {
-        // var deleteAllConfiguration = await _openVpnClientService.DeleteAllConfiguration(msg.From!.Id);
+        var deleteAllConfiguration = await _openVpnClientService.DeleteAllClientConfigurations(msg.From!.Id);
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: "...",
+            text: deleteAllConfiguration? "Successfully": "Error",//todo: make text
             replyMarkup: new ReplyKeyboardRemove()
         );
     }
