@@ -37,7 +37,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 
         foreach (var issuedOvpnFile in issuedOvpnFiles)
         {
-            string existingOvpnFilePath = Path.Combine(_outputDir, $"{issuedOvpnFile.FileName}");
+            string existingOvpnFilePath = Path.Combine(_outputDir, $"{issuedOvpnFile!.FileName}");
             _logger.LogInformation("Checking existence of file: {FilePath}", existingOvpnFilePath);
 
             if (File.Exists(existingOvpnFilePath))
@@ -194,7 +194,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         await issuedOvpnFileService.AddIssuedOvpnFileAsync(telegramId, fileInfo, crtPath, keyPath, reqPath, pemPath);
     }
     
-    private async Task<List<IssuedOvpnFile?>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
+    private async Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
     {
         using var scope = _serviceProvider.CreateScope();
         var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
