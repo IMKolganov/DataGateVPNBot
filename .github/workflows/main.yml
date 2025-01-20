@@ -13,10 +13,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Setup .NET 6
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 8.0.x
 
     - name: Restore dependencies
       run: dotnet restore ./DataGateVPNBotV1.csproj
@@ -48,4 +48,3 @@ jobs:
           echo "=== Application Logs ==="
           cat bot.log || echo "No logs available"
         EOF
-
