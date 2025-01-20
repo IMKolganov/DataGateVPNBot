@@ -454,26 +454,26 @@ public class UpdateHandler : IUpdateHandler
             replyMarkup: inlineMarkup
         );
     }
-
-    async Task<Message> SelectLanguage(Message msg)
+    
+    async Task<Message> SelectLanguage(Message msg, string textError = "")
     {
-        var replyMarkup = new ReplyKeyboardMarkup(new[]
+        var inlineKeyboard = new InlineKeyboardMarkup(new[]
         {
-            new KeyboardButton[] { "/English", "/Русский", "/Ελληνικά" }
-        })
-        {
-            ResizeKeyboard = true,
-            OneTimeKeyboard = true
-        };
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData("English", "/English"),
+                InlineKeyboardButton.WithCallbackData("Русский", "/Русский"),
+                InlineKeyboardButton.WithCallbackData("Ελληνικά", "/Ελληνικά")
+            }
+        });
 
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: "🔹 You can click on your preferred language to proceed.\n" +
-                  "🔹 Выберите ваш язык, нажав на соответствующую кнопку.\n" +
-                  "🔹 Επιλέξτε τη γλώσσα σας πατώντας το αντίστοιχο κουμπί.",
-            replyMarkup: replyMarkup
+            text: textError + "🔹 You can click on your preferred language to proceed.\n" +
+                              "🔹 Выберите ваш язык, нажав на соответствующую кнопку.\n" +
+                              "🔹 Επιλέξτε τη γλώσσα σας πατώντας το αντίστοιχο κουμπί.",
+            replyMarkup: inlineKeyboard
         );
-
     }
 
     async Task ChangeLanguage(Message msg)
@@ -489,18 +489,7 @@ public class UpdateHandler : IUpdateHandler
 
         if (language == null)
         {
-            await _botClient.SendMessage(
-                chatId: msg.Chat.Id,
-                text: "❌ Invalid language selection. Please try again.",
-                replyMarkup: new ReplyKeyboardMarkup(new[]
-                {
-                    new KeyboardButton[] { "/English", "/Русский", "/Ελληνικά" }
-                })
-                {
-                    ResizeKeyboard = true,
-                    OneTimeKeyboard = true
-                }
-            );
+            await SelectLanguage(msg, "❌ Invalid language selection. Please try again.");
             return;
         }
 
@@ -630,7 +619,7 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> SendReplyKeyboard(Message msg)
     {
-        var replyMarkup = new ReplyKeyboardMarkup(true)
+        var replyMarkup = new ReplyKeyboardMarkup(true)//WARNING! ReplyKeyboardMarkup is not support at all clients
             .AddNewRow("1.1", "1.2", "1.3")
             .AddNewRow().AddButton("2.1").AddButton("2.2");
         return await _botClient.SendMessage(msg.Chat, "Keyboard buttons:", replyMarkup: replyMarkup);
@@ -643,7 +632,7 @@ public class UpdateHandler : IUpdateHandler
 
     async Task<Message> RequestContactAndLocation(Message msg)
     {
-        var replyMarkup = new ReplyKeyboardMarkup(true)
+        var replyMarkup = new ReplyKeyboardMarkup(true)//WARNING! ReplyKeyboardMarkup is not support at all clients
             .AddButton(KeyboardButton.WithRequestLocation("Location"))
             .AddButton(KeyboardButton.WithRequestContact("Contact"));
         return await _botClient.SendMessage(msg.Chat, "Who or Where are you?", replyMarkup: replyMarkup);
