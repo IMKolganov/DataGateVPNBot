@@ -22,7 +22,7 @@ jobs:
       run: dotnet restore ./DataGateVPNBotV1.csproj
 
     - name: Build application
-      run: dotnet publish ./DataGateVPNBotV1.csproj -c Release -r linux-arm64 --self-contained false -o ./publish
+      run: dotnet publish ./DataGateVPNBotV1.csproj -c Release -r linux-arm64 --self-contained true -o ./publish
 
     - name: Set up SSH
       run: |
