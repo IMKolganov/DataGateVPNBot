@@ -664,23 +664,29 @@ public class UpdateHandler : IUpdateHandler
     private async Task OnCallbackQuery(CallbackQuery callbackQuery)
     {
         _logger.LogInformation("Received inline keyboard callback from: {CallbackQueryId}", callbackQuery.Id);
-        
         await _botClient.AnswerCallbackQuery(callbackQuery.Id, "Processing your request...");
 
         if (callbackQuery.Data != null && callbackQuery.Data.StartsWith("/delete_file "))
         {
             var fileName = callbackQuery.Data.Substring("/delete_file ".Length);
-            
             _logger.LogInformation("Deleting file: {FileName}", fileName);
-
             await DeleteFile(callbackQuery.From.Id, fileName);
-
-            // await _botClient.SendMessage(callbackQuery.Message.Chat, result);
         }
-        // else
-        // {
-        //     await _botClient.SendMessage(callbackQuery.Message!.Chat, "Invalid callback data received.");
-        // }
+        else if (callbackQuery.Data != null && (callbackQuery.Data == "/English" || callbackQuery.Data == "/Русский" ||
+                                                callbackQuery.Data == "/Ελληνικά"))
+        {
+            if (callbackQuery.Message != null) await ChangeLanguage(callbackQuery.Message);
+            _logger.LogInformation("User selected language: {Language}", callbackQuery.Data);
+        }
+        else
+        {
+            _logger.LogWarning("Invalid callback data received: {CallbackData}", callbackQuery.Data);
+
+            await _botClient.SendMessage(
+                chatId: callbackQuery.Message.Chat.Id,
+                text: "Invalid callback data received. Please try again."
+            );
+        }
     }
 
     #region Inline Mode
