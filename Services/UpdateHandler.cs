@@ -87,20 +87,10 @@ public class UpdateHandler : IUpdateHandler
             messageText.Equals("/Русский", StringComparison.OrdinalIgnoreCase) ||
             messageText.Equals("/Ελληνικά", StringComparison.OrdinalIgnoreCase))
         {
-            await ChangeLanguage(msg);
+            await ChangeLanguage(msg, messageText);
             return;
         }
-
-        if (msg.From != null)
-        {
-            var userLanguage = await localizationService.GetUserLanguageOrNullAsync(msg.From.Id);
-            if (userLanguage == null)
-            {
-                await SelectLanguage(msg);
-                return;
-            }
-        }
-
+        
         Message sentMessage = await Menu(msg, messageText);
         _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
     }
@@ -476,9 +466,8 @@ public class UpdateHandler : IUpdateHandler
         );
     }
 
-    async Task ChangeLanguage(Message msg)
+    async Task ChangeLanguage(Message msg, string selectedLanguage)
     {
-        var selectedLanguage = msg.Text;
         Language? language = selectedLanguage switch
         {
             "/English" => Language.English,
@@ -675,17 +664,18 @@ public class UpdateHandler : IUpdateHandler
         else if (callbackQuery.Data != null && (callbackQuery.Data == "/English" || callbackQuery.Data == "/Русский" ||
                                                 callbackQuery.Data == "/Ελληνικά"))
         {
-            if (callbackQuery.Message != null) await ChangeLanguage(callbackQuery.Message);
+            if (callbackQuery.Message != null) await ChangeLanguage(callbackQuery.Message, callbackQuery.Data);
             _logger.LogInformation("User selected language: {Language}", callbackQuery.Data);
         }
         else
         {
             _logger.LogWarning("Invalid callback data received: {CallbackData}", callbackQuery.Data);
 
-            await _botClient.SendMessage(
-                chatId: callbackQuery.Message.Chat.Id,
-                text: "Invalid callback data received. Please try again."
-            );
+            if (callbackQuery.Message != null)
+                await _botClient.SendMessage(
+                    chatId: callbackQuery.Message.Chat.Id,
+                    text: "Invalid callback data received. Please try again."
+                );
         }
     }
 
