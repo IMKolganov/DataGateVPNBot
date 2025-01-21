@@ -6,7 +6,6 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DataGateVPNBotV1.Handlers;
@@ -20,11 +19,11 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     private readonly ILogger<TelegramUpdateHandler> _logger;
     private readonly string _pathBotLog = "bot.log";
 
-    private readonly InputPollOption[] _pollOptions = new[]
-    {
+    private readonly InputPollOption[] _pollOptions =
+    [
         new InputPollOption("Hello"),
         new InputPollOption("World!")
-    };
+    ];
 
     public TelegramUpdateHandler(
         ITelegramBotClient botClient,
@@ -83,7 +82,6 @@ public partial class TelegramUpdateHandler : IUpdateHandler
             return;
 
         using var scope = _serviceProvider.CreateScope();
-        // Log the incoming message
         var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<IIncomingMessageLogService>();
         await incomingMessageLogService.Log(_botClient, msg);
 
@@ -91,7 +89,6 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         await RegisterNewUserAsync(msg, registrationService);
 
-        // Process the message and send a response
         Message sentMessage = await ProcessingMessage(msg, messageText);
         _logger.LogInformation("Message sent with id: {SentMessageId}", sentMessage.Id);
     }
@@ -187,14 +184,6 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         );
     }
 
-    private async Task<Message> AboutBot(Message msg)
-    {
-        return await _botClient.SendMessage(
-            msg.Chat,
-            await GetLocalizationTextAsync("AboutBot", msg.From!.Id)
-        );
-    }
-
     private async Task<Message> RegisterForVpn(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -208,254 +197,17 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         );
     }
 
-    private async Task<Message> HowToUseVpn(Message msg)
-    {
-        return await _botClient.SendMessage(
-            msg.Chat,
-            await GetLocalizationTextAsync("HowToUseVPN", msg.From!.Id));
-    }
 
-    private async Task<Message> GetMyFiles(Message msg)
-    {
-        _logger.LogInformation("GetMyFiles started for user: {TelegramId}", msg.From?.Id);
-
-        try
-        {
-            _logger.LogInformation("Fetching client configurations...");
-            var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
-            _logger.LogInformation("Fetched {Count} configuration files.", clientConfigFiles.FileInfo.Count);
-
-            if (clientConfigFiles.FileInfo.Count <= 0)
-            {
-                return await _botClient.SendMessage(
-                    chatId: msg.Chat.Id,
-                    text: await GetLocalizationTextAsync("FilesNotFoundError", msg.From!.Id),
-                    replyMarkup: new ReplyKeyboardRemove()
-                );
-            }
-
-            if (clientConfigFiles.FileInfo.Count >= 2)
-            {
-                _logger.LogInformation("Multiple configuration files detected. Preparing media group...");
-                var mediaGroup = new List<IAlbumInputMedia>();
-                var openStreams = new List<FileStream>();
-
-                try
-                {
-                    foreach (var fileInfo in clientConfigFiles.FileInfo)
-                    {
-                        _logger.LogInformation("Processing file: {FileName} at {FilePath}", fileInfo.Name, fileInfo.FullName);
-
-                        var fileStream = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        openStreams.Add(fileStream);
-
-                        var inputFile = new InputFileStream(fileStream, fileInfo.Name);
-                        var media = new InputMediaDocument(inputFile)
-                        {
-                            Caption = fileInfo.Name
-                        };
-                        mediaGroup.Add(media);
-                    }
-
-                    _logger.LogInformation("Sending media group...");
-                    var m = await _botClient.SendMediaGroup(
-                        chatId: msg.Chat.Id,
-                        media: mediaGroup
-                    );
-                    _logger.LogInformation("Media group sent successfully.");
-
-                    return m.FirstOrDefault() ?? throw new InvalidOperationException("No messages returned after sending media group.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error occurred while sending media group.");
-                    throw;
-                }
-                finally
-                {
-                    foreach (var stream in openStreams)
-                    {
-                        stream.Close();
-                        _logger.LogInformation("Closed stream for file: {StreamPath}", stream.Name);
-                    }
-                }
-            }
-            else
-            {
-                await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
-                _logger.LogInformation("Single configuration file detected.");
-                var clientConfigFile = clientConfigFiles.FileInfo.FirstOrDefault()
-                                       ?? throw new InvalidOperationException("No configuration file found.");
-
-                _logger.LogInformation("Reading file: {FileName} from {FilePath}", clientConfigFile.Name,
-                    clientConfigFile.FullName);
-                await using var fileStream = new FileStream(clientConfigFile.FullName,
-                    FileMode.Open, FileAccess.Read, FileShare.Read);
-
-                _logger.LogInformation("Sending single document...");
-                var sentMessage = await _botClient.SendDocument(
-                    chatId: msg.Chat.Id,
-                    document: InputFile.FromStream(fileStream, clientConfigFile.Name),
-                    caption: clientConfigFiles.Message
-                );
-                _logger.LogInformation("Document sent successfully.");
-
-                return sentMessage;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred in GetMyFiles for user: {TelegramId}", msg.From?.Id);
-            throw;
-        }
-    }
-
-    private async Task<Message> MakeNewVpnFile(Message msg)
-    {
-        // Generate the client configuration file
-        var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.From!.Id);
-        if (clientConfigFile.FileInfo != null)
-        {
-            _logger.LogInformation("Client configuration created successfully in UpdateHandler.");
-            await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
-            // Send the .ovpn file to the user
-            await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read,
-                FileShare.Read);
-            return await _botClient.SendDocument(
-                chatId: msg.Chat.Id,
-                document: InputFile.FromStream(fileStream, clientConfigFile.FileInfo.Name),
-                caption: clientConfigFile.Message
-            );
-        }
-        else
-        {
-            return await _botClient.SendMessage(
-                chatId: msg.Chat.Id,
-                text: clientConfigFile.Message,
-                replyMarkup: new ReplyKeyboardRemove()
-            );
-        }
-    }
-    
-    private async Task<Message> DeleteAllFiles(Message msg)
-    {
-        await _openVpnClientService.DeleteAllClientConfigurations(msg.From!.Id);
-        return await _botClient.SendMessage(
-            chatId: msg.Chat.Id,
-            text: await GetLocalizationTextAsync("SuccessfullyDeletedAllFile", msg.From!.Id),
-            replyMarkup: new ReplyKeyboardRemove()
-        );
-    }
-
-    private async Task<Message> DeleteSelectedFile(Message msg)
-    {
-        var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
-        var rows = new List<InlineKeyboardButton[]>();
-
-        var currentRow = new List<InlineKeyboardButton>();
-        foreach (var fileInfo in clientConfigFiles.FileInfo)
-        {
-            currentRow.Add(InlineKeyboardButton.WithCallbackData(fileInfo.Name, $"/delete_file {fileInfo.Name}"));
-
-            if (currentRow.Count == 2)
-            {
-                rows.Add(currentRow.ToArray());
-                currentRow.Clear();
-            }
-        }
-        
-        if (currentRow.Count > 0)
-        {
-            rows.Add(currentRow.ToArray());
-        }
-
-        var inlineMarkup = new InlineKeyboardMarkup(rows);
-        return await _botClient.SendMessage(
-            msg.Chat,
-            await GetLocalizationTextAsync("ChooseFileForDelete", msg.From!.Id),
-            replyMarkup: inlineMarkup
-        );
-    }
-
-    private async Task<Message> DeleteFile(long telegramId, string fileName)
-    {
-        await _openVpnClientService.DeleteClientConfiguration(telegramId, fileName);
-        return await _botClient.SendMessage(
-            chatId: telegramId,
-            text: await GetLocalizationTextAsync("SuccessfullyDeletedFile", telegramId),
-            replyMarkup: new ReplyKeyboardRemove()
-        );
-    }
-
-    private async Task<Message> InstallClient(Message msg)
-    {
-        var inlineMarkup = new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithUrl("🖥 Windows", "https://openvpn.net/client-connect-vpn-for-windows/"),
-                InlineKeyboardButton.WithUrl("📱 Android", "https://play.google.com/store/apps/details?id=net.openvpn.openvpn"),
-                InlineKeyboardButton.WithUrl("🍎 iPhone", "https://apps.apple.com/app/openvpn-connect/id590379981")
-            },
-            new[]
-            {
-                InlineKeyboardButton.WithUrl(await GetLocalizationTextAsync("AboutOpenVPN", msg.From!.Id), "https://openvpn.net/faq/what-is-openvpn/")
-            }
-        });
-
-        return await _botClient.SendMessage(
-            msg.Chat,
-            await GetLocalizationTextAsync("ChoosePlatform", msg.From!.Id),
-            replyMarkup: inlineMarkup
-        );
-    }
-    
-    private async Task<Message> AboutProject(Message msg)
-    {
-        var inlineMarkup = new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
-                InlineKeyboardButton.WithUrl(
-                    await GetLocalizationTextAsync("WhatIsRaspberryPi", msg.From!.Id),
-                    "https://www.raspberrypi.org/about/")
-            }
-        });
-        
-        return await _botClient.SendMessage(
-            msg.Chat, 
-            await GetLocalizationTextAsync("AboutProject", msg.From!.Id),
-            replyMarkup: inlineMarkup
-        );
-    }
-    
-    private async Task<Message> Contacts(Message msg)
-    {
-        var inlineMarkup = new InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton.WithUrl("Telegram", "https://t.me/KolganovIvan"),
-                InlineKeyboardButton.WithUrl("GitHub", "https://github.com/IMKolganov")
-            ]
-        ]);
-        
-        return await _botClient.SendMessage(
-            msg.Chat,
-            await GetLocalizationTextAsync("DeveloperContacts", msg.From!.Id),
-            replyMarkup: inlineMarkup
-        );
-    }
     
     private async Task<Message> SelectLanguage(Message msg, string textError = "")
     {
-        var inlineKeyboard = new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
+        var inlineKeyboard = new InlineKeyboardMarkup([
+            [
                 InlineKeyboardButton.WithCallbackData("English", "/English"),
                 InlineKeyboardButton.WithCallbackData("Русский", "/Русский"),
                 InlineKeyboardButton.WithCallbackData("Ελληνικά", "/Ελληνικά")
-            }
-        });
+            ]
+        ]);
 
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,

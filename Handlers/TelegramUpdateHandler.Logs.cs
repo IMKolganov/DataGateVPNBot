@@ -1,7 +1,6 @@
 ﻿using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DataGateVPNBotV1.Handlers;
@@ -15,14 +14,13 @@ public partial class TelegramUpdateHandler
 
         var lines = new LinkedList<string>();
 
-        using (var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        await using (var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
         {
             fileStream.Seek(0, SeekOrigin.End);
 
             long position = fileStream.Position;
             int bufferSize = 1024;
             var buffer = new char[bufferSize];
-            int bytesRead;
             var currentLine = new LinkedList<char>();
 
             using (var streamReader = new StreamReader(fileStream))
@@ -37,7 +35,7 @@ public partial class TelegramUpdateHandler
                     }
 
                     fileStream.Seek(position, SeekOrigin.Begin);
-                    bytesRead = await streamReader.ReadAsync(buffer, 0, bufferSize);
+                    var bytesRead = await streamReader.ReadAsync(buffer, 0, bufferSize);
 
                     for (int i = bytesRead - 1; i >= 0; i--)
                     {
@@ -82,7 +80,7 @@ public partial class TelegramUpdateHandler
 
         await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
 
-        using var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        await using var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         try
         {
             return await _botClient.SendDocument(
