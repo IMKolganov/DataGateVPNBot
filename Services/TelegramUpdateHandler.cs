@@ -83,9 +83,7 @@ public class TelegramUpdateHandler : IUpdateHandler
 
         var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         await RegisterNewUserAsync(msg, registrationService);
-
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-
+        
         if (messageText.Equals("/English", StringComparison.OrdinalIgnoreCase) ||
             messageText.Equals("/Русский", StringComparison.OrdinalIgnoreCase) ||
             messageText.Equals("/Ελληνικά", StringComparison.OrdinalIgnoreCase))
@@ -102,7 +100,7 @@ public class TelegramUpdateHandler : IUpdateHandler
     {
         var commandParts = messageText.Split(' ', 2);
         var command = commandParts[0];
-        var argument = commandParts.Length > 1 ? commandParts[1] : null;
+        // var argument = commandParts.Length > 1 ? commandParts[1] : null;
         
         return await (command switch
         {

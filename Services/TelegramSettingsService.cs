@@ -46,8 +46,7 @@ public class TelegramSettingsService : ITelegramSettingsService
                 [
                     // new BotCommand { Command = "register", Description = "Εγγραφείτε για να χρησιμοποιήσετε το VPN" },
                     new BotCommand { Command = "get_my_files", Description = "Αποκτήστε τα αρχεία σας για σύνδεση στο VPN" },
-                    new BotCommand
-                        { Command = "make_new_file", Description = "Δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN" },
+                    new BotCommand { Command = "make_new_file", Description = "Δημιουργήστε ένα νέο αρχείο για σύνδεση στο VPN" },
                     new BotCommand { Command = "delete_selected_file", Description = "Διαγραφή συγκεκριμένου αρχείου" },
                     new BotCommand { Command = "delete_all_files", Description = "Διαγραφή όλων των αρχείων" },
                     new BotCommand { Command = "how_to_use", Description = "Οδηγίες χρήσης VPN" },
