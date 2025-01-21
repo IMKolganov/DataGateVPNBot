@@ -150,16 +150,18 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         _logger.LogInformation("Received inline keyboard callback from: {CallbackQueryId}", callbackQuery.Id);
         await _botClient.AnswerCallbackQuery(callbackQuery.Id, "Processing your request...");
 
-        if (callbackQuery.Data != null && callbackQuery.Data.StartsWith("/delete_file "))
+        if (callbackQuery.Data != null && callbackQuery.Data.ToLower().StartsWith("/delete_file "))
         {
             var fileName = callbackQuery.Data.Substring("/delete_file ".Length);
             _logger.LogInformation("Deleting file: {FileName}", fileName);
             await DeleteFile(callbackQuery.From.Id, fileName);
         }
-        else if (callbackQuery.Data != null && (callbackQuery.Data == "/English" || callbackQuery.Data == "/Русский" ||
-                                                callbackQuery.Data == "/Ελληνικά"))
+        else if (callbackQuery.Data != null && (callbackQuery.Data.ToLower() == "/english" || 
+                                                callbackQuery.Data.ToLower() == "/русский" ||
+                                                callbackQuery.Data.ToLower() == "/ελληνικά"))
         {
-            if (callbackQuery.Message != null) await ChangeLanguage(callbackQuery.Message, callbackQuery.Data);
+            if (callbackQuery.Message != null) await ChangeLanguage(callbackQuery.Message, 
+                callbackQuery.Data.ToLower());
             _logger.LogInformation("User selected language: {Language}", callbackQuery.Data);
         }
         else
@@ -174,16 +176,6 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         }
     }
     
-    private async Task RegisterNewUserAsync(Message msg, ITelegramRegistrationService registrationService)
-    {
-        await registrationService.RegisterUserAsync(
-            telegramId: msg.From!.Id,
-            username: msg.From.Username,
-            firstName: msg.From.FirstName,
-            lastName: msg.From.LastName
-        );
-    }
-
     private async Task<Message> RegisterForVpn(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
@@ -195,58 +187,6 @@ public partial class TelegramUpdateHandler : IUpdateHandler
             chatId: msg.Chat.Id,
             await GetLocalizationTextAsync("Registered", msg.From!.Id)
         );
-    }
-
-
-    
-    private async Task<Message> SelectLanguage(Message msg, string textError = "")
-    {
-        var inlineKeyboard = new InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton.WithCallbackData("English", "/English"),
-                InlineKeyboardButton.WithCallbackData("Русский", "/Русский"),
-                InlineKeyboardButton.WithCallbackData("Ελληνικά", "/Ελληνικά")
-            ]
-        ]);
-
-        return await _botClient.SendMessage(
-            chatId: msg.Chat.Id,
-            text: textError + "🔹 You can click on your preferred language to proceed.\n" +
-                              "🔹 Выберите ваш язык, нажав на соответствующую кнопку.\n" +
-                              "🔹 Επιλέξτε τη γλώσσα σας πατώντας το αντίστοιχο κουμπί.",
-            replyMarkup: inlineKeyboard
-        );
-    }
-
-    private async Task<Message> ChangeLanguage(Message msg, string selectedLanguage)
-    {
-        Language? language = selectedLanguage switch
-        {
-            "/english" => Language.English,
-            "/русский" => Language.Russian,
-            "/ελληνικά" => Language.Greek,
-            _ => null
-        };
-
-        if (language == null)
-        {
-            return await SelectLanguage(msg, "❌ Invalid language selection. Please try again.");
-        }
-
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        await localizationService.SetUserLanguageAsync(msg.From!.Id, language.Value);
-        
-        await MakeNewVpnFile(msg);
-        await InstallClient(msg);
-        await Usage(msg);
-        
-        return await _botClient.SendMessage(
-            chatId: msg.Chat.Id,
-            text: await GetLocalizationTextAsync("SuccessChangeLanguage", msg.From!.Id),
-            replyMarkup: new ReplyKeyboardRemove()
-        );
-
     }
 
     private Task UnknownUpdateHandlerAsync(Update update)
@@ -266,11 +206,14 @@ public partial class TelegramUpdateHandler : IUpdateHandler
             replyMarkup: new ReplyKeyboardRemove()
         );
     }
-
-    private async Task<string> GetLocalizationTextAsync(string key, long telegramId)
+    
+    private async Task RegisterNewUserAsync(Message msg, ITelegramRegistrationService registrationService)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        return await localizationService.GetTextAsync(key, telegramId);
+        await registrationService.RegisterUserAsync(
+            telegramId: msg.From!.Id,
+            username: msg.From.Username,
+            firstName: msg.From.FirstName,
+            lastName: msg.From.LastName
+        );
     }
 }
