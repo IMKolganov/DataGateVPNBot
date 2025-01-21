@@ -9,20 +9,13 @@ namespace DataGateVPNBotV1.Configurations;
 
 public static class ServiceConfiguration
 {
-    public static void ConfigureServices(this IServiceCollection services, IConfiguration configuration)
+    public static void ConfigureServices(this IServiceCollection services)
     {
-        var botConfigSection = configuration.GetSection("BotConfiguration");
-        services.Configure<BotConfiguration>(botConfigSection);
-
-        services.AddHttpClient("TelegramWebHook").AddTypedClient<ITelegramBotClient>(
-            httpClient => new TelegramBotClient(botConfigSection.Get<BotConfiguration>()!.BotToken, httpClient)
-        );
-
         services.AddScoped<IIssuedOvpnFileService, IssuedOvpnFileService>();
         services.AddScoped<IIncomingMessageLogService, IncomingMessageLogService>();
         services.AddScoped<ITelegramRegistrationService, TelegramRegistrationService>();
         services.AddScoped<ILocalizationService, LocalizationService>();
-        services.AddSingleton<UpdateHandler>();
+        services.AddSingleton<TelegramUpdateHandler>();
         services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
         services.AddSingleton<IEasyRsaService, EasyRsaService>();
 

@@ -3,7 +3,8 @@ using DataGateVPNBotV1.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.ConfigureServices(builder.Configuration);
+builder.Services.ConfigureTelegram(builder.Configuration);
+builder.Services.ConfigureServices();
 builder.Services.DataBaseServices(builder.Configuration);
 
 builder.ConfigureWebHost();
