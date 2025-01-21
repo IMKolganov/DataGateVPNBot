@@ -1,4 +1,3 @@
-using DataGateVPNBotV1;
 using DataGateVPNBotV1.Configurations;
 
 var builder = WebApplication.CreateBuilder(args);

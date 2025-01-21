@@ -1,9 +1,6 @@
-﻿using DataGateVPNBotV1.Contexts;
-using DataGateVPNBotV1.Models;
+﻿using DataGateVPNBotV1.Handlers;
 using DataGateVPNBotV1.Services;
 using DataGateVPNBotV1.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Telegram.Bot;
 
 namespace DataGateVPNBotV1.Configurations;
 

@@ -1,4 +1,5 @@
 using DataGateVPNBotV1.Models.Enums;
+using DataGateVPNBotV1.Services;
 using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -8,10 +9,9 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 
+namespace DataGateVPNBotV1.Handlers;
 
-namespace DataGateVPNBotV1.Services;
-
-public class TelegramUpdateHandler : IUpdateHandler
+public partial class TelegramUpdateHandler : IUpdateHandler
 {
     private readonly ITelegramBotClient _botClient;
     private readonly IServiceProvider _serviceProvider;
@@ -39,7 +39,8 @@ public class TelegramUpdateHandler : IUpdateHandler
         _telegramSettingsService = telegramSettingsService ?? throw new ArgumentNullException(nameof(telegramSettingsService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-
+    
+    #region HandleErrorAsync: Error handling for Telegram Bot API
     public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception,
         HandleErrorSource source, CancellationToken cancellationToken)
     {
@@ -48,7 +49,10 @@ public class TelegramUpdateHandler : IUpdateHandler
         if (exception is RequestException)
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
     }
+    #endregion
 
+
+    #region  Handles incoming updates from Telegram Bot API and routes them to specific handlers.
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
         CancellationToken cancellationToken)
     {
@@ -69,39 +73,36 @@ public class TelegramUpdateHandler : IUpdateHandler
             _ => UnknownUpdateHandlerAsync(update)
         });
     }
-
+    #endregion
+    
+    #region OnMessage: Handle incoming messages
     private async Task OnMessage(Message msg)
     {
-        _logger.LogInformation("Receive message type: {MessageType}", msg.Type);
+        _logger.LogInformation("Received message type: {MessageType}", msg.Type);
         if (msg.Text is not { } messageText)
             return;
 
-        using var scope = _serviceProvider.CreateScope(); //todo: fix this shit
-
+        using var scope = _serviceProvider.CreateScope();
+        // Log the incoming message
         var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<IIncomingMessageLogService>();
         await incomingMessageLogService.Log(_botClient, msg);
 
+        // Register new user if applicable
         var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         await RegisterNewUserAsync(msg, registrationService);
-        
-        if (messageText.Equals("/English", StringComparison.OrdinalIgnoreCase) ||
-            messageText.Equals("/Русский", StringComparison.OrdinalIgnoreCase) ||
-            messageText.Equals("/Ελληνικά", StringComparison.OrdinalIgnoreCase))
-        {
-            await ChangeLanguage(msg, messageText);
-            return;
-        }
-        
-        Message sentMessage = await Menu(msg, messageText);
-        _logger.LogInformation("The message was sent with id: {SentMessageId}", sentMessage.Id);
-    }
 
-    async Task<Message> Menu(Message msg, string messageText)
+        // Process the message and send a response
+        Message sentMessage = await ProcessingMessage(msg, messageText);
+        _logger.LogInformation("Message sent with id: {SentMessageId}", sentMessage.Id);
+    }
+    #endregion
+
+    private async Task<Message> ProcessingMessage(Message msg, string messageText)
     {
         var commandParts = messageText.Split(' ', 2);
-        var command = commandParts[0];
+        var command = commandParts[0].ToLower();
         // var argument = commandParts.Length > 1 ? commandParts[1] : null;
-        
+
         return await (command switch
         {
             "/about_bot" => AboutBot(msg),
@@ -120,6 +121,10 @@ public class TelegramUpdateHandler : IUpdateHandler
             
             "/get_logs" => GetLogs(msg),
             "/get_file_log" => SendFileLog(msg),
+            
+            "/english" => ChangeLanguage(msg, command),
+            "/русский" => ChangeLanguage(msg, command),
+            "/ελληνικά" => ChangeLanguage(msg, command),
 
             "/photo" => SendPhoto(msg),
             "/inline_buttons" => SendInlineKeyboard(msg),
@@ -135,42 +140,44 @@ public class TelegramUpdateHandler : IUpdateHandler
         });
     }
 
-    async Task<Message> Usage(Message msg)
+    private async Task<Message> Usage(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string usage = await localizationService.GetTextAsync("BotMenu", msg.From!.Id);
-        return await _botClient.SendMessage(msg.Chat, usage, parseMode: ParseMode.Html,
+        return await _botClient.SendMessage(msg.Chat, 
+            await GetLocalizationTextAsync("BotMenu", msg.From!.Id)
+            , parseMode: ParseMode.Html,
             replyMarkup: new ReplyKeyboardRemove());
     }
-
-    async Task<Message> AboutBot(Message msg)
+    
+    private async Task OnCallbackQuery(CallbackQuery callbackQuery)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string roustabout = await localizationService.GetTextAsync("AboutBot", msg.From!.Id);
-        return await _botClient.SendMessage(
-            msg.Chat,
-            roustabout
-        );
+        _logger.LogInformation("Received inline keyboard callback from: {CallbackQueryId}", callbackQuery.Id);
+        await _botClient.AnswerCallbackQuery(callbackQuery.Id, "Processing your request...");
+
+        if (callbackQuery.Data != null && callbackQuery.Data.StartsWith("/delete_file "))
+        {
+            var fileName = callbackQuery.Data.Substring("/delete_file ".Length);
+            _logger.LogInformation("Deleting file: {FileName}", fileName);
+            await DeleteFile(callbackQuery.From.Id, fileName);
+        }
+        else if (callbackQuery.Data != null && (callbackQuery.Data == "/English" || callbackQuery.Data == "/Русский" ||
+                                                callbackQuery.Data == "/Ελληνικά"))
+        {
+            if (callbackQuery.Message != null) await ChangeLanguage(callbackQuery.Message, callbackQuery.Data);
+            _logger.LogInformation("User selected language: {Language}", callbackQuery.Data);
+        }
+        else
+        {
+            _logger.LogWarning("Invalid callback data received: {CallbackData}", callbackQuery.Data);
+
+            if (callbackQuery.Message != null)
+                await _botClient.SendMessage(
+                    chatId: callbackQuery.Message.Chat.Id,
+                    text: "Invalid callback data received. Please try again."
+                );
+        }
     }
-
-    async Task<Message> RegisterForVpn(Message msg)
-    {
-        using var scope = _serviceProvider.CreateScope();
-        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string registered = await localizationService.GetTextAsync("Registered", msg.From!.Id);
-        if (msg.From != null)
-            await RegisterNewUserAsync(msg, registrationService);
-
-        return await _botClient.SendMessage(
-            chatId: msg.Chat.Id,
-            text: registered
-        );
-    }
-
-    async Task RegisterNewUserAsync(Message msg, ITelegramRegistrationService registrationService)
+    
+    private async Task RegisterNewUserAsync(Message msg, ITelegramRegistrationService registrationService)
     {
         await registrationService.RegisterUserAsync(
             telegramId: msg.From!.Id,
@@ -180,17 +187,35 @@ public class TelegramUpdateHandler : IUpdateHandler
         );
     }
 
-    async Task<Message> HowToUseVpn(Message msg)
+    private async Task<Message> AboutBot(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        var response = await localizationService.GetTextAsync("HowToUseVPN", msg.From!.Id);
         return await _botClient.SendMessage(
             msg.Chat,
-            response);
+            await GetLocalizationTextAsync("AboutBot", msg.From!.Id)
+        );
     }
 
-    async Task<Message> GetMyFiles(Message msg)
+    private async Task<Message> RegisterForVpn(Message msg)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
+        if (msg.From != null)
+            await RegisterNewUserAsync(msg, registrationService);
+
+        return await _botClient.SendMessage(
+            chatId: msg.Chat.Id,
+            await GetLocalizationTextAsync("Registered", msg.From!.Id)
+        );
+    }
+
+    private async Task<Message> HowToUseVpn(Message msg)
+    {
+        return await _botClient.SendMessage(
+            msg.Chat,
+            await GetLocalizationTextAsync("HowToUseVPN", msg.From!.Id));
+    }
+
+    private async Task<Message> GetMyFiles(Message msg)
     {
         _logger.LogInformation("GetMyFiles started for user: {TelegramId}", msg.From?.Id);
 
@@ -202,12 +227,9 @@ public class TelegramUpdateHandler : IUpdateHandler
 
             if (clientConfigFiles.FileInfo.Count <= 0)
             {
-                using var scope = _serviceProvider.CreateScope();
-                var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-                string filesNotFoundErrorText = await localizationService.GetTextAsync("FilesNotFoundError", msg.From!.Id);
                 return await _botClient.SendMessage(
                     chatId: msg.Chat.Id,
-                    text: filesNotFoundErrorText,
+                    text: await GetLocalizationTextAsync("FilesNotFoundError", msg.From!.Id),
                     replyMarkup: new ReplyKeyboardRemove()
                 );
             }
@@ -288,7 +310,7 @@ public class TelegramUpdateHandler : IUpdateHandler
         }
     }
 
-    async Task<Message> MakeNewVpnFile(Message msg)
+    private async Task<Message> MakeNewVpnFile(Message msg)
     {
         // Generate the client configuration file
         var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.From!.Id);
@@ -315,26 +337,18 @@ public class TelegramUpdateHandler : IUpdateHandler
         }
     }
     
-    async Task<Message> DeleteAllFiles(Message msg)
+    private async Task<Message> DeleteAllFiles(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string successfullyDeletedAllFile = await localizationService.GetTextAsync("SuccessfullyDeletedAllFile", msg.From!.Id);
-        
         await _openVpnClientService.DeleteAllClientConfigurations(msg.From!.Id);
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: successfullyDeletedAllFile,
+            text: await GetLocalizationTextAsync("SuccessfullyDeletedAllFile", msg.From!.Id),
             replyMarkup: new ReplyKeyboardRemove()
         );
     }
 
-    async Task<Message> DeleteSelectedFile(Message msg)
+    private async Task<Message> DeleteSelectedFile(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string chooseFileForDeleteText = await localizationService.GetTextAsync("ChooseFileForDelete", msg.From!.Id);
-        
         var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
         var rows = new List<InlineKeyboardButton[]>();
 
@@ -358,31 +372,23 @@ public class TelegramUpdateHandler : IUpdateHandler
         var inlineMarkup = new InlineKeyboardMarkup(rows);
         return await _botClient.SendMessage(
             msg.Chat,
-            chooseFileForDeleteText,
+            await GetLocalizationTextAsync("ChooseFileForDelete", msg.From!.Id),
             replyMarkup: inlineMarkup
         );
     }
 
-    async Task<Message> DeleteFile(long telegramId, string fileName)
+    private async Task<Message> DeleteFile(long telegramId, string fileName)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string successfullyDeletedFileText = await localizationService.GetTextAsync("SuccessfullyDeletedFile", telegramId);
-        
         await _openVpnClientService.DeleteClientConfiguration(telegramId, fileName);
         return await _botClient.SendMessage(
             chatId: telegramId,
-            text: successfullyDeletedFileText,
+            text: await GetLocalizationTextAsync("SuccessfullyDeletedFile", telegramId),
             replyMarkup: new ReplyKeyboardRemove()
         );
     }
 
-    async Task<Message> InstallClient(Message msg)
+    private async Task<Message> InstallClient(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string choosePlatformText = await localizationService.GetTextAsync("ChoosePlatform", msg.From!.Id);
-        string aboutOpenVpnText = await localizationService.GetTextAsync("AboutOpenVPN", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
@@ -393,60 +399,53 @@ public class TelegramUpdateHandler : IUpdateHandler
             },
             new[]
             {
-                InlineKeyboardButton.WithUrl(aboutOpenVpnText, "https://openvpn.net/faq/what-is-openvpn/")
+                InlineKeyboardButton.WithUrl(await GetLocalizationTextAsync("AboutOpenVPN", msg.From!.Id), "https://openvpn.net/faq/what-is-openvpn/")
             }
         });
 
         return await _botClient.SendMessage(
             msg.Chat,
-            choosePlatformText,
+            await GetLocalizationTextAsync("ChoosePlatform", msg.From!.Id),
             replyMarkup: inlineMarkup
         );
     }
     
-    async Task<Message> AboutProject(Message msg)
+    private async Task<Message> AboutProject(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string aboutProjectText = await localizationService.GetTextAsync("AboutProject", msg.From!.Id);
-        string whatIsRaspberryPitext = await localizationService.GetTextAsync("WhatIsRaspberryPi", msg.From!.Id);
         var inlineMarkup = new InlineKeyboardMarkup(new[]
         {
             new[]
             {
-                InlineKeyboardButton.WithUrl(whatIsRaspberryPitext, "https://www.raspberrypi.org/about/")
+                InlineKeyboardButton.WithUrl(
+                    await GetLocalizationTextAsync("WhatIsRaspberryPi", msg.From!.Id),
+                    "https://www.raspberrypi.org/about/")
             }
         });
         
         return await _botClient.SendMessage(
             msg.Chat, 
-            aboutProjectText,
+            await GetLocalizationTextAsync("AboutProject", msg.From!.Id),
             replyMarkup: inlineMarkup
         );
     }
     
-    async Task<Message> Contacts(Message msg)
+    private async Task<Message> Contacts(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        string developercontactstext = await localizationService.GetTextAsync("DeveloperContacts", msg.From!.Id);
-        var inlineMarkup = new InlineKeyboardMarkup(new[]
-        {
-            new[]
-            {
+        var inlineMarkup = new InlineKeyboardMarkup([
+            [
                 InlineKeyboardButton.WithUrl("Telegram", "https://t.me/KolganovIvan"),
                 InlineKeyboardButton.WithUrl("GitHub", "https://github.com/IMKolganov")
-            }
-        });
+            ]
+        ]);
         
         return await _botClient.SendMessage(
             msg.Chat,
-            developercontactstext,
+            await GetLocalizationTextAsync("DeveloperContacts", msg.From!.Id),
             replyMarkup: inlineMarkup
         );
     }
     
-    async Task<Message> SelectLanguage(Message msg, string textError = "")
+    private async Task<Message> SelectLanguage(Message msg, string textError = "")
     {
         var inlineKeyboard = new InlineKeyboardMarkup(new[]
         {
@@ -467,255 +466,35 @@ public class TelegramUpdateHandler : IUpdateHandler
         );
     }
 
-    async Task ChangeLanguage(Message msg, string selectedLanguage)
+    private async Task<Message> ChangeLanguage(Message msg, string selectedLanguage)
     {
         Language? language = selectedLanguage switch
         {
-            "/English" => Language.English,
-            "/Русский" => Language.Russian,
-            "/Ελληνικά" => Language.Greek,
+            "/english" => Language.English,
+            "/русский" => Language.Russian,
+            "/ελληνικά" => Language.Greek,
             _ => null
         };
 
         if (language == null)
         {
-            await SelectLanguage(msg, "❌ Invalid language selection. Please try again.");
-            return;
+            return await SelectLanguage(msg, "❌ Invalid language selection. Please try again.");
         }
 
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
         await localizationService.SetUserLanguageAsync(msg.From!.Id, language.Value);
-        string confirmationMessage = await localizationService.GetTextAsync("SuccessChangeLanguage", msg.From.Id);
-
-        await _botClient.SendMessage(
-            chatId: msg.Chat.Id,
-            text: confirmationMessage,
-            replyMarkup: new ReplyKeyboardRemove()
-        );
+        
         await MakeNewVpnFile(msg);
         await InstallClient(msg);
         await Usage(msg);
-    }
-
-    async Task<Message> GetLogs(Message msg, int linesToRead = 100)
-    {
-        if (!File.Exists(_pathBotLog))
-            throw new FileNotFoundException($"Log file not found: {_pathBotLog}");
-
-        var lines = new LinkedList<string>();
-
-        using (var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-        {
-            fileStream.Seek(0, SeekOrigin.End);
-
-            long position = fileStream.Position;
-            int bufferSize = 1024;
-            var buffer = new char[bufferSize];
-            int bytesRead;
-            var currentLine = new LinkedList<char>();
-
-            using (var streamReader = new StreamReader(fileStream))
-            {
-                while (position > 0 && lines.Count < linesToRead)
-                {
-                    position -= bufferSize;
-                    if (position < 0)
-                    {
-                        bufferSize += (int)position;
-                        position = 0;
-                    }
-
-                    fileStream.Seek(position, SeekOrigin.Begin);
-                    bytesRead = await streamReader.ReadAsync(buffer, 0, bufferSize);
-
-                    for (int i = bytesRead - 1; i >= 0; i--)
-                    {
-                        if (buffer[i] == '\n')
-                        {
-                            lines.AddFirst(new string(currentLine.ToArray()));
-                            currentLine.Clear();
-
-                            if (lines.Count >= linesToRead)
-                                break;
-                        }
-                        else
-                        {
-                            currentLine.AddFirst(buffer[i]);
-                        }
-                    }
-                }
-
-                if (currentLine.Count > 0)
-                    lines.AddFirst(new string(currentLine.ToArray()));
-            }
-        }
-
-        var logText = string.Join(Environment.NewLine, lines);
-
-        if (logText.Length > 4096)
-        {
-            logText = logText.Substring(logText.Length - 4093) + "...";
-        }
-
+        
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: logText,
+            text: await GetLocalizationTextAsync("SuccessChangeLanguage", msg.From!.Id),
             replyMarkup: new ReplyKeyboardRemove()
         );
-    }
 
-    async Task<Message> SendFileLog(Message msg)
-    {
-        if (!File.Exists(_pathBotLog))
-            throw new FileNotFoundException($"Log file not found: {_pathBotLog}");
-
-        await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
-
-        using var fileStream = new FileStream(_pathBotLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        try
-        {
-            return await _botClient.SendDocument(
-                chatId: msg.Chat.Id,
-                document: InputFile.FromStream(fileStream, Path.GetFileName(_pathBotLog)),
-                caption: "Read https://github.com/IMKolganov/DataGateVPNBot"
-            );
-        }
-        catch (Telegram.Bot.Exceptions.RequestException ex)
-        {
-            Console.WriteLine($"Telegram API Error: {ex.Message}");
-            throw;
-        }
-    }
-    
-    async Task<Message> SendPhoto(Message msg)
-    {
-        await _botClient.SendChatAction(msg.Chat, ChatAction.UploadPhoto);
-        await Task.Delay(2000); // simulate a long task
-        await using var fileStream = new FileStream("Files/bot.gif", FileMode.Open, FileAccess.Read);
-        return await _botClient.SendAnimation(msg.Chat, fileStream, caption: "Read https://github.com/IMKolganov/DataGateVPNBot");
-    }
-
-    // Send inline keyboard. You can process responses in OnCallbackQuery handler
-    async Task<Message> SendInlineKeyboard(Message msg)
-    {
-        var inlineMarkup = new InlineKeyboardMarkup()
-            .AddNewRow("1.1", "1.2", "1.3")
-            .AddNewRow()
-                .AddButton("WithCallbackData", "CallbackData")
-                .AddButton(InlineKeyboardButton.WithUrl("WithUrl", "https://github.com/TelegramBots/Telegram.Bot"));
-        return await _botClient.SendMessage(msg.Chat, "Inline buttons:", replyMarkup: inlineMarkup);
-    }
-
-    async Task<Message> SendReplyKeyboard(Message msg)
-    {
-        var replyMarkup = new ReplyKeyboardMarkup(true)//WARNING! ReplyKeyboardMarkup is not support at all clients
-            .AddNewRow("1.1", "1.2", "1.3")
-            .AddNewRow().AddButton("2.1").AddButton("2.2");
-        return await _botClient.SendMessage(msg.Chat, "Keyboard buttons:", replyMarkup: replyMarkup);
-    }
-
-    async Task<Message> RemoveKeyboard(Message msg)
-    {
-        return await _botClient.SendMessage(msg.Chat, "Removing keyboard", replyMarkup: new ReplyKeyboardRemove());
-    }
-
-    async Task<Message> RequestContactAndLocation(Message msg)
-    {
-        var replyMarkup = new ReplyKeyboardMarkup(true)//WARNING! ReplyKeyboardMarkup is not support at all clients
-            .AddButton(KeyboardButton.WithRequestLocation("Location"))
-            .AddButton(KeyboardButton.WithRequestContact("Contact"));
-        return await _botClient.SendMessage(msg.Chat, "Who or Where are you?", replyMarkup: replyMarkup);
-    }
-
-    async Task<Message> StartInlineQuery(Message msg)
-    {
-        var button = InlineKeyboardButton.WithSwitchInlineQueryCurrentChat("Inline Mode");
-        return await _botClient.SendMessage(msg.Chat, "Press the button to start Inline Query\n\n" +
-                                                      "(Make sure you enabled Inline Mode in @BotFather)", replyMarkup: new InlineKeyboardMarkup(button));
-    }
-
-    async Task<Message> SendPoll(Message msg)
-    {
-        return await _botClient.SendPoll(msg.Chat, "Question", _pollOptions, isAnonymous: false);
-    }
-
-    async Task<Message> SendAnonymousPoll(Message msg)
-    {
-        return await _botClient.SendPoll(chatId: msg.Chat, "Question", _pollOptions);
-    }
-
-    static Task<Message> FailingHandler()
-    {
-        throw new NotImplementedException("FailingHandler");
-    }
-
-    // Process Inline Keyboard callback data
-    private async Task OnCallbackQuery(CallbackQuery callbackQuery)
-    {
-        _logger.LogInformation("Received inline keyboard callback from: {CallbackQueryId}", callbackQuery.Id);
-        await _botClient.AnswerCallbackQuery(callbackQuery.Id, "Processing your request...");
-
-        if (callbackQuery.Data != null && callbackQuery.Data.StartsWith("/delete_file "))
-        {
-            var fileName = callbackQuery.Data.Substring("/delete_file ".Length);
-            _logger.LogInformation("Deleting file: {FileName}", fileName);
-            await DeleteFile(callbackQuery.From.Id, fileName);
-        }
-        else if (callbackQuery.Data != null && (callbackQuery.Data == "/English" || callbackQuery.Data == "/Русский" ||
-                                                callbackQuery.Data == "/Ελληνικά"))
-        {
-            if (callbackQuery.Message != null) await ChangeLanguage(callbackQuery.Message, callbackQuery.Data);
-            _logger.LogInformation("User selected language: {Language}", callbackQuery.Data);
-        }
-        else
-        {
-            _logger.LogWarning("Invalid callback data received: {CallbackData}", callbackQuery.Data);
-
-            if (callbackQuery.Message != null)
-                await _botClient.SendMessage(
-                    chatId: callbackQuery.Message.Chat.Id,
-                    text: "Invalid callback data received. Please try again."
-                );
-        }
-    }
-
-    #region Inline Mode
-
-    private async Task OnInlineQuery(InlineQuery inlineQuery)
-    {
-        _logger.LogInformation("Received inline query from: {InlineQueryFromId}", inlineQuery.From.Id);
-
-        // throw new NotImplementedException();// displayed result
-        InlineQueryResult[] results =
-        [
-            new InlineQueryResultArticle("1", "Telegram.Bot", new InputTextMessageContent("hello")),
-            new InlineQueryResultArticle("2", "is the best", new InputTextMessageContent("world"))
-        ];
-        await _botClient.AnswerInlineQuery(inlineQuery.Id, results, cacheTime: 0, isPersonal: true);
-    }
-
-    private async Task OnChosenInlineResult(ChosenInlineResult chosenInlineResult)
-    {
-        _logger.LogInformation("Received inline result: {ChosenInlineResultId}", chosenInlineResult.ResultId);
-        await _botClient.SendMessage(chosenInlineResult.From.Id, $"You chose result with Id: {chosenInlineResult.ResultId}");
-    }
-
-    #endregion
-
-    private Task OnPoll(Poll poll)
-    {
-        _logger.LogInformation("Received Poll info: {Question}", poll.Question);
-        return Task.CompletedTask;
-    }
-
-    private async Task OnPollAnswer(PollAnswer pollAnswer)
-    {
-        // throw new NotImplementedException("OnPollAnswer");
-        var answer = pollAnswer.OptionIds.FirstOrDefault();
-        var selectedOption = _pollOptions[answer];
-        if (pollAnswer.User != null)
-            await _botClient.SendMessage(pollAnswer.User.Id, $"You've chosen: {selectedOption.Text} in poll");
     }
 
     private Task UnknownUpdateHandlerAsync(Update update)
@@ -734,5 +513,12 @@ public class TelegramUpdateHandler : IUpdateHandler
             text: "\u2705 All commands have been successfully registered...",
             replyMarkup: new ReplyKeyboardRemove()
         );
+    }
+
+    private async Task<string> GetLocalizationTextAsync(string key, long telegramId)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        return await localizationService.GetTextAsync(key, telegramId);
     }
 }
