@@ -18,13 +18,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     private readonly ITelegramSettingsService _telegramSettingsService;
     private readonly ILogger<TelegramUpdateHandler> _logger;
     private readonly string _pathBotLog = "bot.log";
-
-    private readonly InputPollOption[] _pollOptions =
-    [
-        new InputPollOption("Hello"),
-        new InputPollOption("World!")
-    ];
-
+    
     public TelegramUpdateHandler(
         ITelegramBotClient botClient,
         IServiceProvider serviceProvider,
@@ -80,14 +74,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         _logger.LogInformation("Received message type: {MessageType}", msg.Type);
         if (msg.Text is not { } messageText)
             return;
-
-        using var scope = _serviceProvider.CreateScope();
-        var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<IIncomingMessageLogService>();
-        await incomingMessageLogService.Log(_botClient, msg);
-
-        // Register new user if applicable
-        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
-        await RegisterNewUserAsync(msg, registrationService);
+        await LogIncomingMessage(msg);
 
         Message sentMessage = await ProcessingMessage(msg, messageText);
         _logger.LogInformation("Message sent with id: {SentMessageId}", sentMessage.Id);
@@ -99,9 +86,12 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         var commandParts = messageText.Split(' ', 2);
         var command = commandParts[0].ToLower();
         // var argument = commandParts.Length > 1 ? commandParts[1] : null;
+        if(!await IsExistLocalizationSettings(msg.From!.Id)) await SelectLanguage(msg);
+        await RegisterNewUserAsync(msg);//for something wrong when "/start" don't work. This line usually is not a necessary 
 
         return await (command switch
         {
+            "/start" => Start(msg),
             "/about_bot" => AboutBot(msg),
             "/how_to_use" => HowToUseVpn(msg),
             "/register" => RegisterForVpn(msg),
@@ -144,6 +134,14 @@ public partial class TelegramUpdateHandler : IUpdateHandler
             , parseMode: ParseMode.Html,
             replyMarkup: new ReplyKeyboardRemove());
     }
+
+    private async Task<Message> Start(Message msg)
+    {
+        // Register new user if applicable
+        await RegisterNewUserAsync(msg);
+
+        return await SelectLanguage(msg);
+    }
     
     private async Task OnCallbackQuery(CallbackQuery callbackQuery)
     {
@@ -178,10 +176,8 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     
     private async Task<Message> RegisterForVpn(Message msg)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         if (msg.From != null)
-            await RegisterNewUserAsync(msg, registrationService);
+            await RegisterNewUserAsync(msg);
 
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
@@ -207,13 +203,29 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         );
     }
     
-    private async Task RegisterNewUserAsync(Message msg, ITelegramRegistrationService registrationService)
+    private async Task RegisterNewUserAsync(Message msg)
     {
+        using var scope = _serviceProvider.CreateScope();
+        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
         await registrationService.RegisterUserAsync(
             telegramId: msg.From!.Id,
             username: msg.From.Username,
             firstName: msg.From.FirstName,
             lastName: msg.From.LastName
         );
+    }
+
+    private async Task LogIncomingMessage(Message msg)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<IIncomingMessageLogService>();
+        await incomingMessageLogService.Log(_botClient, msg);
+    }
+    
+    private async Task<bool> IsExistLocalizationSettings(long telegramId)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
+        return await incomingMessageLogService.IsExistUserLanguageAsync(telegramId);
     }
 }

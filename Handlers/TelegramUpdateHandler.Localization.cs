@@ -46,15 +46,17 @@ public partial class TelegramUpdateHandler
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
         await localizationService.SetUserLanguageAsync(msg.From!.Id, language.Value);
         
-        await MakeNewVpnFile(msg);
-        await InstallClient(msg);
-        await Usage(msg);
-        
-        return await _botClient.SendMessage(
+        Message messageResponse = await _botClient.SendMessage(
             chatId: msg.Chat.Id,
             text: await GetLocalizationTextAsync("SuccessChangeLanguage", msg.From!.Id),
             replyMarkup: new ReplyKeyboardRemove()
         );
+        
+        await MakeNewVpnFile(msg);
+        await InstallClient(msg);
+        await Usage(msg);
+
+        return messageResponse;
     }
     
     private async Task<string> GetLocalizationTextAsync(string key, long telegramId)

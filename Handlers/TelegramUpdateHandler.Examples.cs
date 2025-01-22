@@ -8,6 +8,12 @@ namespace DataGateVPNBotV1.Handlers;
 
 public partial class TelegramUpdateHandler
 {
+    private readonly InputPollOption[] _pollOptions =
+    [
+        new InputPollOption("Hello"),
+        new InputPollOption("World!")
+    ];
+
     private async Task<Message> SendPhoto(Message msg)
     {
         await _botClient.SendChatAction(msg.Chat, ChatAction.UploadPhoto);

@@ -67,4 +67,10 @@ public class LocalizationService : ILocalizationService
 
         return text ?? $"[Translation missing for key: {key}, language: {language}]";
     }
+    
+    public async Task<bool> IsExistUserLanguageAsync(long telegramId)
+    {
+        return await _context.UserLanguagePreferences
+            .AnyAsync(u => u.TelegramId == telegramId);
+    }
 }
