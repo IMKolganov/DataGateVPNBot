@@ -1,5 +1,6 @@
 ﻿using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
+using DataGateVPNBotV1.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace DataGateVPNBotV1.Services;

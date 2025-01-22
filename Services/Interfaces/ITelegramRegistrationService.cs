@@ -1,4 +1,4 @@
-﻿namespace DataGateVPNBotV1.Services;
+﻿namespace DataGateVPNBotV1.Services.Interfaces;
 
 public interface ITelegramRegistrationService
 {

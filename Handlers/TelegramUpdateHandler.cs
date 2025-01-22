@@ -17,19 +17,21 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     private readonly IOpenVpnClientService _openVpnClientService;
     private readonly ITelegramSettingsService _telegramSettingsService;
     private readonly ILogger<TelegramUpdateHandler> _logger;
-    private readonly string _pathBotLog = "bot.log";
+    private readonly string _pathBotLog;
     
     public TelegramUpdateHandler(
         ITelegramBotClient botClient,
         IServiceProvider serviceProvider,
         IOpenVpnClientService openVpnClientService,
         ITelegramSettingsService telegramSettingsService,
-        ILogger<TelegramUpdateHandler> logger)
+        ILogger<TelegramUpdateHandler> logger,
+        IConfiguration configuration)
     {
         _botClient = botClient ?? throw new ArgumentNullException(nameof(botClient));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
         _telegramSettingsService = telegramSettingsService ?? throw new ArgumentNullException(nameof(telegramSettingsService));
+        _pathBotLog = configuration["BotConfiguration:LogFile"] ?? throw new InvalidOperationException();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     
@@ -43,8 +45,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
     }
     #endregion
-
-
+    
     #region  Handles incoming updates from Telegram Bot API and routes them to specific handlers.
     public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
         CancellationToken cancellationToken)

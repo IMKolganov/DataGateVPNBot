@@ -9,12 +9,14 @@ cat > appsettings.json << 'EOF'
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=*;Port=5432;Database=*;Username=*;Password=*"
+    "DefaultConnection": "Host=*;Port=5432;Database=*;Username=*;Password=*",
+    "DefaultSchema": "xgb_rackotpg"
   },
   "BotConfiguration": {
     "BotToken": "*",
     "BotWebhookUrl": "https://08ca-213-133-91-43.ngrok-free.app/bot",
-    "SecretToken": ""
+    "SecretToken": "",
+    "LogFile": "bot.log"
   },
   "OpenVpn": {
     "ServerIp": "0.0.0.0",
@@ -35,12 +37,14 @@ cat > appsettings.Development.json << 'EOF'
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=*;Port=5432;Database=*;Username=*;Password=*"
+    "DefaultConnection": "Host=*;Port=5432;Database=*;Username=*;Password=*",
+    "DefaultSchema": "xgb_rackotpg"
   },
   "BotConfiguration": {
     "BotToken": "*",
     "BotWebhookUrl": "https://08ca-213-133-91-43.ngrok-free.app/bot",
-    "SecretToken": ""
+    "SecretToken": "",
+    "LogFile": "bot.log"
   },
   "OpenVpn": {
     "ServerIp": "0.0.0.0",

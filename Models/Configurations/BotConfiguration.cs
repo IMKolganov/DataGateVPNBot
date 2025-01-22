@@ -6,5 +6,5 @@ public class BotConfiguration
     public Uri BotWebhookUrl { get; init; } = null!;
     public string SecretToken { get; init; } = null!;
     public string TelegramWebHook { get; init; } = "TelegramWebHook";
-    
+    public string LogFile { get; init; } = "bot.log";
 }
