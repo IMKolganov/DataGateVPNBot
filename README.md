@@ -44,6 +44,17 @@ To generate `appsettings.json` and `appsettings.Development.json` from the templ
    
 2. Ensure that the .env file exists in the project root with the necessary environment variables.
 This script uses appsettings.json.template and populates it with values from .env to create the required configuration files.
+   ```env
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=mydatabase
+   DB_USER=myuser
+   DB_PASS=mypassword
+   DB_SCHEMA=mydbschema
+   DB_MIGRATION_TABLE=__EFMigrationsHistory
+   BOT_TOKEN=mybottoken
+   BOT_WEBHOOK_URL=https://example.com/bot
+   OPENVPN_SERVER_IP=0.0.0.0
 
 ## Installation and Launch
 
