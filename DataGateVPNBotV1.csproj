@@ -34,4 +34,9 @@
       <Folder Include="Migrations\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include=".github\workflows\develop.yml" />
+      <Content Include=".github\workflows\main.yml" />
+    </ItemGroup>
+
 </Project>
