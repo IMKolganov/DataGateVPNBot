@@ -207,7 +207,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     private async Task RegisterNewUserAsync(Message msg)
     {
         using var scope = _serviceProvider.CreateScope();
-        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramRegistrationService>();
+        var registrationService = scope.ServiceProvider.GetRequiredService<ITelegramUsersService>();
         await registrationService.RegisterUserAsync(
             telegramId: msg.From!.Id,
             username: msg.From.Username,

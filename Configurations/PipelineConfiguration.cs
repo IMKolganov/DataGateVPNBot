@@ -17,6 +17,7 @@ public static class PipelineConfiguration
         app.MapControllers();
         
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown version";
-        app.Logger.LogInformation("Application version: {Version}", version);
+        var environmentName = app.Environment.EnvironmentName;
+        app.Logger.LogInformation("Application version: {Version} ; Environment: {Environment}", version, environmentName);
     }
 }

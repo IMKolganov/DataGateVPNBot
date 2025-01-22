@@ -10,12 +10,13 @@ public static class ServiceConfiguration
     {
         services.AddScoped<IIssuedOvpnFileService, IssuedOvpnFileService>();
         services.AddScoped<IIncomingMessageLogService, IncomingMessageLogService>();
-        services.AddScoped<ITelegramRegistrationService, TelegramRegistrationService>();
+        services.AddScoped<ITelegramUsersService, ITelegramUsersService>();
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddSingleton<TelegramUpdateHandler>();
         services.AddSingleton<ITelegramSettingsService, TelegramSettingsService>();
         services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
         services.AddSingleton<IEasyRsaService, EasyRsaService>();
+        services.AddHostedService<StartupNotificationHandler>();
 
         services.ConfigureTelegramBotMvc();
 
