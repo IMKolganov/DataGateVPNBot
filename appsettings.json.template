@@ -1,4 +1,4 @@
-{
+﻿{
   "Logging": {
     "LogLevel": {
       "Default": "Information",
@@ -6,15 +6,16 @@
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=*;Port=5432;Database=*;Username=*;Password=*"
+    "DefaultConnection": "Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASS}",
+    "DefaultSchema": "${DB_SCHEMA}"
   },
   "BotConfiguration": {
-    "BotToken": "*",
-    "BotWebhookUrl": "https://08ca-213-133-91-43.ngrok-free.app/bot",
-    "SecretToken": ""
+    "BotToken": "${BOT_TOKEN}",
+    "BotWebhookUrl": "${BOT_WEBHOOK_URL}",
+    "LogFile": "bot.log"
   },
   "OpenVpn": {
-    "ServerIp": "0.0.0.0",
+    "ServerIp": "${OPENVPN_SERVER_IP}",
     "EasyRsaPath": "/etc/openvpn/easy-rsa",
     "OutputDir": "/etc/openvpn/clients",
     "TlsAuthKey": "/etc/openvpn/easy-rsa/pki/ta.key"
