@@ -34,53 +34,27 @@ The bot supports the following commands:
 | `/remove`                 | Remove the keyboard.                                                    |
 
 ---
-## Setting up Git Hooks
+## Generate Configuration Files
 
-To set up Git hooks in this repository and ensure they are applied automatically during commits, follow these steps:
+To generate `appsettings.json` and `appsettings.Development.json` from the template:
 
-```bash
-# Clone the repository to your local machine
-git clone <repository-url>
-cd <repository-folder>
-
-# Make the necessary files executable
-chmod +x setup-hooks.sh
-chmod +x hooks/pre-commit
-
-# Run the setup script to install the hooks
-./setup-hooks.sh
-```
-
-This will copy the required hooks from the `hooks` folder to the `.git/hooks` directory. Once installed, the hooks will automatically execute during the appropriate Git operations, such as `pre-commit`.
-
----
-
-### Handling "dubious ownership" errors
-
-If you encounter an error like the following when running Git commands:
-
-```plaintext
-fatal: detected dubious ownership in repository at 'path-to-repository'
-```
-
-This occurs because Git detected a mismatch between the current user and the owner of the repository directory. To fix this, mark the repository as safe by running the following command:
-
-```bash
-git config --global --add safe.directory '<path-to-repository>'
-```
-
-Replace `<path-to-repository>` with the actual path to your repository. This command adds the repository to Git's global safe directory list, allowing operations to proceed without warnings.
-
----
-
-### Why is this important?
-
-```markdown
-- **On Windows**: Files do not have an "executable" flag by default. Without it, scripts cannot run, especially if you are using WSL, Git Bash, or other Linux-like shells on Windows.
-- **On macOS and Linux**: Files also need to be explicitly made executable for them to work as intended.
-
-Adding this setup ensures that all team members avoid potential issues and can easily activate hooks on their local environments.
-```
+1. Run the following command in the project root:
+   ```bash
+   ./generate_appsettings.sh
+   
+2. Ensure that the .env file exists in the project root with the necessary environment variables.
+This script uses appsettings.json.template and populates it with values from .env to create the required configuration files.
+   ```env
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=mydatabase
+   DB_USER=myuser
+   DB_PASS=mypassword
+   DB_SCHEMA=mydbschema
+   DB_MIGRATION_TABLE=__EFMigrationsHistory
+   BOT_TOKEN=mybottoken
+   BOT_WEBHOOK_URL=https://example.com/bot
+   OPENVPN_SERVER_IP=0.0.0.0
 
 ## Installation and Launch
 

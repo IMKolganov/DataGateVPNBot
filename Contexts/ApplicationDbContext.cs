@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserLanguagePreference> UserLanguagePreferences { get; set; } = null!;
     public DbSet<LocalizationText> LocalizationTexts { get; set; } = null!;
     public DbSet<IncomingMessageLog> IncomingMessageLog { get; set; } = null!;
+    public DbSet<OpenVpnUserStatistic> OpenVpnUserStatistics { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,6 +84,28 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Text)
                 .IsRequired();
         });
+        modelBuilder.Entity<OpenVpnUserStatistic>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TelegramId);
+            entity.Property(e => e.CommonName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.RealAddress)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.BytesReceived)
+                .IsRequired();
+
+            entity.Property(e => e.BytesSent)
+                .IsRequired();
+
+            entity.Property(e => e.ConnectedSince)
+                .IsRequired();
+        });
+        
         modelBuilder.Entity<LocalizationText>().HasData(
             // Bot menu
             // /register - register to use the VPN\n
@@ -165,4 +188,6 @@ public class ApplicationDbContext : DbContext
             new LocalizationText { Id = 57, Key = "WhatIsRaspberryPi", Language = Language.Greek, Text = "Τι είναι το Raspberry Pi;" }
         );
     }
+    
+
 }
