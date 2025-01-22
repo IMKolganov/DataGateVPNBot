@@ -10,7 +10,7 @@ public static class ServiceConfiguration
     {
         services.AddScoped<IIssuedOvpnFileService, IssuedOvpnFileService>();
         services.AddScoped<IIncomingMessageLogService, IncomingMessageLogService>();
-        services.AddScoped<ITelegramUsersService, ITelegramUsersService>();
+        services.AddScoped<ITelegramUsersService, TelegramUsersService>();
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddSingleton<TelegramUpdateHandler>();
         services.AddSingleton<ITelegramSettingsService, TelegramSettingsService>();
