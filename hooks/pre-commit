@@ -15,7 +15,6 @@ cat > appsettings.json << 'EOF'
   "BotConfiguration": {
     "BotToken": "*",
     "BotWebhookUrl": "https://08ca-213-133-91-43.ngrok-free.app/bot",
-    "SecretToken": "",
     "LogFile": "bot.log"
   },
   "OpenVpn": {
@@ -43,7 +42,6 @@ cat > appsettings.Development.json << 'EOF'
   "BotConfiguration": {
     "BotToken": "*",
     "BotWebhookUrl": "https://08ca-213-133-91-43.ngrok-free.app/bot",
-    "SecretToken": "",
     "LogFile": "bot.log"
   },
   "OpenVpn": {
