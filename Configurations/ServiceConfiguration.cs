@@ -13,6 +13,7 @@ public static class ServiceConfiguration
         services.AddScoped<ITelegramRegistrationService, TelegramRegistrationService>();
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddSingleton<TelegramUpdateHandler>();
+        services.AddSingleton<ITelegramSettingsService, TelegramSettingsService>();
         services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
         services.AddSingleton<IEasyRsaService, EasyRsaService>();
 

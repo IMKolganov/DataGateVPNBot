@@ -5,9 +5,9 @@ if [ -f .env ]; then
 fi
 
 envsubst < appsettings.json.template > appsettings.json
-echo "Файл appsettings.json completed."
+echo "File appsettings.json is completed."
 
 envsubst < appsettings.json.template > appsettings.Development.json
-echo "Файл appsettings.Development.json completed."
+echo "File appsettings.Development.json is completed."
 
 git add appsettings.json.template

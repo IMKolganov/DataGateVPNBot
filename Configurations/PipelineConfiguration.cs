@@ -1,4 +1,6 @@
-﻿namespace DataGateVPNBotV1.Configurations;
+﻿using System.Reflection;
+
+namespace DataGateVPNBotV1.Configurations;
 
 public static class PipelineConfiguration
 {
@@ -13,5 +15,8 @@ public static class PipelineConfiguration
         app.UseHttpsRedirection();
         app.UseAuthorization();
         app.MapControllers();
+        
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown version";
+        app.Logger.LogInformation("Application version: {Version}", version);
     }
 }

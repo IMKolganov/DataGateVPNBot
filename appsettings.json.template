@@ -6,8 +6,25 @@
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASS}",
-    "DefaultSchema": "${DB_SCHEMA}"
+    "DefaultConnection": "Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASS}"
+  },
+  "DataBaseSettings": {
+    "DefaultSchema": "${DB_SCHEMA}",
+    "MigrationTable": "${DB_MIGRATION_TABLE}"
+  },
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "${HOSTING_URL_HTTP}:${HOSTING_HTTP_PORT}"
+      },
+      "Https": {
+        "Url": "${HOSTING_URL_HTTPS}:${HOSTING_HTTPS_PORT}",
+        "Certificate": {
+          "Path": "${HOSTING_CERT_PEM}",
+          "KeyPath": "${HOSTING_CERT_KEY}"
+        }
+      }
+    }
   },
   "BotConfiguration": {
     "BotToken": "${BOT_TOKEN}",
