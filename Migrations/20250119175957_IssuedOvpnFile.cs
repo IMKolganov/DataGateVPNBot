@@ -10,13 +10,13 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.RenameColumn(
                 name: "PermFilePath",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles",
                 newName: "ReqFilePath");
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsRevoked",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles",
                 type: "boolean",
                 nullable: false,
@@ -24,14 +24,14 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.AddColumn<string>(
                 name: "PemFilePath",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles",
                 type: "text",
                 nullable: false,
                 defaultValue: "");
 
             migrationBuilder.InsertData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 columns: new[] { "Id", "Key", "Language", "Text" },
                 values: new object[,]
@@ -48,54 +48,54 @@ namespace DataGateVPNBotV1.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DeleteData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 37);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 38);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 39);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 40);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 41);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 42);
 
             migrationBuilder.DropColumn(
                 name: "IsRevoked",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles");
 
             migrationBuilder.DropColumn(
                 name: "PemFilePath",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles");
 
             migrationBuilder.RenameColumn(
                 name: "ReqFilePath",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles",
                 newName: "PermFilePath");
         }
