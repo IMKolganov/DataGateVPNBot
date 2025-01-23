@@ -12,21 +12,15 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    - name: Build and push Docker image
+
+    - name: Build Docker image
       uses: docker/build-push-action@v4
       with:
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/datagatevpn:develop
+        push: false
+        tags: datagatevpn:develop
         platforms: linux/arm/v7
 
     - name: Set up SSH
@@ -39,7 +33,7 @@ jobs:
     - name: Deploy application to Raspberry Pi
       run: |
         ssh pi@${{ secrets.RPI_HOST }} << EOF
-          docker pull ${{ secrets.DOCKER_USERNAME }}/datagatevpn:develop
+          docker load < datagatevpn:develop.tar
           docker stop datagatevpn || true
           docker rm datagatevpn || true
           docker-compose -f /path/to/docker-compose.override.yml up -d
