@@ -413,5 +413,6 @@ riderModule.iml
 datagatetgbot.key
 datagatetgbot.pem
 .env
+.env_dev
 appsettings.json
 appsettings.Development.json
