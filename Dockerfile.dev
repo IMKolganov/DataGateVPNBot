@@ -25,6 +25,8 @@ USER app
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+ARG CACHE_BUST=1
+
 # for debug
 # Debug before copying
 RUN echo "Listing files in context:" && ls -la && echo "Done listing files"
