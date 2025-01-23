@@ -31,12 +31,12 @@ public class StartupNotificationHandler : IHostedService
         var telegramUsersService = scope.ServiceProvider.GetRequiredService<ITelegramUsersService>();
         var admins = await telegramUsersService.GetAdminsAsync();
 
-        if (admins.Count == 0)
+        if (admins is { Count: 0 })
         {
             _logger.LogWarning("Admin chat ID is not configured.");
             return;
         }
-        _logger.LogInformation("Admins count: {RecordCount}", admins.Count);
+        _logger.LogInformation("Admins count: {RecordCount}", admins!.Count);
         foreach (var admin in admins)
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown version";
