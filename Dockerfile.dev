@@ -26,8 +26,8 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # for debug
-RUN ls -la /src
-RUN ls -la /app
+# Debug before copying
+RUN echo "Listing files in context:" && ls -la && echo "Done listing files"
 # Copy configuration files
 COPY appsettings.json .
 COPY appsettings.Development.json .
