@@ -21,5 +21,9 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
+bin/
+obj/
+*.user
+*.temp
 LICENSE
 README.md
