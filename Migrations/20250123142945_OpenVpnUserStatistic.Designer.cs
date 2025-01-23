@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataGateVPNBotV1.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250120021646_UpdateDotnetEf")]
-    partial class UpdateDotnetEf
+    [Migration("20250123142945_OpenVpnUserStatistic")]
+    partial class OpenVpnUserStatistic
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -537,6 +537,41 @@ namespace DataGateVPNBotV1.Migrations
                             Language = 2,
                             Text = "Τι είναι το Raspberry Pi;"
                         });
+                });
+
+            modelBuilder.Entity("DataGateVPNBotV1.Models.OpenVpnUserStatistic", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("BytesReceived")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("BytesSent")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CommonName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("ConnectedSince")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RealAddress")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("TelegramId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OpenVpnUserStatistics", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.TelegramUser", b =>

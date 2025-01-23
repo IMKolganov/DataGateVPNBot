@@ -11,11 +11,11 @@ namespace DataGateVPNBotV1.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "xgb_rackotpg");
+                name: "xgb_botvpndev");
 
             migrationBuilder.CreateTable(
                 name: "IncomingMessageLog",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -39,7 +39,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.CreateTable(
                 name: "IssuedOvpnFiles",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -60,7 +60,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.CreateTable(
                 name: "LocalizationTexts",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -76,7 +76,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.CreateTable(
                 name: "TelegramUsers",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -94,7 +94,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.CreateTable(
                 name: "UserLanguagePreferences",
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -108,7 +108,7 @@ namespace DataGateVPNBotV1.Migrations
                 });
 
             migrationBuilder.InsertData(
-                schema: "xgb_rackotpg",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 columns: new[] { "Id", "Key", "Language", "Text" },
                 values: new object[,]
@@ -153,23 +153,23 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.DropTable(
                 name: "IncomingMessageLog",
-                schema: "xgb_rackotpg");
+                schema: "xgb_botvpndev");
 
             migrationBuilder.DropTable(
                 name: "IssuedOvpnFiles",
-                schema: "xgb_rackotpg");
+                schema: "xgb_botvpndev");
 
             migrationBuilder.DropTable(
                 name: "LocalizationTexts",
-                schema: "xgb_rackotpg");
+                schema: "xgb_botvpndev");
 
             migrationBuilder.DropTable(
                 name: "TelegramUsers",
-                schema: "xgb_rackotpg");
+                schema: "xgb_botvpndev");
 
             migrationBuilder.DropTable(
                 name: "UserLanguagePreferences",
-                schema: "xgb_rackotpg");
+                schema: "xgb_botvpndev");
         }
     }
 }

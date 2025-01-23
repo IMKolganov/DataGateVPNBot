@@ -412,6 +412,7 @@ riderModule.iml
 /_ReSharper.Caches/
 datagatetgbot.key
 datagatetgbot.pem
-.env
+.env*
+appsettings*
 appsettings.json
 appsettings.Development.json

@@ -6,11 +6,16 @@ namespace DataGateVPNBotV1.Contexts;
 
 public class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly IConfiguration _configuration;
+    private readonly string _defaultSchema;
+    
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IConfiguration configuration)
         : base(options)
     {
+        _configuration = configuration;
+        _defaultSchema = configuration["DataBaseSettings:DefaultSchema"] ?? throw new InvalidOperationException();
     }
-
+    
     public DbSet<TelegramUser> TelegramUsers { get; set; } = null!;
     public DbSet<IssuedOvpnFile> IssuedOvpnFiles { get; set; } = null!;
     public DbSet<UserLanguagePreference> UserLanguagePreferences { get; set; } = null!;
@@ -20,7 +25,7 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("xgb_rackotpg");
+        modelBuilder.HasDefaultSchema(_defaultSchema);
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<TelegramUser>(entity =>
         {
