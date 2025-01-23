@@ -35,7 +35,7 @@ public class TelegramUsersService : ITelegramUsersService
         }
     }
 
-    public async Task<List<TelegramUser>> GetAdminsAsync()
+    public async Task<List<TelegramUser>?> GetAdminsAsync()
     {
         var existingUser = await _dbContext.TelegramUsers
             .Where(u => u.TelegramId == 5767006971).ToListAsync();
