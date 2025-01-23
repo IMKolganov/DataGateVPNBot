@@ -13,9 +13,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Create appsettings.json
+      run: |
+        echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.Development.json
+
     - name: Create appsettings.Development.json
       run: |
-        echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > appsettings.Development.json
+        echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.Development.json
+        
+    - name: Debug workspace files
+      run: ls -la
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -23,6 +30,7 @@ jobs:
     - name: Build Docker image
       uses: docker/build-push-action@v4
       with:
+        context: .
         push: false
         tags: datagatevpn:develop
         platforms: linux/arm/v7

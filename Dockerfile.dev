@@ -25,6 +25,9 @@ USER app
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# for debug
+RUN ls -la /src
+RUN ls -la /app
 # Copy configuration files
 COPY appsettings.json .
 COPY appsettings.Development.json .
