@@ -28,10 +28,9 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./Dockerfile.dev
+        file: ./Dockerfile-develop
         push: false
         tags: datagatevpn:develop
-        platforms: linux/arm64
 
     - name: Set up SSH
       run: |
