@@ -20,9 +20,6 @@ jobs:
     - name: Create appsettings.Development.json
       run: |
         echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.Development.json
-        
-    - name: Debug workspace files
-      run: ls -la
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -34,7 +31,7 @@ jobs:
         file: ./Dockerfile.dev
         push: false
         tags: datagatevpn:develop
-        platforms: linux/arm/v7
+        platforms: linux/arm64
 
     - name: Set up SSH
       run: |
@@ -43,10 +40,15 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
 
+    - name: Save Docker image as tar
+      run: |
+        docker save datagatevpn:develop -o datagatevpn_develop.tar
+
     - name: Deploy application to Raspberry Pi
       run: |
+        scp datagatevpn_develop.tar pi@${{ secrets.RPI_HOST }}:/home/pi/
         ssh pi@${{ secrets.RPI_HOST }} << EOF
-          docker load < datagatevpn:develop.tar
+          docker load < /home/pi/datagatevpn_develop.tar
           docker stop datagatevpn || true
           docker rm datagatevpn || true
           docker-compose -f /path/to/docker-compose.override.yml up -d
