@@ -19,24 +19,33 @@ public class LocalizationService : ILocalizationService
 
     public async Task SetUserLanguageAsync(long telegramId, Language language)
     {
+        _logger.LogInformation("Attempting to set language for TelegramId: {TelegramId} to {Language}.", telegramId, language);
+
         var userPreference = await _context.UserLanguagePreferences
             .FirstOrDefaultAsync(u => u.TelegramId == telegramId);
 
         if (userPreference == null)
         {
+            _logger.LogInformation("No existing language preference found for TelegramId: {TelegramId}. Creating a new record.", telegramId);
+
             userPreference = new UserLanguagePreference
             {
                 TelegramId = telegramId,
                 PreferredLanguage = language
             };
             _context.UserLanguagePreferences.Add(userPreference);
+
+            _logger.LogInformation("New language preference created for TelegramId: {TelegramId} with language: {Language}.", telegramId, language);
         }
         else
         {
+            _logger.LogInformation("Existing language preference found for TelegramId: {TelegramId}. Updating language to: {Language}.", telegramId, language);
+
             userPreference.PreferredLanguage = language;
         }
 
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Language preference saved for TelegramId: {TelegramId}.", telegramId);
     }
 
     public async Task<Language> GetUserLanguageAsync(long telegramId)

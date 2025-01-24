@@ -1,3 +1,4 @@
+using DataGateVPNBotV1.Models.Configurations;
 using DataGateVPNBotV1.Models.Enums;
 using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
@@ -30,7 +31,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
         _telegramSettingsService = telegramSettingsService ?? throw new ArgumentNullException(nameof(telegramSettingsService));
-        _pathBotLog = configuration["BotConfiguration:LogFile"] ?? throw new InvalidOperationException();
+        _pathBotLog = configuration.GetSection("BotConfiguration").Get<BotConfiguration>()?.LogFile ?? throw new InvalidOperationException();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     
