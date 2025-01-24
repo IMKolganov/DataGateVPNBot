@@ -9,10 +9,12 @@ namespace DataGateVPNBotV1.Services;
 public class LocalizationService : ILocalizationService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<LocalizationService> _logger;
 
-    public LocalizationService(ApplicationDbContext context)
+    public LocalizationService(ApplicationDbContext context, ILogger<LocalizationService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task SetUserLanguageAsync(long telegramId, Language language)
@@ -70,7 +72,13 @@ public class LocalizationService : ILocalizationService
     
     public async Task<bool> IsExistUserLanguageAsync(long telegramId)
     {
-        return await _context.UserLanguagePreferences
+        _logger.LogInformation("Checking database for TelegramId: {TelegramId}.", telegramId);
+
+        var result = await _context.UserLanguagePreferences
             .AnyAsync(u => u.TelegramId == telegramId);
+
+        _logger.LogInformation("Database check for TelegramId {TelegramId}: {Result}", telegramId, result);
+
+        return result;
     }
 }
