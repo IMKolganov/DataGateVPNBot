@@ -29,7 +29,6 @@ jobs:
       with:
         context: .
         file: ./Dockerfile-develop
-        platforms: linux/arm64
         push: false
         load: true
         tags: datagatevpn-develop
