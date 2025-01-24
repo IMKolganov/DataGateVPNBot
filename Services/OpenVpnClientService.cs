@@ -79,23 +79,37 @@ public class OpenVpnClientService : IOpenVpnClientService
             _logger.LogInformation("Step 1: Checking if PKI directory exists...");
             _easyRsaService.InstallEasyRsa();
 
-            _logger.LogInformation("Step 1.1: Checking if configuration already exists for this client...");
+            _logger.LogInformation("Step 1.1: Checking if configuration already exists for this client with TelegramId: {TelegramId}.", telegramId);
+
             int attempt = 0;
             string baseFileName = GetBaseFileNameForCerts(telegramId.ToString(), attempt);
+            _logger.LogInformation("Step 1.2: Initial base file name generated: {BaseFileName}", baseFileName);
+
             string baseOvpnFileName = $"{baseFileName}.ovpn";
             string ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, baseOvpnFileName);
 
+            _logger.LogInformation("Step 1.3:Initial .ovpn file path: {OvpnFilePath}", ovpnFilePath);
+
             while (File.Exists(ovpnFilePath) && attempt < _maxAttempts)
             {
+                _logger.LogInformation("File already exists: {OvpnFilePath}. Incrementing attempt counter.", ovpnFilePath);
                 attempt++;
+                baseFileName = GetBaseFileNameForCerts(telegramId.ToString(), attempt);
                 ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, $"{baseFileName}.ovpn");
+                _logger.LogInformation("New file path after attempt {Attempt}: {OvpnFilePath}", attempt, ovpnFilePath);
             }
 
             if (attempt >= _maxAttempts)
             {
+                _logger.LogError(
+                    "Maximum limit of {MaxAttempts} configurations reached for client '{TelegramId}'. Cannot create more files.",
+                    _maxAttempts, telegramId);
                 throw new InvalidOperationException(
-                    $"Maximum limit of {_maxAttempts} configurations for client '{telegramId.ToString()}' has been reached. Cannot create more files.");
+                    $"Maximum limit of {_maxAttempts} configurations for client '{telegramId}' has been reached. Cannot create more files.");
             }
+
+            _logger.LogInformation("Step 1.4: Final file path determined: {OvpnFilePath}. Proceeding with configuration creation.", ovpnFilePath);
+
 
             _logger.LogInformation("Step 2: Building client certificate...");
             _easyRsaService.BuildCertificate($"{baseFileName}");
