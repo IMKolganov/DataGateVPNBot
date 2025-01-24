@@ -16,32 +16,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Create appsettings.json
+      - name: Use existing appsettings.json
         run: |
-          printf "%s" "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.json
+          cp /home/rackot/configs/appsettings.json ./appsettings.json
+          cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
 
-      - name: Create appsettings.Development.json
-        run: |
-          echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.Development.json
-      
       - name: Verify appsettings.json
         run: |
-          echo "Content of appsettings.json:"
-          cat ./appsettings.json
-          
-      - name: Check appsettings.json
-        run: |
           if [ -s ./appsettings.json ]; then
-            echo "appsettings.json created and not empty";
+            echo "appsettings.json is present and not empty";
           else
-            echo "appsettings.json is empty or not created";
+            echo "appsettings.json is missing or empty";
             exit 1;
           fi
-          
+
       - name: Build Docker image
         run: |
           docker build -t datagatevpn-develop -f Dockerfile-develop .
-    
+
       - name: Deploy Docker container
         run: |
           docker stop datagatevpn_develop_container || true
@@ -51,9 +43,3 @@ jobs:
             -v $PWD/appsettings.json:/app/appsettings.json \
             -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
             datagatevpn-develop
-          
-      - name: Verify container configuration
-        run: |
-          docker exec datagatevpn_develop_container printenv ASPNETCORE_ENVIRONMENT
-          docker exec datagatevpn_develop_container cat /app/appsettings.json
-          docker exec datagatevpn_develop_container cat /app/appsettings.Development.json
