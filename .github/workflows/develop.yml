@@ -30,7 +30,7 @@ jobs:
         context: .
         file: ./Dockerfile-develop
         push: false
-        tags: datagatevpn:develop
+        tags: datagatevpn-develop
 
     - name: Set up SSH
       run: |
@@ -41,7 +41,7 @@ jobs:
 
     - name: Save Docker image as tar
       run: |
-        docker save datagatevpn:develop -o datagatevpn_develop.tar
+        docker save datagatevpn-develop -o datagatevpn_develop.tar
 
     - name: Deploy application to Raspberry Pi
       run: |

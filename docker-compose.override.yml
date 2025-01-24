@@ -5,6 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile-develop
     ports:
-      - "5060:88"
+      - "5501:88"
     environment:
       ASPNETCORE_ENVIRONMENT: Development

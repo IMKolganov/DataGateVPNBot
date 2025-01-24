@@ -417,3 +417,7 @@ datagatetgbot.pem
 appsettings*
 appsettings.json
 appsettings.Development.json
+
+
+docker save datagatevpn:develop -o datagatevpn_develop.tar
+scp datagatevpn_develop_arm.tar rackot@192.168.0.21::~

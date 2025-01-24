@@ -1,7 +1,7 @@
 ﻿#!/bin/bash
 
 if [ -f .env ]; then
-  export $(grep -v '^#' .env_dev | xargs)
+  export $(grep -v '^#' .env-dev | xargs)
 fi
 
 envsubst < appsettings.json.template > appsettings.Development.json
