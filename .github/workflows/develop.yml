@@ -16,19 +16,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Use existing appsettings.json
+      - name: Use existing configuration files
         run: |
+          # Копируем appsettings.json
           cp /home/rackot/configs/appsettings.json ./appsettings.json
           cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
+          
+          # Копируем сертификаты
+          cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
+          cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
 
-      - name: Verify appsettings.json
+      - name: Verify files
         run: |
-          if [ -s ./appsettings.json ]; then
-            echo "appsettings.json is present and not empty";
-          else
-            echo "appsettings.json is missing or empty";
-            exit 1;
-          fi
+          echo "Verifying required files..."
+          for file in appsettings.json appsettings.Development.json datagatetgbot.pem datagatetgbot.key; do
+            if [ -s ./$file ]; then
+              echo "$file is present and not empty.";
+            else
+              echo "$file is missing or empty!";
+              exit 1;
+            fi
+          done
 
       - name: Build Docker image
         run: |
@@ -42,4 +50,6 @@ jobs:
             -e ASPNETCORE_ENVIRONMENT=Development \
             -v $PWD/appsettings.json:/app/appsettings.json \
             -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
+            -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
+            -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
             datagatevpn-develop
