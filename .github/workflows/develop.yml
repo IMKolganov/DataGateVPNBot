@@ -29,12 +29,20 @@ jobs:
       with:
         context: .
         file: ./Dockerfile-develop
+        platforms: linux/arm64
         push: false
+        load: true
         tags: datagatevpn-develop
-        
+
+    - name: List Docker images
+      run: docker images
+
     - name: Verify Docker image exists
       run: |
-        docker images | grep datagatevpn-develop || (echo "Image not found!" && exit 1)
+        if ! docker images | grep -q "datagatevpn-develop"; then
+          echo "Image not found!"
+          exit 1
+        fi
 
     - name: Set up SSH
       run: |
@@ -44,8 +52,7 @@ jobs:
         ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
 
     - name: Save Docker image as tar
-      run: |
-        docker save datagatevpn-develop -o datagatevpn_develop.tar
+      run: docker save datagatevpn-develop -o datagatevpn_develop.tar
 
     - name: Deploy application to Raspberry Pi
       run: |
@@ -54,5 +61,5 @@ jobs:
           docker load < /home/pi/datagatevpn_develop.tar
           docker stop datagatevpn || true
           docker rm datagatevpn || true
-          docker-compose -f /path/to/docker-compose.override.yml up -d
+          docker run -d --name datagatevpn -p 5501:88 -e ASPNETCORE_ENVIRONMENT=Development datagatevpn-develop
         EOF
