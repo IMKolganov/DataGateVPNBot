@@ -17,7 +17,10 @@ RUN dotnet build "DataGateVPNBotV1.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Publish the application
 FROM build AS publish
-RUN dotnet publish "DataGateVPNBotV1.csproj" -c $BUILD_CONFIGURATION -o /app/publish --runtime linux-arm64 --self-contained false
+ARG BUILD_CONFIGURATION=Debug
+RUN echo "Using build configuration: $BUILD_CONFIGURATION" && \
+    dotnet publish "DataGateVPNBotV1.csproj" -c $BUILD_CONFIGURATION -o /app/publish --runtime linux-arm64 --self-contained false
+
 
 # Use the ASP.NET runtime for the final image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
