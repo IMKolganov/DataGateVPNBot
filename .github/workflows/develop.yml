@@ -55,9 +55,9 @@ jobs:
 
     - name: Deploy application to Raspberry Pi
       run: |
-        scp datagatevpn_develop.tar pi@${{ secrets.RPI_HOST }}:/home/pi/
-        ssh pi@${{ secrets.RPI_HOST }} << EOF
-          docker load < /home/pi/datagatevpn_develop.tar
+        scp datagatevpn_develop.tar rackot@${{ secrets.RPI_HOST }}:/home/rackot/
+        ssh rackot@${{ secrets.RPI_HOST }} << EOF
+          docker load < /home/rackot/datagatevpn_develop.tar
           docker stop datagatevpn || true
           docker rm datagatevpn || true
           docker run -d --name datagatevpn -p 5501:88 -e ASPNETCORE_ENVIRONMENT=Development datagatevpn-develop
