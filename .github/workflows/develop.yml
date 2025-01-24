@@ -31,6 +31,10 @@ jobs:
         file: ./Dockerfile-develop
         push: false
         tags: datagatevpn-develop
+        
+    - name: Verify Docker image exists
+      run: |
+        docker images | grep datagatevpn-develop || (echo "Image not found!" && exit 1)
 
     - name: Set up SSH
       run: |
