@@ -9,6 +9,8 @@ jobs:
   build-and-deploy:
     runs-on: self-hosted
     name: Build and Deploy on Raspberry Pi
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
 
     steps:
       - name: Checkout repository
