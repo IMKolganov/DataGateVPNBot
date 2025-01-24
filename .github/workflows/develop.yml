@@ -28,7 +28,16 @@ jobs:
         run: |
           echo "Content of appsettings.json:"
           cat ./appsettings.json
-
+          
+      - name: Check appsettings.json
+        run: |
+          if [ -s ./appsettings.json ]; then
+            echo "appsettings.json created and not empty";
+          else
+            echo "appsettings.json is empty or not created";
+            exit 1;
+          fi
+          
       - name: Build Docker image
         run: |
           docker build -t datagatevpn-develop -f Dockerfile-develop .
