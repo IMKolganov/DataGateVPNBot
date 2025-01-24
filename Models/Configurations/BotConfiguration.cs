@@ -7,4 +7,5 @@ public class BotConfiguration
     public string SecretToken { get; init; } = null!;
     public string TelegramWebHook { get; init; } = "TelegramWebHook";
     public string LogFile { get; init; } = "bot.log";
+    public string BotPhotoPath { get; init; } = "/home/rackot/Photo/bot.gif";
 }

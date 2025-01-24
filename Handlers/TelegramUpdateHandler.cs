@@ -18,6 +18,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     private readonly ITelegramSettingsService _telegramSettingsService;
     private readonly ILogger<TelegramUpdateHandler> _logger;
     private readonly string _pathBotLog;
+    private readonly string _pathBotPhoto;
     
     public TelegramUpdateHandler(
         ITelegramBotClient botClient,
@@ -32,6 +33,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
         _telegramSettingsService = telegramSettingsService ?? throw new ArgumentNullException(nameof(telegramSettingsService));
         _pathBotLog = configuration.GetSection("BotConfiguration").Get<BotConfiguration>()?.LogFile ?? throw new InvalidOperationException();
+        _pathBotPhoto = configuration.GetSection("BotConfiguration").Get<BotConfiguration>()?.BotPhotoPath ?? throw new InvalidOperationException();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     

@@ -10,9 +10,8 @@ public class OpenVpnClientService : IOpenVpnClientService
     private readonly IServiceProvider _serviceProvider;
     private readonly IEasyRsaService _easyRsaService;
     private readonly string _pkiPath;
-    private readonly string _outputDir;
-    private readonly string _tlsAuthKey;
-    private readonly string _serverIp;
+    
+    private readonly OpenVpnSettings _openVpnSettings;
     private readonly int _maxAttempts = 10;
 
     public OpenVpnClientService(ILogger<OpenVpnClientService> logger, IConfiguration configuration,
@@ -21,10 +20,17 @@ public class OpenVpnClientService : IOpenVpnClientService
         _logger = logger;
         _serviceProvider = serviceProvider;
         _easyRsaService = easyRsaService;
-        _pkiPath = Path.Combine(configuration["OpenVpn:EasyRsaPath"] ?? throw new InvalidOperationException(), "pki");
-        _outputDir = configuration["OpenVpn:OutputDir"] ?? throw new InvalidOperationException();
-        _tlsAuthKey = configuration["OpenVpn:TlsAuthKey"] ?? throw new InvalidOperationException();
-        _serverIp = configuration["OpenVpn:ServerIp"] ?? throw new InvalidOperationException();
+        _openVpnSettings = configuration.GetSection("OpenVpn").Get<OpenVpnSettings>() 
+                           ?? throw new InvalidOperationException("OpenVpn configuration section is missing.");
+
+        if (string.IsNullOrEmpty(_openVpnSettings.EasyRsaPath) ||
+            string.IsNullOrEmpty(_openVpnSettings.OutputDir) ||
+            string.IsNullOrEmpty(_openVpnSettings.TlsAuthKey) ||
+            string.IsNullOrEmpty(_openVpnSettings.ServerIp))
+        {
+            throw new InvalidOperationException("One or more OpenVpn configuration values are missing.");
+        }
+        _pkiPath = Path.Combine(_openVpnSettings.EasyRsaPath, "pki");//todo:fix
     }
 
     public async Task<GetAllFilesResult> GetAllClientConfigurations(long telegramId)
@@ -36,7 +42,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 
         foreach (var issuedOvpnFile in issuedOvpnFiles)
         {
-            string existingOvpnFilePath = Path.Combine(_outputDir, $"{issuedOvpnFile!.FileName}");
+            string existingOvpnFilePath = Path.Combine(_openVpnSettings.OutputDir, $"{issuedOvpnFile!.FileName}");
             _logger.LogInformation("Checking existence of file: {FilePath}", existingOvpnFilePath);
 
             if (File.Exists(existingOvpnFilePath))
@@ -46,7 +52,7 @@ public class OpenVpnClientService : IOpenVpnClientService
             }
             else
             {
-                _logger.LogWarning("File not found: {FilePath}", existingOvpnFilePath);
+                _logger.LogCritical("File not found: {FilePath}", existingOvpnFilePath);
             }
         }
 
@@ -75,13 +81,14 @@ public class OpenVpnClientService : IOpenVpnClientService
 
             _logger.LogInformation("Step 1.1: Checking if configuration already exists for this client...");
             int attempt = 0;
-            string baseOvpnFileName = $"{telegramId.ToString()}_{attempt}.ovpn";
-            string ovpnFilePath = Path.Combine(_outputDir, baseOvpnFileName);
+            string baseFileName = GetBaseFileNameForCerts(telegramId.ToString(), attempt);
+            string baseOvpnFileName = $"{baseFileName}.ovpn";
+            string ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, baseOvpnFileName);
 
             while (File.Exists(ovpnFilePath) && attempt < _maxAttempts)
             {
                 attempt++;
-                ovpnFilePath = Path.Combine(_outputDir, $"{telegramId.ToString()}_{attempt}.ovpn");
+                ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, $"{baseFileName}.ovpn");
             }
 
             if (attempt >= _maxAttempts)
@@ -91,25 +98,25 @@ public class OpenVpnClientService : IOpenVpnClientService
             }
 
             _logger.LogInformation("Step 2: Building client certificate...");
-            _easyRsaService.BuildCertificate($"{telegramId.ToString()}_{attempt}");
+            _easyRsaService.BuildCertificate($"{baseFileName}");
 
             _logger.LogInformation("Step 3: Defining paths to certificates and keys...");
             string caCertContent = _easyRsaService.ReadPemContent(Path.Combine(_pkiPath, "ca.crt"));
 
-            string crtPath = Path.Combine(_pkiPath, "issued", $"{telegramId.ToString()}_{attempt}.crt");
-            string keyPath = Path.Combine(_pkiPath, "private", $"{telegramId.ToString()}_{attempt}.key");
-            string reqPath = Path.Combine(_pkiPath, "reqs", $"{telegramId.ToString()}_{attempt}.req");
+            string crtPath = Path.Combine(_pkiPath, "issued", $"{baseFileName}.crt");
+            string keyPath = Path.Combine(_pkiPath, "private", $"{baseFileName}.key");
+            string reqPath = Path.Combine(_pkiPath, "reqs", $"{baseFileName}.req");
             string pemPath = Path.Combine(_pkiPath, "certs_by_serial", $"pemFile.pem");//todo: can found in /etc/openvpn/easy-rsa/pki/index.txt
             
             string clientCertContent = _easyRsaService.ReadPemContent(crtPath);
             string clientKeyContent = await File.ReadAllTextAsync(keyPath);
 
             _logger.LogInformation("Step 4: Generating .ovpn configuration file...");
-            string ovpnContent = GenerateOvpnFile(_serverIp, caCertContent,
-                clientCertContent, clientKeyContent, _tlsAuthKey);
+            string ovpnContent = GenerateOvpnFile(_openVpnSettings.ServerIp, caCertContent,
+                clientCertContent, clientKeyContent, _openVpnSettings.TlsAuthKey);
 
             _logger.LogInformation("Step 5: Ensuring output directory exists...");
-            Directory.CreateDirectory(_outputDir);
+            Directory.CreateDirectory(_openVpnSettings.OutputDir);
 
             _logger.LogInformation("Step 6: Writing .ovpn file...");
             await File.WriteAllTextAsync(ovpnFilePath, ovpnContent);
@@ -122,7 +129,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         }
         catch (Exception ex)
         {
-            _logger.LogInformation($"Error: {ex.Message}");
+            _logger.LogError($"Error: {ex.Message}");
             throw;
         }
     }
@@ -163,7 +170,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         {
             throw new Exception($"Failed to revoke certificate: {issuedOvpnFile.CertName}");
         }
-        string ovpnFilePath = Path.Combine(_outputDir, issuedOvpnFile.FileName);
+        string ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, issuedOvpnFile.FileName);
         if (File.Exists(ovpnFilePath))
         {
             File.Delete(ovpnFilePath);
@@ -212,6 +219,13 @@ public class OpenVpnClientService : IOpenVpnClientService
         using var scope = _serviceProvider.CreateScope();
         var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
         await issuedOvpnFileService.SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(id, telegramId, certName);
+    }
+    
+    private string GetBaseFileNameForCerts(string fileName, int attempt)
+    {
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var prefix = environment != "Production" ? $"{environment}_" : string.Empty;
+        return $"{prefix}{fileName}_{attempt}";
     }
 
     private static string GenerateOvpnFile(string serverIp, string caCert, string clientCert, 

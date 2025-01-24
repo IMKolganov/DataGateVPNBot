@@ -17,8 +17,8 @@ public partial class TelegramUpdateHandler
     private async Task<Message> SendPhoto(Message msg)
     {
         await _botClient.SendChatAction(msg.Chat, ChatAction.UploadPhoto);
-        await Task.Delay(2000); // simulate a long task
-        await using var fileStream = new FileStream("Files/bot.gif", FileMode.Open, FileAccess.Read);
+        // await Task.Delay(2000); // simulate a long task
+        await using var fileStream = new FileStream(_pathBotPhoto, FileMode.Open, FileAccess.Read);
         return await _botClient.SendAnimation(msg.Chat, fileStream, caption: "Read https://github.com/IMKolganov/DataGateVPNBot");
     }
 

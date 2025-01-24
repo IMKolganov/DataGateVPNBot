@@ -55,4 +55,5 @@ jobs:
             -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
             -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
             -v /etc/openvpn/clients:/etc/openvpn/clients \
+            -v /home/rackot/Photo/bot.gif \
             datagatevpn-develop

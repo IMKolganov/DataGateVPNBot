@@ -91,7 +91,7 @@ public partial class TelegramUpdateHandler
         }
         catch (Telegram.Bot.Exceptions.RequestException ex)
         {
-            Console.WriteLine($"Telegram API Error: {ex.Message}");
+            _logger.LogError($"Telegram API Error: {ex.Message}");
             throw;
         }
     }

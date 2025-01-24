@@ -29,7 +29,8 @@
   "BotConfiguration": {
     "BotToken": "${BOT_TOKEN}",
     "BotWebhookUrl": "${BOT_WEBHOOK_URL}",
-    "LogFile": "bot.log"
+    "LogFile": "bot.log",
+    "BotPhotoPath": "/home/rackot/Photo/bot.gif"
   },
   "OpenVpn": {
     "ServerIp": "${OPENVPN_SERVER_IP}",
