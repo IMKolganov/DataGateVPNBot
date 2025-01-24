@@ -23,11 +23,16 @@ jobs:
       - name: Create appsettings.Development.json
         run: |
           echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.Development.json
+      
+      - name: Verify appsettings.json
+        run: |
+          echo "Content of appsettings.json:"
+          cat ./appsettings.json
 
       - name: Build Docker image
         run: |
           docker build -t datagatevpn-develop -f Dockerfile-develop .
-
+    
       - name: Deploy Docker container
         run: |
           docker stop datagatevpn_develop_container || true
@@ -37,3 +42,9 @@ jobs:
             -v $PWD/appsettings.json:/app/appsettings.json \
             -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
             datagatevpn-develop
+          
+      - name: Verify container configuration
+        run: |
+          docker exec datagatevpn_develop_container printenv ASPNETCORE_ENVIRONMENT
+          docker exec datagatevpn_develop_container cat /app/appsettings.json
+          docker exec datagatevpn_develop_container cat /app/appsettings.Development.json
