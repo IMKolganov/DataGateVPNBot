@@ -12,6 +12,14 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      
+    - name: Create appsettings.json
+      run: |
+        echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.json
+
+    - name: Create appsettings.Development.json
+      run: |
+        echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.Development.json
 
     - name: Update QEMU
       run: |
