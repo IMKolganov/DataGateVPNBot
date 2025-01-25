@@ -1,5 +1,5 @@
+using DataGateVPNBotV1.Models.Configurations;
 using DataGateVPNBotV1.Models.Enums;
-using DataGateVPNBotV1.Services;
 using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -18,6 +18,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     private readonly ITelegramSettingsService _telegramSettingsService;
     private readonly ILogger<TelegramUpdateHandler> _logger;
     private readonly string _pathBotLog;
+    private readonly string _pathBotPhoto;
     
     public TelegramUpdateHandler(
         ITelegramBotClient botClient,
@@ -31,7 +32,8 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
         _telegramSettingsService = telegramSettingsService ?? throw new ArgumentNullException(nameof(telegramSettingsService));
-        _pathBotLog = configuration["BotConfiguration:LogFile"] ?? throw new InvalidOperationException();
+        _pathBotLog = configuration.GetSection("BotConfiguration").Get<BotConfiguration>()?.LogFile ?? throw new InvalidOperationException();
+        _pathBotPhoto = configuration.GetSection("BotConfiguration").Get<BotConfiguration>()?.BotPhotoPath ?? throw new InvalidOperationException();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
     
@@ -87,7 +89,15 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         var commandParts = messageText.Split(' ', 2);
         var command = commandParts[0].ToLower();
         // var argument = commandParts.Length > 1 ? commandParts[1] : null;
-        if(!await IsExistLocalizationSettings(msg.From!.Id)) await SelectLanguage(msg);
+        if (!await IsExistLocalizationSettings(msg.From!.Id))
+        {
+            _logger.LogInformation("Localization settings not found for user with TelegramId: {TelegramId}. Calling SelectLanguage.", msg.From.Id);
+            await SelectLanguage(msg);
+        }
+        else
+        {
+            _logger.LogInformation("Localization settings found for user with TelegramId: {TelegramId}.", msg.From.Id);
+        }
         await RegisterNewUserAsync(msg);//for something wrong when "/start" don't work. This line usually is not a necessary 
 
         return await (command switch
@@ -225,8 +235,13 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     
     private async Task<bool> IsExistLocalizationSettings(long telegramId)
     {
+        _logger.LogInformation("Checking localization settings for TelegramId: {TelegramId}.", telegramId);
         using var scope = _serviceProvider.CreateScope();
         var incomingMessageLogService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        return await incomingMessageLogService.IsExistUserLanguageAsync(telegramId);
+
+        var result = await incomingMessageLogService.IsExistUserLanguageAsync(telegramId);
+        _logger.LogInformation("Result of IsExistUserLanguageAsync for TelegramId {TelegramId}: {Result}", telegramId, result);
+
+        return result;
     }
 }

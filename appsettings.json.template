@@ -29,13 +29,16 @@
   "BotConfiguration": {
     "BotToken": "${BOT_TOKEN}",
     "BotWebhookUrl": "${BOT_WEBHOOK_URL}",
-    "LogFile": "bot.log"
+    "LogFile": "bot.log",
+    "BotPhotoPath": "/home/rackot/Photo/bot.gif"
   },
   "OpenVpn": {
     "ServerIp": "${OPENVPN_SERVER_IP}",
     "EasyRsaPath": "/etc/openvpn/easy-rsa",
     "OutputDir": "/etc/openvpn/clients",
-    "TlsAuthKey": "/etc/openvpn/easy-rsa/pki/ta.key"
+    "TlsAuthKey": "/etc/openvpn/easy-rsa/pki/ta.key",
+    "CrlPkiPath": "/etc/openvpn/easy-rsa/pki/crl.pem",
+    "CrlOpenvpnPath": "/etc/openvpn/crl.pem"
   },
   "AllowedHosts": "*"
 }

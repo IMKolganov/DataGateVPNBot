@@ -3,8 +3,8 @@ services:
   data-gate-vpn-bot-dev:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile-develop
     ports:
-      - "5060:88"
+      - "5501:88"
     environment:
       ASPNETCORE_ENVIRONMENT: Development

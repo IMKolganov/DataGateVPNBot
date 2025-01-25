@@ -44,7 +44,7 @@ public partial class TelegramUpdateHandler
 
         using var scope = _serviceProvider.CreateScope();
         var localizationService = scope.ServiceProvider.GetRequiredService<ILocalizationService>();
-        await localizationService.SetUserLanguageAsync(msg.From!.Id, language.Value);
+        await localizationService.SetUserLanguageAsync(msg.Chat.Id, language.Value);
         
         Message messageResponse = await _botClient.SendMessage(
             chatId: msg.Chat.Id,

@@ -7,49 +7,53 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    name: Build and Deploy on Raspberry Pi
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Create appsettings.json
-      run: |
-        echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.json
+      - name: Use existing configuration files
+        run: |
+          # Копируем appsettings.json
+          cp /home/rackot/configs/appsettings.json ./appsettings.json
+          cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
+          
+          # Копируем сертификаты
+          cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
+          cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
 
-    - name: Create appsettings.Development.json
-      run: |
-        echo "${{ secrets.APPSETTINGS_DEV_JSON }}" > ./appsettings.Development.json
+      - name: Verify files
+        run: |
+          echo "Verifying required files..."
+          for file in appsettings.json appsettings.Development.json datagatetgbot.pem datagatetgbot.key; do
+            if [ -s ./$file ]; then
+              echo "$file is present and not empty.";
+            else
+              echo "$file is missing or empty!";
+              exit 1;
+            fi
+          done
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Build Docker image
+        run: |
+          docker build -t datagatevpn-develop -f Dockerfile-develop .
 
-    - name: Build Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: ./Dockerfile.dev
-        push: false
-        tags: datagatevpn:develop
-        platforms: linux/arm64
-
-    - name: Set up SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
-
-    - name: Save Docker image as tar
-      run: |
-        docker save datagatevpn:develop -o datagatevpn_develop.tar
-
-    - name: Deploy application to Raspberry Pi
-      run: |
-        scp datagatevpn_develop.tar pi@${{ secrets.RPI_HOST }}:/home/pi/
-        ssh pi@${{ secrets.RPI_HOST }} << EOF
-          docker load < /home/pi/datagatevpn_develop.tar
-          docker stop datagatevpn || true
-          docker rm datagatevpn || true
-          docker-compose -f /path/to/docker-compose.override.yml up -d
-        EOF
+      - name: Deploy Docker container
+        run: |
+          docker stop datagatevpn_develop_container || true
+          docker rm datagatevpn_develop_container || true
+          docker run -d --name datagatevpn_develop_container \
+            -p 88:88 \
+            -e ASPNETCORE_ENVIRONMENT=Development \
+            -v $PWD/appsettings.json:/app/appsettings.json \
+            -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
+            -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
+            -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
+            -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
+            -v /etc/openvpn/clients:/etc/openvpn/clients \
+            -v /home/rackot/Photo/bot.gif \
+            datagatevpn-develop
