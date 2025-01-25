@@ -7,16 +7,13 @@ namespace DataGateVPNBotV1.Services;
 public class EasyRsaService : IEasyRsaService
 {
     private readonly ILogger<EasyRsaService> _logger;
-    private readonly IServiceProvider _serviceProvider;
     private readonly string _pkiPath;
     private readonly OpenVpnSettings _openVpnSettings;
 
-    public EasyRsaService(ILogger<EasyRsaService> logger, IConfiguration configuration, IServiceProvider serviceProvider)
+    public EasyRsaService(ILogger<EasyRsaService> logger, IConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
-        // Получаем настройки OpenVpn
         var openVpnSection = configuration.GetSection("OpenVpn");
         if (!openVpnSection.Exists())
         {
@@ -25,15 +22,13 @@ public class EasyRsaService : IEasyRsaService
 
         _openVpnSettings = openVpnSection.Get<OpenVpnSettings>()
                            ?? throw new InvalidOperationException("Failed to load OpenVpnSettings from configuration.");
-
-        // Логирование значений для отладки
+        
         _logger.LogInformation("Loaded OpenVpnSettings: EasyRsaPath: {EasyRsaPath}, OutputDir: {OutputDir}, TlsAuthKey: {TlsAuthKey}, ServerIp: {ServerIp}", 
             _openVpnSettings.EasyRsaPath, 
             _openVpnSettings.OutputDir, 
             _openVpnSettings.TlsAuthKey, 
             _openVpnSettings.ServerIp);
 
-        // Разбивка исключений для уточнения проблемы
         if (string.IsNullOrEmpty(_openVpnSettings.EasyRsaPath))
         {
             throw new InvalidOperationException("OpenVpnSettings: EasyRsaPath is missing or empty.");
@@ -54,7 +49,6 @@ public class EasyRsaService : IEasyRsaService
             throw new InvalidOperationException("OpenVpnSettings: ServerIp is missing or empty.");
         }
 
-        // Вычисление дополнительных путей
         _pkiPath = Path.Combine(_openVpnSettings.EasyRsaPath, "pki");
         _logger.LogInformation("PKI path initialized to: {PkiPath}", _pkiPath);
     }
