@@ -8,7 +8,7 @@ TLS_AUTH_KEY="/etc/openvpn/easy-rsa/pki/ta.key"
 CRL_PKI_PATH="/etc/openvpn/easy-rsa/pki/crl.pem"
 CRL_OPENVPN_PATH="/etc/openvpn/crl.pem"
 CA_CERT_PATH="/etc/openvpn/easy-rsa/pki/ca.crt"
-CURRENT_USER=$(whoami)  # Get the current user
+CURRENT_USER=${SUDO_USER:-$(whoami)}  # Get the user who called sudo
 
 # Files that require specific permissions
 FILES_TO_CONFIGURE=(
@@ -35,24 +35,28 @@ set_permissions() {
   local gid=$3
 
   if [ -e "$path" ]; then
-    echo "Setting permissions for $path"
+    echo "Setting ownership and permissions for $path"
     sudo chown "$uid:$gid" "$path"
     sudo chmod 664 "$path"
+    sudo setfacl -m u:"$CURRENT_USER":rw "$path"  # Add access for the current user
   else
     echo "Path $path does not exist. Skipping."
   fi
 }
 
-# Ensure both the current user and Docker containers have access to directories
-ensure_user_permissions() {
+# Function to ensure directories are accessible
+ensure_directory_permissions() {
   local path=$1
   local uid=$2
   local gid=$3
 
-  if [ -e "$path" ]; then
-    echo "Ensuring user and container permissions for $path"
-    sudo setfacl -m u:"$CURRENT_USER":rw "$path"
-    sudo setfacl -m u:"$uid":rw "$path"
+  if [ -d "$path" ]; then
+    echo "Setting ownership and permissions for $path"
+    sudo chown -R "$uid:$gid" "$path"
+    sudo chmod -R 775 "$path"
+    sudo setfacl -R -m u:"$CURRENT_USER":rwx "$path"  # Add recursive access for the current user
+  else
+    echo "Directory $path does not exist. Skipping."
   fi
 }
 
@@ -70,34 +74,12 @@ for container_name in "${CONTAINER_NAMES[@]}"; do
 
     # Set permissions for essential files
     for file in "${FILES_TO_CONFIGURE[@]}"; do
-      if [ -e "$file" ]; then
-        echo "Setting ownership and permissions for $file"
-        sudo chown "$container_uid:$container_gid" "$file"
-        sudo chmod 664 "$file"
-        ensure_user_permissions "$file" "$container_uid" "$container_gid"
-      else
-        echo "File $file does not exist. Skipping."
-      fi
+      set_permissions "$file" "$container_uid" "$container_gid"
     done
 
     # Set permissions for directories
-    if [ -d "$EASY_RSA_PATH" ]; then
-      echo "Setting ownership and permissions for $EASY_RSA_PATH"
-      sudo chown -R "$container_uid:$container_gid" "$EASY_RSA_PATH"
-      sudo chmod -R 775 "$EASY_RSA_PATH"
-      ensure_user_permissions "$EASY_RSA_PATH" "$container_uid" "$container_gid"
-    else
-      echo "Directory $EASY_RSA_PATH does not exist. Skipping."
-    fi
-
-    if [ -d "$OUTPUT_DIR" ]; then
-      echo "Setting ownership and permissions for $OUTPUT_DIR"
-      sudo chown -R "$container_uid:$container_gid" "$OUTPUT_DIR"
-      sudo chmod -R 775 "$OUTPUT_DIR"
-      ensure_user_permissions "$OUTPUT_DIR" "$container_uid" "$container_gid"
-    else
-      echo "Directory $OUTPUT_DIR does not exist. Skipping."
-    fi
+    ensure_directory_permissions "$EASY_RSA_PATH" "$container_uid" "$container_gid"
+    ensure_directory_permissions "$OUTPUT_DIR" "$container_uid" "$container_gid"
   else
     echo "Container $container_name not found. Skipping."
   fi
