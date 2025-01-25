@@ -47,13 +47,14 @@ jobs:
           docker stop datagatevpn_main_container || true
           docker rm datagatevpn_main_container || true
           docker run -d --name datagatevpn_main_container \
-            -p 8443:8443 \
-            -e ASPNETCORE_ENVIRONMENT=Production \
-            -v $PWD/appsettings.json:/app/appsettings.json \
-            -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
-            -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
-            -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
-            -v $PWD/bot.gif:/app/bot.gif \
-            -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
-            -v /etc/openvpn/clients:/etc/openvpn/clients \
-            datagatevpn-main
+          -p 8443:8443 \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -v $PWD/appsettings.json:/app/appsettings.json \
+          -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
+          -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
+          -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
+          -v $PWD/bot.gif:/app/bot.gif \
+          -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
+          -v /etc/openvpn/clients:/etc/openvpn/clients \
+          -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
+          datagatevpn-main
