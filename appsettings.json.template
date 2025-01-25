@@ -1,0 +1,44 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASS}"
+  },
+  "DataBaseSettings": {
+    "DefaultSchema": "${DB_SCHEMA}",
+    "MigrationTable": "${DB_MIGRATION_TABLE}"
+  },
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "${HOSTING_URL_HTTP}:${HOSTING_HTTP_PORT}"
+      },
+      "Https": {
+        "Url": "${HOSTING_URL_HTTPS}:${HOSTING_HTTPS_PORT}",
+        "Certificate": {
+          "Path": "${HOSTING_CERT_PEM}",
+          "KeyPath": "${HOSTING_CERT_KEY}"
+        }
+      }
+    }
+  },
+  "BotConfiguration": {
+    "BotToken": "${BOT_TOKEN}",
+    "BotWebhookUrl": "${BOT_WEBHOOK_URL}",
+    "LogFile": "bot.log",
+    "BotPhotoPath": "/home/rackot/Photo/bot.gif"
+  },
+  "OpenVpn": {
+    "ServerIp": "${OPENVPN_SERVER_IP}",
+    "EasyRsaPath": "/etc/openvpn/easy-rsa",
+    "OutputDir": "/etc/openvpn/clients",
+    "TlsAuthKey": "/etc/openvpn/easy-rsa/pki/ta.key",
+    "CrlPkiPath": "/etc/openvpn/easy-rsa/pki/crl.pem",
+    "CrlOpenvpnPath": "/etc/openvpn/crl.pem"
+  },
+  "AllowedHosts": "*"
+}

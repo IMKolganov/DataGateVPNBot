@@ -6,20 +6,26 @@ namespace DataGateVPNBotV1.Contexts;
 
 public class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly IConfiguration _configuration;
+    private readonly string _defaultSchema;
+    
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IConfiguration configuration)
         : base(options)
     {
+        _configuration = configuration;
+        _defaultSchema = configuration["DataBaseSettings:DefaultSchema"] ?? throw new InvalidOperationException();
     }
-
+    
     public DbSet<TelegramUser> TelegramUsers { get; set; } = null!;
     public DbSet<IssuedOvpnFile> IssuedOvpnFiles { get; set; } = null!;
     public DbSet<UserLanguagePreference> UserLanguagePreferences { get; set; } = null!;
     public DbSet<LocalizationText> LocalizationTexts { get; set; } = null!;
     public DbSet<IncomingMessageLog> IncomingMessageLog { get; set; } = null!;
+    public DbSet<OpenVpnUserStatistic> OpenVpnUserStatistics { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("xgb_rackotpg");
+        modelBuilder.HasDefaultSchema(_defaultSchema);
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<TelegramUser>(entity =>
         {
@@ -83,6 +89,28 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Text)
                 .IsRequired();
         });
+        modelBuilder.Entity<OpenVpnUserStatistic>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TelegramId);
+            entity.Property(e => e.CommonName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.RealAddress)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.BytesReceived)
+                .IsRequired();
+
+            entity.Property(e => e.BytesSent)
+                .IsRequired();
+
+            entity.Property(e => e.ConnectedSince)
+                .IsRequired();
+        });
+        
         modelBuilder.Entity<LocalizationText>().HasData(
             // Bot menu
             // /register - register to use the VPN\n
@@ -165,4 +193,6 @@ public class ApplicationDbContext : DbContext
             new LocalizationText { Id = 57, Key = "WhatIsRaspberryPi", Language = Language.Greek, Text = "Τι είναι το Raspberry Pi;" }
         );
     }
+    
+
 }
