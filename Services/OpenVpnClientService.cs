@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using DataGateVPNBotV1.Models;
+﻿using DataGateVPNBotV1.Models;
 using DataGateVPNBotV1.Models.Helpers;
 using DataGateVPNBotV1.Services.Interfaces;
 
@@ -160,7 +159,7 @@ public class OpenVpnClientService : IOpenVpnClientService
     
         foreach (var issuedOvpnFile in issuedOvpnFiles)
         {
-            if (issuedOvpnFile != null) await RevokeAndDeleteFile(issuedOvpnFile, telegramId);
+            await RevokeAndDeleteFile(issuedOvpnFile, telegramId);
         }
     
         _logger.LogInformation("Completed deletion process for client with Telegram ID: {TelegramId}", telegramId);

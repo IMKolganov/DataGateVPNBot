@@ -1,14 +1,15 @@
-using DataGateVPNBotV1.Contexts;
+﻿using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
+using DataGateVPNBotV1.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace DataGateVPNBotV1.Services;
 
-public class TelegramRegistrationService : ITelegramRegistrationService
+public class TelegramUsersService : ITelegramUsersService
 {
     private readonly ApplicationDbContext _dbContext;
 
-    public TelegramRegistrationService(ApplicationDbContext dbContext)
+    public TelegramUsersService(ApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
     }

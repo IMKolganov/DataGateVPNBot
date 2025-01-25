@@ -1,7 +1,5 @@
-using DataGateVPNBotV1.Models;
-using DataGateVPNBotV1.Services;
+using DataGateVPNBotV1.Handlers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -11,11 +9,8 @@ namespace DataGateVPNBotV1.Controllers;
 [Route("[controller]")]
 public class BotController : ControllerBase
 {
-    private readonly IOptions<BotConfiguration> _config;
-    
-    public BotController(IOptions<BotConfiguration> config)
+    public BotController()
     {
-        _config = config;
     }
 
     [HttpGet(Name = "healthcheck")]
@@ -26,17 +21,15 @@ public class BotController : ControllerBase
     
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] Update update, [FromServices] ITelegramBotClient bot, 
-        [FromServices] UpdateHandler handleUpdateService, CancellationToken ct)
+        [FromServices] TelegramUpdateHandler handleTelegramUpdateService, CancellationToken ct)
     {
-        // if (Request.Headers["X-Telegram-Bot-Api-Secret-Token"] != _config.Value.SecretToken)
-        //     return Forbid();
         try
         {
-            await handleUpdateService.HandleUpdateAsync(bot, update, ct);
+            await handleTelegramUpdateService.HandleUpdateAsync(bot, update, ct);
         }
         catch (Exception exception)
         {
-            await handleUpdateService.HandleErrorAsync(bot, exception, Telegram.Bot.Polling.HandleErrorSource.HandleUpdateError, ct);
+            await handleTelegramUpdateService.HandleErrorAsync(bot, exception, Telegram.Bot.Polling.HandleErrorSource.HandleUpdateError, ct);
         }
         return Ok();
     }
