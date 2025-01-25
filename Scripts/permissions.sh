@@ -8,7 +8,7 @@ TLS_AUTH_KEY="/etc/openvpn/easy-rsa/pki/ta.key"
 CRL_PKI_PATH="/etc/openvpn/easy-rsa/pki/crl.pem"
 CRL_OPENVPN_PATH="/etc/openvpn/crl.pem"
 CA_CERT_PATH="/etc/openvpn/easy-rsa/pki/ca.crt"
-CURRENT_USER=${SUDO_USER:-$(whoami)}  # Get the user who called sudo
+OPENVPN_GROUP="openvpn"
 
 # Files that require specific permissions
 FILES_TO_CONFIGURE=(
@@ -35,28 +35,21 @@ set_permissions() {
   local gid=$3
 
   if [ -e "$path" ]; then
-    echo "Setting ownership and permissions for $path"
+    echo "Setting permissions for $path"
     sudo chown "$uid:$gid" "$path"
     sudo chmod 664 "$path"
-    sudo setfacl -m u:"$CURRENT_USER":rw "$path"  # Add access for the current user
   else
     echo "Path $path does not exist. Skipping."
   fi
 }
 
-# Function to ensure directories are accessible
-ensure_directory_permissions() {
+# Ensure OpenVPN group has access to directories
+ensure_group_permissions() {
   local path=$1
-  local uid=$2
-  local gid=$3
-
-  if [ -d "$path" ]; then
-    echo "Setting ownership and permissions for $path"
-    sudo chown -R "$uid:$gid" "$path"
-    sudo chmod -R 775 "$path"
-    sudo setfacl -R -m u:"$CURRENT_USER":rwx "$path"  # Add recursive access for the current user
-  else
-    echo "Directory $path does not exist. Skipping."
+  if [ -e "$path" ]; then
+    echo "Ensuring group permissions for $path"
+    sudo chown :"$OPENVPN_GROUP" "$path"
+    sudo chmod g+rw "$path"
   fi
 }
 
@@ -74,15 +67,37 @@ for container_name in "${CONTAINER_NAMES[@]}"; do
 
     # Set permissions for essential files
     for file in "${FILES_TO_CONFIGURE[@]}"; do
-      set_permissions "$file" "$container_uid" "$container_gid"
+      if [ -e "$file" ]; then
+        echo "Setting ownership and permissions for $file"
+        sudo chown "$container_uid:$OPENVPN_GROUP" "$file"
+        sudo chmod 664 "$file"
+      else
+        echo "File $file does not exist. Skipping."
+      fi
     done
 
     # Set permissions for directories
-    ensure_directory_permissions "$EASY_RSA_PATH" "$container_uid" "$container_gid"
-    ensure_directory_permissions "$OUTPUT_DIR" "$container_uid" "$container_gid"
+    if [ -d "$EASY_RSA_PATH" ]; then
+      echo "Setting ownership and permissions for $EASY_RSA_PATH"
+      sudo chown -R "$container_uid:$OPENVPN_GROUP" "$EASY_RSA_PATH"
+      sudo chmod -R 775 "$EASY_RSA_PATH"
+    else
+      echo "Directory $EASY_RSA_PATH does not exist. Skipping."
+    fi
+
+    if [ -d "$OUTPUT_DIR" ]; then
+      echo "Setting ownership and permissions for $OUTPUT_DIR"
+      sudo chown -R "$container_uid:$OPENVPN_GROUP" "$OUTPUT_DIR"
+      sudo chmod -R 775 "$OUTPUT_DIR"
+    else
+      echo "Directory $OUTPUT_DIR does not exist. Skipping."
+    fi
   else
     echo "Container $container_name not found. Skipping."
   fi
 done
+
+# Ensure OpenVPN group has access to the CRL file
+ensure_group_permissions "$CRL_OPENVPN_PATH"
 
 echo "All permissions have been set."
