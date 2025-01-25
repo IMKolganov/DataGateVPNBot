@@ -1,4 +1,4 @@
-﻿# Use the ARM64 SDK image for building the app
+# Use the ARM64 SDK image for building the app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 # Set the working directory

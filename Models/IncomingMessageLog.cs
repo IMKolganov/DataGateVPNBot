@@ -1,4 +1,6 @@
-﻿namespace DataGateVPNBotV1.Models;
+﻿using Telegram.Bot.Types.Enums;
+
+namespace DataGateVPNBotV1.Models;
 
 public class IncomingMessageLog
 {
