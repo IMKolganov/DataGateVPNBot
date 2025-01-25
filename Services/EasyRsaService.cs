@@ -11,21 +11,54 @@ public class EasyRsaService : IEasyRsaService
     private readonly string _pkiPath;
     private readonly OpenVpnSettings _openVpnSettings;
 
-    public EasyRsaService(ILogger<EasyRsaService> logger, IConfiguration configuration,
-        IServiceProvider serviceProvider, OpenVpnSettings openVpnSettings)
+    public EasyRsaService(ILogger<EasyRsaService> logger, IConfiguration configuration, IServiceProvider serviceProvider)
     {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-        _openVpnSettings = openVpnSettings;
-        if (string.IsNullOrEmpty(_openVpnSettings.EasyRsaPath) ||
-            string.IsNullOrEmpty(_openVpnSettings.OutputDir) ||
-            string.IsNullOrEmpty(_openVpnSettings.TlsAuthKey) ||
-            string.IsNullOrEmpty(_openVpnSettings.ServerIp))
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+
+        // Получаем настройки OpenVpn
+        var openVpnSection = configuration.GetSection("OpenVpn");
+        if (!openVpnSection.Exists())
         {
-            throw new InvalidOperationException("One or more OpenVpn configuration values are missing.");
+            throw new InvalidOperationException("OpenVpn section is missing in the configuration.");
         }
-        _pkiPath = Path.Combine(_openVpnSettings.EasyRsaPath, "pki");//todo:fix
+
+        _openVpnSettings = openVpnSection.Get<OpenVpnSettings>()
+                           ?? throw new InvalidOperationException("Failed to load OpenVpnSettings from configuration.");
+
+        // Логирование значений для отладки
+        _logger.LogInformation("Loaded OpenVpnSettings: EasyRsaPath: {EasyRsaPath}, OutputDir: {OutputDir}, TlsAuthKey: {TlsAuthKey}, ServerIp: {ServerIp}", 
+            _openVpnSettings.EasyRsaPath, 
+            _openVpnSettings.OutputDir, 
+            _openVpnSettings.TlsAuthKey, 
+            _openVpnSettings.ServerIp);
+
+        // Разбивка исключений для уточнения проблемы
+        if (string.IsNullOrEmpty(_openVpnSettings.EasyRsaPath))
+        {
+            throw new InvalidOperationException("OpenVpnSettings: EasyRsaPath is missing or empty.");
+        }
+
+        if (string.IsNullOrEmpty(_openVpnSettings.OutputDir))
+        {
+            throw new InvalidOperationException("OpenVpnSettings: OutputDir is missing or empty.");
+        }
+
+        if (string.IsNullOrEmpty(_openVpnSettings.TlsAuthKey))
+        {
+            throw new InvalidOperationException("OpenVpnSettings: TlsAuthKey is missing or empty.");
+        }
+
+        if (string.IsNullOrEmpty(_openVpnSettings.ServerIp))
+        {
+            throw new InvalidOperationException("OpenVpnSettings: ServerIp is missing or empty.");
+        }
+
+        // Вычисление дополнительных путей
+        _pkiPath = Path.Combine(_openVpnSettings.EasyRsaPath, "pki");
+        _logger.LogInformation("PKI path initialized to: {PkiPath}", _pkiPath);
     }
+
 
     public void InstallEasyRsa()
     {
