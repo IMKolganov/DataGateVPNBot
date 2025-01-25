@@ -18,18 +18,18 @@ jobs:
 
       - name: Use existing configuration files
         run: |
-          # Копируем appsettings.json
           cp /home/rackot/configs/appsettings.json ./appsettings.json
           cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
           
-          # Копируем сертификаты
           cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
           cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
+          
+          cp /home/rackot/Photo/bot.gif ./bot.gif
 
       - name: Verify files
         run: |
           echo "Verifying required files..."
-          for file in appsettings.json appsettings.Development.json datagatetgbot.pem datagatetgbot.key; do
+          for file in appsettings.json appsettings.Development.json datagatetgbot.pem datagatetgbot.key bot.gif; do
             if [ -s ./$file ]; then
               echo "$file is present and not empty.";
             else
@@ -53,7 +53,7 @@ jobs:
             -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
             -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
             -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
+            -v $PWD/bot.gif:/app/bot.gif \
             -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
             -v /etc/openvpn/clients:/etc/openvpn/clients \
-            -v /home/rackot/Photo/bot.gif \
             datagatevpn-develop
