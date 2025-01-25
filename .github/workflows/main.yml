@@ -24,25 +24,19 @@ jobs:
     - name: Build application
       run: dotnet publish ./DataGateVPNBotV1.csproj -c Release -r linux-arm64 --self-contained true -o ./publish
 
-    - name: Set up SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
-
-    - name: Deploy application to Raspberry Pi
-      run: |
-        rsync -av --exclude 'appsettings.json' --exclude 'appsettings.Development.json' ./publish/ ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/home/${{ secrets.RPI_USER }}/DataGateVPNBot/
-        ssh ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} << 'EOF'
-          cd /home/${{ secrets.RPI_USER }}/DataGateVPNBot/
-          chmod +x DataGateVPNBotV1
-          pkill -f DataGateVPNBotV1 || true
-          rm -f bot.log
-          nohup ./DataGateVPNBotV1 >> bot.log 2>&1 &
-          sleep 10
-          echo "=== Application Status ==="
-          ps aux | grep DataGateVPNBotV1 | grep -v grep || echo "Application is not running"
-          echo "=== Application Logs ==="
-          cat bot.log || echo "No logs available"
-        EOF
+      - name: Deploy Docker container
+        run: |
+          docker stop datagatevpn_main_container || true
+          docker rm datagatevpn_main_container || true
+          docker run -d --name datagatevpn_main_container \
+          -p 8443:8443 \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -v $PWD/appsettings.json:/app/appsettings.json \
+          -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
+          -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
+          -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
+          -v $PWD/bot.gif:/app/bot.gif \
+          -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
+          -v /etc/openvpn/clients:/etc/openvpn/clients \
+          -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
+          datagatevpn-main
