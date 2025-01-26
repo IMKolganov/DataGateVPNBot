@@ -181,9 +181,13 @@ public class OpenVpnClientService : IOpenVpnClientService
     private async Task RevokeCert(IssuedOvpnFile issuedOvpnFile, long telegramId)
     {
         string message = _easyRsaService.RevokeCertificate(issuedOvpnFile.CertName);
-        MoveRevokedOvpnFile(issuedOvpnFile);
+        _logger.LogInformation("RevokeCertificate result: {Message} for CertName: {CertName}", message, issuedOvpnFile.CertName);
         string revokedFilePath = MoveRevokedOvpnFile(issuedOvpnFile);
+        _logger.LogInformation("Successfully moved revoked .ovpn file to: {RevokedFilePath}", revokedFilePath);
+
         await SetIsRevokeIssuedOvpnFile(issuedOvpnFile.Id, telegramId, revokedFilePath, issuedOvpnFile.CertName, message);
+        _logger.LogInformation("Updated database for revoked certificate: {CertName}, Telegram ID: {TelegramId}", issuedOvpnFile.CertName, telegramId);
+
     }
 
     private string MoveRevokedOvpnFile(IssuedOvpnFile issuedOvpnFile)

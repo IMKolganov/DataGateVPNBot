@@ -116,7 +116,8 @@ public class EasyRsaService : IEasyRsaService
                     }
                     else
                     {
-                        throw new Exception($"Failed to revoke certificate. Unknown error: {clientName}");
+                        throw new Exception($"Failed to revoke certificate. Unknown error: {clientName}, " +
+                                            $"ExitCode: {revokeResult.ExitCode}, Output: {revokeResult.Output}");
                     }
                     break;
 
