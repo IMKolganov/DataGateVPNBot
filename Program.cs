@@ -8,7 +8,6 @@ builder.Services.ConfigureServices();
 builder.Services.DataBaseServices(builder.Configuration);
 
 builder.Host.ConfigureSerilog(builder.Configuration);
-builder.ConfigureWebHost();
 
 builder.ConfigureWebHost();
 
