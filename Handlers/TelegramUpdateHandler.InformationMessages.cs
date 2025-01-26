@@ -30,13 +30,13 @@ public partial class TelegramUpdateHandler
                 InlineKeyboardButton.WithUrl("🍎 iPhone", "https://apps.apple.com/app/openvpn-connect/id590379981")
             ],
             [
-                InlineKeyboardButton.WithUrl(await GetLocalizationTextAsync("AboutOpenVPN", msg.From!.Id), "https://openvpn.net/faq/what-is-openvpn/")
+                InlineKeyboardButton.WithUrl(await GetLocalizationTextAsync("AboutOpenVPN", msg.Chat.Id), "https://openvpn.net/faq/what-is-openvpn/")
             ]
         ]);
 
         return await _botClient.SendMessage(
             msg.Chat,
-            await GetLocalizationTextAsync("ChoosePlatform", msg.From!.Id),
+            await GetLocalizationTextAsync("ChoosePlatform", msg.Chat.Id),
             replyMarkup: inlineMarkup
         );
     }
