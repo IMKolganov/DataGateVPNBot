@@ -30,5 +30,7 @@ public static class SerilogConfiguration
             .CreateLogger();
 
         host.UseSerilog();
+        Log.Information("Application has started");
+        Log.Error("This is a test error log");
     }
 }
