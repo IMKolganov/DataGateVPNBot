@@ -83,7 +83,8 @@ public class EasyRsaService : IEasyRsaService
 
     public string RevokeCertificate(string clientName)
     {
-        string certPath = Path.Combine(_pkiPath, "issued", $"{clientName}.crt");
+        var resultmessage = string.Empty;
+        var certPath = Path.Combine(_pkiPath, "issued", $"{clientName}.crt");
         if (!File.Exists(certPath))
         {
             _logger.LogError($"Certificate file not found: {certPath}");
@@ -102,18 +103,21 @@ public class EasyRsaService : IEasyRsaService
             switch (revokeResult.ExitCode)
             {
                 case 0:
-                    _logger.LogInformation("Certificate revoked successfully: {ClientName}", clientName);
+                    resultmessage += $"Certificate revoked successfully: {clientName}";
+                    _logger.LogInformation($"Certificate revoked successfully: {clientName}");
                     break;
 
                 case 1:
                     if (revokeResult.Output.Contains("ERROR:Already revoked") 
                         || revokeResult.Error.Contains("ERROR:Already revoked"))
                     {
-                        _logger.LogWarning("Certificate is already revoked: {ClientName}", clientName);
+                        resultmessage += $"Certificate is already revoked: {clientName}";
+                        _logger.LogWarning($"Certificate is already revoked: {clientName}");
                     }
                     else if (revokeResult.Output.Contains("ERROR: Certificate not found") 
                              || revokeResult.Output.Contains("ERROR: Certificate not found"))
                     {
+                        resultmessage += $"Certificate not found: {clientName}";
                         _logger.LogWarning($"Certificate not found: {clientName}");
                     }
                     else
@@ -164,10 +168,12 @@ public class EasyRsaService : IEasyRsaService
 
             if (chmodResult.ExitCode != 0)
             {
+                resultmessage += $"Failed to set permissions on CRL file: {chmodResult.Error}";
                 _logger.LogWarning($"Failed to set permissions on CRL file: {chmodResult.Error}");
             }
             else
             {
+                resultmessage += "CRL permissions updated successfully.";
                 _logger.LogInformation("CRL permissions updated successfully.");
             }
             
@@ -176,10 +182,12 @@ public class EasyRsaService : IEasyRsaService
 
             if (chownResult.ExitCode != 0)
             {
+                resultmessage += $"Failed to change owner of CRL file: {chownResult.Error}";
                 _logger.LogWarning($"Failed to change owner of CRL file: {chownResult.Error}");
             }
             else
             {
+                resultmessage += "CRL ownership updated successfully.";
                 _logger.LogInformation("CRL ownership updated successfully.");
             }
         }
@@ -191,7 +199,7 @@ public class EasyRsaService : IEasyRsaService
 
 
         _logger.LogInformation("Certificate successfully revoked, CRL updated and deployed.");
-        return "Certificate successfully revoked, CRL updated and deployed.";
+        return resultmessage;
     }
 
     private (bool IsSuccess, string Output, int ExitCode, string Error) ExecuteEasyRsaCommand(string arguments, bool confirm = false)
