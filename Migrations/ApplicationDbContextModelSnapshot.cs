@@ -51,7 +51,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ErrorLogs", "xgb_botvpndev");
+                    b.ToTable("ErrorLogs", "xgb_botvpnprod");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.IncomingMessageLog", b =>
