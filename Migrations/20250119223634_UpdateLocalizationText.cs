@@ -9,7 +9,7 @@ namespace DataGateVPNBotV1.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.InsertData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 columns: new[] { "Id", "Key", "Language", "Text" },
                 values: new object[,]
@@ -35,91 +35,91 @@ namespace DataGateVPNBotV1.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 43);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 44);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 45);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 46);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 47);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 48);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 49);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 50);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 51);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 52);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 53);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 54);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 55);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 56);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpnprod",
+                schema: "xgb_botvpndev",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 57);
