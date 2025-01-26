@@ -54,7 +54,8 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
             .FirstOrDefaultAsync();
     }
 
-    public async Task SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(int id, long telegramId, string certName)
+    public async Task SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(int id, long telegramId, 
+        string revokedFilePath, string certName, string message)
     {
         var issuedFile = await _dbContext.IssuedOvpnFiles
             .Where(f => f.Id == id && f.TelegramId == telegramId && f.CertName == certName)
@@ -65,7 +66,9 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
             throw new Exception("Object is not found.");
         }
 
+        issuedFile.FilePath = revokedFilePath;
         issuedFile.IsRevoked = true;
+        issuedFile.Message = message;
 
         await UpdateIssuedOvpnFileAsync(issuedFile);
     }

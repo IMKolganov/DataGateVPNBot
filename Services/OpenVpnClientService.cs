@@ -159,7 +159,7 @@ public class OpenVpnClientService : IOpenVpnClientService
     
         foreach (var issuedOvpnFile in issuedOvpnFiles)
         {
-            await RevokeAndDeleteFile(issuedOvpnFile, telegramId);
+            await RevokeCert(issuedOvpnFile, telegramId);
         }
     
         _logger.LogInformation("Completed deletion process for client with Telegram ID: {TelegramId}", telegramId);
@@ -173,29 +173,50 @@ public class OpenVpnClientService : IOpenVpnClientService
         
         var issuedOvpnFile = await GetIssuedOvpnFilesByTelegramAndFileNameIdAsync(telegramId, filename);
         if (issuedOvpnFile != null)
-        {
-            await RevokeAndDeleteFile(issuedOvpnFile, telegramId);
+        { 
+            await RevokeCert(issuedOvpnFile, telegramId);
         }
     }
 
-    private async Task RevokeAndDeleteFile(IssuedOvpnFile issuedOvpnFile, long telegramId)
+    private async Task RevokeCert(IssuedOvpnFile issuedOvpnFile, long telegramId)
     {
-        if (!_easyRsaService.RevokeCertificate(issuedOvpnFile.CertName))
-        {
-            throw new Exception($"Failed to revoke certificate: {issuedOvpnFile.CertName}");
-        }
+        string message = _easyRsaService.RevokeCertificate(issuedOvpnFile.CertName);
+        _logger.LogInformation("RevokeCertificate result: {Message} for CertName: {CertName}", message, issuedOvpnFile.CertName);
+        string revokedFilePath = MoveRevokedOvpnFile(issuedOvpnFile);
+        _logger.LogInformation("Successfully moved revoked .ovpn file to: {RevokedFilePath}", revokedFilePath);
+
+        await SetIsRevokeIssuedOvpnFile(issuedOvpnFile.Id, telegramId, revokedFilePath, issuedOvpnFile.CertName, message);
+        _logger.LogInformation("Updated database for revoked certificate: {CertName}, Telegram ID: {TelegramId}", issuedOvpnFile.CertName, telegramId);
+
+    }
+
+    private string MoveRevokedOvpnFile(IssuedOvpnFile issuedOvpnFile)
+    {
         string ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, issuedOvpnFile.FileName);
+        string revokedDirPath = Path.Combine(_openVpnSettings.OutputDir, "revoked");
+
+        if (!Directory.Exists(revokedDirPath))
+        {
+            Directory.CreateDirectory(revokedDirPath);
+            _logger.LogInformation("Created revoked directory: {DirectoryPath}", revokedDirPath);
+        }
+        
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var uniqueFileName = $"{Path.GetFileNameWithoutExtension(issuedOvpnFile.FileName)}_{issuedOvpnFile.Id}_{timestamp}{Path.GetExtension(issuedOvpnFile.FileName)}";
+
+        string revokedFilePath = Path.Combine(revokedDirPath, uniqueFileName);
+
         if (File.Exists(ovpnFilePath))
         {
-            File.Delete(ovpnFilePath);
-            _logger.LogInformation("Deleted .ovpn file: {FilePath}", ovpnFilePath);
+            File.Move(ovpnFilePath, revokedFilePath);
+            _logger.LogInformation($"Moved .ovpn file to revoked folder: {revokedFilePath}");
         }
         else
         {
-            _logger.LogWarning(".ovpn file not found for deletion: {FilePath}", ovpnFilePath);
+            _logger.LogWarning($".ovpn file not found for moving: {ovpnFilePath}");
         }
 
-        await SetIsRevokeIssuedOvpnFile(issuedOvpnFile.Id, telegramId, issuedOvpnFile.CertName);
+        return revokedFilePath; 
     }
 
 
@@ -228,11 +249,13 @@ public class OpenVpnClientService : IOpenVpnClientService
         return await issuedOvpnFileService.GetIssuedOvpnFilesByTelegramAndFileNameIdAsync(telegramId, fileName);
     }
     
-    private async Task SetIsRevokeIssuedOvpnFile(int id, long telegramId, string certName)
+    private async Task SetIsRevokeIssuedOvpnFile(int id, long telegramId, 
+        string revokedFilePath, string certName, string message)
     {
         using var scope = _serviceProvider.CreateScope();
         var issuedOvpnFileService = scope.ServiceProvider.GetRequiredService<IIssuedOvpnFileService>();
-        await issuedOvpnFileService.SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(id, telegramId, certName);
+        await issuedOvpnFileService.SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(id, telegramId, 
+            revokedFilePath, certName, message);
     }
     
     private string GetBaseFileNameForCerts(string fileName, int attempt)

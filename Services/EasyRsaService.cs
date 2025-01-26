@@ -81,13 +81,14 @@ public class EasyRsaService : IEasyRsaService
             .Append("-----END CERTIFICATE-----"));
     }
 
-    public bool RevokeCertificate(string clientName)
+    public string RevokeCertificate(string clientName)
     {
-        string certPath = Path.Combine(_pkiPath, "issued", $"{clientName}.crt");
+        var resultmessage = string.Empty;
+        var certPath = Path.Combine(_pkiPath, "issued", $"{clientName}.crt");
         if (!File.Exists(certPath))
         {
             _logger.LogError($"Certificate file not found: {certPath}");
-            return false;
+            return $"Certificate file not found: {certPath}";
         }
 
         _logger.LogInformation($"Attempting to revoke certificate for: {clientName}");
@@ -99,9 +100,37 @@ public class EasyRsaService : IEasyRsaService
         var revokeResult = ExecuteEasyRsaCommand($"revoke {clientName}", confirm: true);
         if (!revokeResult.IsSuccess)
         {
-            _logger.LogError($"Failed to revoke certificate: {revokeResult.Error}");
-            _logger.LogInformation($"Command Output: {revokeResult.Output}");
-            return false;
+            switch (revokeResult.ExitCode)
+            {
+                case 0:
+                    resultmessage += $"Certificate revoked successfully: {clientName}";
+                    _logger.LogInformation($"Certificate revoked successfully: {clientName}");
+                    break;
+
+                case 1:
+                    if (revokeResult.Output.Contains("ERROR:Already revoked") 
+                        || revokeResult.Error.Contains("ERROR:Already revoked"))
+                    {
+                        resultmessage += $"Certificate is already revoked: {clientName}";
+                        _logger.LogWarning($"Certificate is already revoked: {clientName}");
+                    }
+                    else if (revokeResult.Output.Contains("ERROR: Certificate not found") 
+                             || revokeResult.Output.Contains("ERROR: Certificate not found"))
+                    {
+                        resultmessage += $"Certificate not found: {clientName}";
+                        _logger.LogWarning($"Certificate not found: {clientName}");
+                    }
+                    else
+                    {
+                        throw new Exception($"Failed to revoke certificate. Unknown error: {clientName}, " +
+                                            $"ExitCode: {revokeResult.ExitCode}, Output: {revokeResult.Output}");
+                    }
+                    break;
+
+                default:
+                    _logger.LogError("Unexpected exit code ({ExitCode}) while revoking certificate: {ClientName}", revokeResult.ExitCode, clientName); 
+                    throw new Exception($"Unexpected exit code ({revokeResult.ExitCode}) while revoking certificate: {clientName}");
+            }
         }
 
         _logger.LogInformation("Revocation successful. Generating CRL...");
@@ -109,18 +138,14 @@ public class EasyRsaService : IEasyRsaService
         var crlResult = ExecuteEasyRsaCommand("gen-crl");
         if (!crlResult.IsSuccess)
         {
-            _logger.LogError($"Failed to generate CRL: {crlResult.Error}");
             _logger.LogInformation($"Command Output: {crlResult.Output}");
-            return false;
+            throw new Exception($"Failed to generate CRL: {crlResult.Error}");
         }
-
-        // string crlSourcePath = Path.Combine(_pkiPath, "crl.pem");
-        // string crlDestinationPath = "/etc/openvpn/crl.pem";
-
+        
         if (!File.Exists(_openVpnSettings.CrlPkiPath))
         {
-            _logger.LogError($"Generated CRL not found at {_openVpnSettings.CrlPkiPath}");
-            return false;
+            _logger.LogInformation($"Command Output: {crlResult.Output}");
+            throw new Exception($"Generated CRL not found at {_openVpnSettings.CrlPkiPath}");
         }
 
         try
@@ -131,8 +156,8 @@ public class EasyRsaService : IEasyRsaService
 
             if (copyResult.ExitCode != 0)
             {
-                _logger.LogError($"Failed to copy CRL file: {copyResult.Error}");
-                return false;
+                _logger.LogInformation($"Command Output: {crlResult.Output}");
+                throw new Exception($"Failed to copy CRL file: {copyResult.Error}");
             }
 
             _logger.LogInformation($"CRL copied to {_openVpnSettings.CrlOpenvpnPath}");
@@ -143,10 +168,12 @@ public class EasyRsaService : IEasyRsaService
 
             if (chmodResult.ExitCode != 0)
             {
+                resultmessage += $"Failed to set permissions on CRL file: {chmodResult.Error}";
                 _logger.LogWarning($"Failed to set permissions on CRL file: {chmodResult.Error}");
             }
             else
             {
+                resultmessage += "CRL permissions updated successfully.";
                 _logger.LogInformation("CRL permissions updated successfully.");
             }
             
@@ -155,26 +182,27 @@ public class EasyRsaService : IEasyRsaService
 
             if (chownResult.ExitCode != 0)
             {
+                resultmessage += $"Failed to change owner of CRL file: {chownResult.Error}";
                 _logger.LogWarning($"Failed to change owner of CRL file: {chownResult.Error}");
             }
             else
             {
+                resultmessage += "CRL ownership updated successfully.";
                 _logger.LogInformation("CRL ownership updated successfully.");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error during CRL update: {ex.Message}");
-            return false;
+            throw new Exception($"Error during CRL update: {ex.Message}");
         }
         _logger.LogInformation("CRL successfully updated and deployed.");
 
 
         _logger.LogInformation("Certificate successfully revoked, CRL updated and deployed.");
-        return true;
+        return resultmessage;
     }
 
-    private (bool IsSuccess, string Output, string Error) ExecuteEasyRsaCommand(string arguments, bool confirm = false)
+    private (bool IsSuccess, string Output, int ExitCode, string Error) ExecuteEasyRsaCommand(string arguments, bool confirm = false)
     {
         try
         {
@@ -193,13 +221,13 @@ public class EasyRsaService : IEasyRsaService
             _logger.LogInformation($"Command Exit Code: {result.ExitCode}");
 
             return result.ExitCode == 0
-                ? (true, result.Output, string.Empty)
-                : (false, result.Output, result.Error);
+                ? (true, result.Output, result.ExitCode, string.Empty)
+                : (false, result.Output, result.ExitCode, result.Error);
         }
         catch (Exception ex)
         {
             _logger.LogError($"Exception during command execution: {ex.Message}");
-            return (false, string.Empty, ex.Message);
+            return (false, string.Empty, 404,ex.Message);
         }
     }
 
@@ -224,7 +252,7 @@ public class EasyRsaService : IEasyRsaService
         string error = process.StandardError.ReadToEnd();
         process.WaitForExit();
 
-        _logger.LogInformation($"Process completed with ExitCode: {process.ExitCode}");
+        _logger.LogInformation($"Process completed with ExitCode: {process.ExitCode}, Error: {error}, Output: {output}");
         return (output, error, process.ExitCode);
     }
 

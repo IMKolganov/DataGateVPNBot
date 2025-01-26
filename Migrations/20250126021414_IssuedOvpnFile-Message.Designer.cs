@@ -3,6 +3,7 @@ using System;
 using DataGateVPNBotV1.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,48 +12,19 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataGateVPNBotV1.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250126021414_IssuedOvpnFile-Message")]
+    partial class IssuedOvpnFileMessage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("xgb_botvpnprod")
+                .HasDefaultSchema("xgb_botvpndev")
                 .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("DataGateVPNBotV1.Models.ErrorLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("StackTrace")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ErrorLogs", "xgb_botvpndev");
-                });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.IncomingMessageLog", b =>
                 {
@@ -98,7 +70,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("IncomingMessageLog", "xgb_botvpnprod");
+                    b.ToTable("IncomingMessageLog", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.IssuedOvpnFile", b =>
@@ -164,7 +136,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("IssuedOvpnFiles", "xgb_botvpnprod");
+                    b.ToTable("IssuedOvpnFiles", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.LocalizationText", b =>
@@ -189,7 +161,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LocalizationTexts", "xgb_botvpnprod");
+                    b.ToTable("LocalizationTexts", "xgb_botvpndev");
 
                     b.HasData(
                         new
@@ -604,7 +576,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("OpenVpnUserStatistics", "xgb_botvpnprod");
+                    b.ToTable("OpenVpnUserStatistics", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.TelegramUser", b =>
@@ -635,7 +607,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TelegramUsers", "xgb_botvpnprod");
+                    b.ToTable("TelegramUsers", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.UserLanguagePreference", b =>
@@ -654,7 +626,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserLanguagePreferences", "xgb_botvpnprod");
+                    b.ToTable("UserLanguagePreferences", "xgb_botvpndev");
                 });
 #pragma warning restore 612, 618
         }
