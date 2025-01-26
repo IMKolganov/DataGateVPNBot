@@ -42,7 +42,11 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         HandleErrorSource source, CancellationToken cancellationToken)
     {
         _logger.LogInformation("HandleError: {Exception}", exception);
-        // Cooldown in case of network connection error
+        using var scope = _serviceProvider.CreateScope();
+        var errorService = scope.ServiceProvider.GetRequiredService<IErrorService>();
+
+        await errorService.LogErrorToDatabase(exception);
+        await errorService.NotifyAdminsAsync(exception);
         if (exception is RequestException)
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
     }

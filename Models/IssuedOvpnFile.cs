@@ -27,4 +27,5 @@ public class IssuedOvpnFile
     public string ReqFilePath { get; set; } = null!;
     [Required]
     public bool IsRevoked { get; set; } = false;
+    public string Message { get; set; } = string.Empty;
 }
