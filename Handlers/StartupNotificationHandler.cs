@@ -8,20 +8,14 @@ namespace DataGateVPNBotV1.Handlers;
 
 public class StartupNotificationHandler : IHostedService
 {
-    private readonly ITelegramBotClient _botClient;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IHostEnvironment _environment;
     private readonly ILogger<StartupNotificationHandler> _logger;
 
     public StartupNotificationHandler(
-        ITelegramBotClient botClient,
         IServiceProvider serviceProvider,
-        IHostEnvironment environment,
         ILogger<StartupNotificationHandler> logger)
     {
-        _botClient = botClient;
         _serviceProvider = serviceProvider;
-        _environment = environment;
         _logger = logger;
     }
 
