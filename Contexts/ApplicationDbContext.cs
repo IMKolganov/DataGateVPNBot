@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LocalizationText> LocalizationTexts { get; set; } = null!;
     public DbSet<IncomingMessageLog> IncomingMessageLog { get; set; } = null!;
     public DbSet<OpenVpnUserStatistic> OpenVpnUserStatistics { get; set; } = null!;
+    public DbSet<ErrorLog> ErrorLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -112,6 +113,15 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(e => e.ConnectedSince)
                 .IsRequired();
+        });
+        
+        modelBuilder.Entity<ErrorLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Message).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.StackTrace).HasMaxLength(4000);
+            entity.Property(e => e.Timestamp).IsRequired();
+            entity.Property(e => e.Source).HasMaxLength(255);
         });
         
         modelBuilder.Entity<LocalizationText>().HasData(
