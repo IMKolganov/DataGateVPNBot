@@ -48,7 +48,7 @@ public partial class TelegramUpdateHandler
         
         Message messageResponse = await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: await GetLocalizationTextAsync("SuccessChangeLanguage", msg.From!.Id),
+            text: await GetLocalizationTextAsync("SuccessChangeLanguage", msg.Chat.Id),
             replyMarkup: new ReplyKeyboardRemove()
         );
         

@@ -93,7 +93,12 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         var commandParts = messageText.Split(' ', 2);
         var command = commandParts[0].ToLower();
         // var argument = commandParts.Length > 1 ? commandParts[1] : null;
-        if (!await IsExistLocalizationSettings(msg.From!.Id))
+        if (!await IsExistLocalizationSettings(msg.From!.Id) && 
+            (command != "/start"
+             ||command != "/change_language"
+             ||command != "/english"
+             ||command != "/русский"
+             ||command != "/ελληνικά"))
         {
             _logger.LogInformation("Localization settings not found for user with TelegramId: {TelegramId}. Calling SelectLanguage.", msg.From.Id);
             await SelectLanguage(msg);
@@ -145,7 +150,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     private async Task<Message> Usage(Message msg)
     {
         return await _botClient.SendMessage(msg.Chat, 
-            await GetLocalizationTextAsync("BotMenu", msg.From!.Id)
+            await GetLocalizationTextAsync("BotMenu", msg.Chat.Id)
             , parseMode: ParseMode.Html,
             replyMarkup: new ReplyKeyboardRemove());
     }
