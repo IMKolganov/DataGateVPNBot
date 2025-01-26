@@ -12,7 +12,7 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "Message",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "IssuedOvpnFiles",
                 type: "character varying(500)",
                 maxLength: 500,
@@ -25,7 +25,7 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "Message",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "IssuedOvpnFiles");
         }
     }
