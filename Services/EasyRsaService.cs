@@ -106,11 +106,13 @@ public class EasyRsaService : IEasyRsaService
                     break;
 
                 case 1:
-                    if (revokeResult.Output.Contains("ERROR:Already revoked"))
+                    if (revokeResult.Output.Contains("ERROR:Already revoked") 
+                        || revokeResult.Error.Contains("ERROR:Already revoked"))
                     {
                         _logger.LogWarning("Certificate is already revoked: {ClientName}", clientName);
                     }
-                    else if (revokeResult.Output.Contains("ERROR: Certificate not found"))
+                    else if (revokeResult.Output.Contains("ERROR: Certificate not found") 
+                             || revokeResult.Output.Contains("ERROR: Certificate not found"))
                     {
                         _logger.LogWarning($"Certificate not found: {clientName}");
                     }
@@ -242,7 +244,7 @@ public class EasyRsaService : IEasyRsaService
         string error = process.StandardError.ReadToEnd();
         process.WaitForExit();
 
-        _logger.LogInformation($"Process completed with ExitCode: {process.ExitCode}");
+        _logger.LogInformation($"Process completed with ExitCode: {process.ExitCode}, Error: {error}, Output: {output}");
         return (output, error, process.ExitCode);
     }
 
