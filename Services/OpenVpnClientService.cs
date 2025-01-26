@@ -200,15 +200,20 @@ public class OpenVpnClientService : IOpenVpnClientService
             Directory.CreateDirectory(revokedDirPath);
             _logger.LogInformation("Created revoked directory: {DirectoryPath}", revokedDirPath);
         }
-        string revokedFilePath = Path.Combine(revokedDirPath, issuedOvpnFile.FileName);
+        
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var uniqueFileName = $"{Path.GetFileNameWithoutExtension(issuedOvpnFile.FileName)}_{issuedOvpnFile.Id}_{timestamp}{Path.GetExtension(issuedOvpnFile.FileName)}";
+
+        string revokedFilePath = Path.Combine(revokedDirPath, uniqueFileName);
+
         if (File.Exists(ovpnFilePath))
         {
             File.Move(ovpnFilePath, revokedFilePath);
-            _logger.LogInformation("Moved .ovpn file to revoked folder: {FilePath}", revokedFilePath);
+            _logger.LogInformation($"Moved .ovpn file to revoked folder: {revokedFilePath}");
         }
         else
         {
-            _logger.LogWarning(".ovpn file not found for moving: {FilePath}", ovpnFilePath);
+            _logger.LogWarning($".ovpn file not found for moving: {ovpnFilePath}");
         }
 
         return revokedFilePath; 
