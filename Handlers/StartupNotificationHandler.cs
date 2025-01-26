@@ -28,26 +28,8 @@ public class StartupNotificationHandler : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var telegramUsersService = scope.ServiceProvider.GetRequiredService<ITelegramUsersService>();
-        var admins = await telegramUsersService.GetAdminsAsync();
-
-        if (admins is { Count: 0 })
-        {
-            _logger.LogWarning("Admin chat ID is not configured.");
-            return;
-        }
-        _logger.LogInformation("Admins count: {RecordCount}", admins!.Count);
-        foreach (var admin in admins)
-        {
-            var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown version";
-
-            var startupMessage = $"🚀 Bot started successfully!\n" +
-                                 $"Application version: {version}\n" +
-                                 $"Environment: {_environment.EnvironmentName}\n" +
-                                 $"Time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
-
-            await _botClient.SendMessage(admin.TelegramId, startupMessage, cancellationToken: cancellationToken);
-        }
+        var errorService = scope.ServiceProvider.GetRequiredService<IErrorService>();
+        await errorService.NotifyAdminsAboutStartAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
