@@ -69,6 +69,9 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CertFilePath)
                 .IsRequired()
                 .HasMaxLength(500);
+            
+            entity.Property(e => e.Message)
+                .HasMaxLength(500);
         });
 
         modelBuilder.Entity<UserLanguagePreference>(entity =>
