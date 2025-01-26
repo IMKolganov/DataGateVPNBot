@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using DataGateVPNBotV1.Services;
 
 namespace DataGateVPNBotV1.Configurations;
 
@@ -15,6 +16,12 @@ public static class PipelineConfiguration
         app.UseHttpsRedirection();
         app.UseAuthorization();
         app.MapControllers();
+        
+        app.MapGet("/", (ILogger<EasyRsaService> logger) =>
+        {
+            logger.LogInformation("Hello, Elasticsearch!");
+            return "Hello, Elasticsearch!";
+        });
         
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown version";
         var environmentName = app.Environment.EnvironmentName;
