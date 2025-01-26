@@ -45,7 +45,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
         using var scope = _serviceProvider.CreateScope();
         var errorService = scope.ServiceProvider.GetRequiredService<IErrorService>();
 
-        await errorService.LogErrorToDatabase(exception, null);
+        await errorService.LogErrorToDatabase(exception);
         await errorService.NotifyAdminsAsync(exception);
         if (exception is RequestException)
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);

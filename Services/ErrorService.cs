@@ -22,19 +22,24 @@ public class ErrorService : IErrorService
         _logger = logger;
     }
 
-    public async Task LogErrorToDatabase(Exception exception, HttpContext? context = null)
+    public async Task LogErrorToDatabase(Exception exception, HttpContext? context)
     {
         try
         {
             using var scope = _serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var source = "Unknown";
+            if (context is { Request: not null })
+            {
+                source = context?.Request?.Path.Value ?? "Unknown";
+            }
 
             var errorLog = new ErrorLog
             {
                 Message = exception.Message,
                 StackTrace = exception.StackTrace ?? string.Empty,
                 Timestamp = DateTime.UtcNow,
-                Source = context?.Request.Path ?? "Unknown"
+                Source = source
             };
 
             dbContext.ErrorLogs.Add(errorLog);
@@ -66,8 +71,14 @@ public class ErrorService : IErrorService
         {
             try
             {
+                var source = "Unknown";
+                if (context is { Request: not null })
+                {
+                    source = context?.Request?.Path.Value ?? "Unknown";
+                }
+                
                 var errorMessage = $"🚨 *Error Notification*\n" +
-                                   $"Path: `{context?.Request?.Path ?? "Unknown"}`\n" +
+                                   $"Path: `{source}`\n" +
                                    $"Message: `{exception.Message}`\n" +
                                    $"Time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC\n" +
                                    $"Stack Trace:\n```{exception.StackTrace}```";
