@@ -4,6 +4,8 @@ using DataGateVPNBotV1.Models;
 using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
 
+namespace DataGateVPNBotV1.Services;
+
 public class ErrorService : IErrorService
 {
     private readonly IServiceProvider _serviceProvider;
@@ -32,7 +34,7 @@ public class ErrorService : IErrorService
                 Message = exception.Message,
                 StackTrace = exception.StackTrace ?? string.Empty,
                 Timestamp = DateTime.UtcNow,
-                Source = context?.Request?.Path ?? "Unknown"
+                Source = context?.Request.Path ?? "Unknown"
             };
 
             dbContext.ErrorLogs.Add(errorLog);
