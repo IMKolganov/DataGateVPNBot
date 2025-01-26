@@ -23,11 +23,21 @@ public static class SerilogConfiguration
                 NumberOfShards = 1,
                 NumberOfReplicas = 0,
                 ModifyConnectionSettings = conn => conn
-                    .BasicAuthentication(elasticsearchSettings.Username, elasticsearchSettings.Password)
+                    .ServerCertificateValidationCallback((sender, cert, chain, errors) => true)
+                    .BasicAuthentication(elasticsearchSettings.Username, elasticsearchSettings.Password),
+                FailureCallback = (logEvent, exception) =>
+                {
+                    Console.WriteLine($"Unable to submit event: {logEvent.RenderMessage()}");
+                    if (exception != null)
+                        Console.WriteLine($"Exception: {exception.Message}");
+                },
+                EmitEventFailure = EmitEventFailureHandling.WriteToSelfLog
+
             })
             .Enrich.FromLogContext()
             .MinimumLevel.Information()
             .CreateLogger();
+;
 
         host.UseSerilog();
         Log.Information("Application has started");
