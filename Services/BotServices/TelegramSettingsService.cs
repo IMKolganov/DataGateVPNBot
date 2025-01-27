@@ -1,8 +1,8 @@
 ﻿using DataGateVPNBotV1.Models.Enums;
-using DataGateVPNBotV1.Services.Interfaces;
+using DataGateVPNBotV1.Services.BotServices.Interfaces;
 using Telegram.Bot.Types;
 
-namespace DataGateVPNBotV1.Services;
+namespace DataGateVPNBotV1.Services.BotServices;
 
 public class TelegramSettingsService : ITelegramSettingsService
 {

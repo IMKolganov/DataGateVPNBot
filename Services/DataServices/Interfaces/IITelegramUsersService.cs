@@ -1,6 +1,6 @@
 ﻿using DataGateVPNBotV1.Models;
 
-namespace DataGateVPNBotV1.Services.Interfaces;
+namespace DataGateVPNBotV1.Services.DataServices.Interfaces;
 
 public interface ITelegramUsersService
 {

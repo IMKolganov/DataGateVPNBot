@@ -1,6 +1,7 @@
-﻿using DataGateVPNBotV1.Services.Interfaces;
+﻿using DataGateVPNBotV1.Services.BotServices.Interfaces;
+using DataGateVPNBotV1.Services.Interfaces;
 
-namespace DataGateVPNBotV1.Services;
+namespace DataGateVPNBotV1.Services.BotServices;
 
 public class OpenVpnBackgroundService : BackgroundService, IOpenVpnBackgroundService
 {

@@ -1,9 +1,9 @@
 ﻿using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
-using DataGateVPNBotV1.Services.Interfaces;
+using DataGateVPNBotV1.Services.DataServices.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace DataGateVPNBotV1.Services;
+namespace DataGateVPNBotV1.Services.DataServices;
 
 public class IssuedOvpnFileService : IIssuedOvpnFileService
 {
@@ -43,7 +43,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
     public async Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
     {
         return await _dbContext.IssuedOvpnFiles
-            .Where(f => f.TelegramId == telegramId && f.IsRevoked == false)
+            .Where(f => f.TelegramId == telegramId /*&& f.IsRevoked == false*/)
             .ToListAsync();
     }
 
