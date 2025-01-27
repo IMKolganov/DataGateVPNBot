@@ -18,6 +18,16 @@ public static class ServiceConfiguration
         services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
         services.AddSingleton<IEasyRsaService, EasyRsaService>();
         services.AddHostedService<StartupNotificationHandler>();
+        
+        services.AddSingleton<IOpenVpnParserService, OpenVpnParserService>();
+
+        services.AddHostedService(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<OpenVpnBackgroundService>>();
+            var parserService = provider.GetRequiredService<IOpenVpnParserService>();
+
+            return new OpenVpnBackgroundService(logger, parserService);
+        });
 
         services.ConfigureTelegramBotMvc();
 

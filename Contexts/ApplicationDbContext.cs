@@ -96,22 +96,21 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<OpenVpnUserStatistic>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.TelegramId);
+            entity.Property(e => e.SessionId)
+                .IsRequired();
             entity.Property(e => e.CommonName)
-                .IsRequired()
-                .HasMaxLength(100);
-
+                .HasMaxLength(255)
+                .IsRequired();
             entity.Property(e => e.RealAddress)
-                .IsRequired()
-                .HasMaxLength(100);
-
+                .HasMaxLength(255)
+                .IsRequired();
             entity.Property(e => e.BytesReceived)
                 .IsRequired();
-
             entity.Property(e => e.BytesSent)
                 .IsRequired();
-
             entity.Property(e => e.ConnectedSince)
+                .IsRequired();
+            entity.Property(e => e.LastUpdated)
                 .IsRequired();
         });
         

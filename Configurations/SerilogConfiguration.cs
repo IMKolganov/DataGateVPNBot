@@ -40,7 +40,5 @@ public static class SerilogConfiguration
 ;
 
         host.UseSerilog();
-        Log.Information("Application has started");
-        Log.Error("This is a test error log");
     }
 }
