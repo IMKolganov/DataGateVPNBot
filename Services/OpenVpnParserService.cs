@@ -85,8 +85,8 @@ public class OpenVpnParserService : IOpenVpnParserService
         {
             if (line.StartsWith("CLIENT_LIST"))
             {
-                var parts = line.Split(',');
-                if (parts.Length >= 6)
+                var parts = line.Split('\t');
+                if (parts.Length >= 13)
                 {
                     users.Add(new OpenVpnUserStatistic
                     {
