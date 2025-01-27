@@ -81,34 +81,36 @@ public class OpenVpnParserService : IOpenVpnParserService
     {
         var users = new List<OpenVpnUserStatistic>();
 
-        foreach (var line in File.ReadAllLines(filePath))
+        var lines = File.ReadAllLines(filePath);
+        foreach (var line in lines)
         {
+            Console.WriteLine($"Processing line: {line}");
+
             if (line.StartsWith("CLIENT_LIST"))
             {
-                Console.WriteLine($"Processing line: {line}");
-                var parts = line.Split('\t'); 
+                var parts = line.Split('\t');
                 Console.WriteLine($"Split parts: {string.Join(" | ", parts)}");
+
                 if (parts.Length >= 13)
                 {
                     try
                     {
+                        var connectedSince =
+                            DateTime.SpecifyKind(DateTime.Parse(parts[7]), DateTimeKind.Utc);
+
                         users.Add(new OpenVpnUserStatistic
                         {
                             CommonName = parts[1],
                             RealAddress = parts[2],
                             BytesReceived = long.Parse(parts[5]),
                             BytesSent = long.Parse(parts[6]),
-                            ConnectedSince = DateTime.Parse(parts[7])
+                            ConnectedSince = connectedSince
                         });
-                    }
-                    catch (FormatException ex)
-                    {
-                        Console.WriteLine($"Error parsing line: {line}");
-                        Console.WriteLine($"Exception: {ex.Message}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Unexpected error: {ex.Message}");
+                        Console.WriteLine($"Error parsing line: {line}");
+                        Console.WriteLine($"Exception: {ex.Message}");
                     }
                 }
                 else
