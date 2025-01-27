@@ -43,7 +43,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
     public async Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
     {
         return await _dbContext.IssuedOvpnFiles
-            .Where(f => f.TelegramId == telegramId /*&& f.IsRevoked == false*/)
+            .Where(f => f.TelegramId == telegramId && f.IsRevoked == false)
             .ToListAsync();
     }
 
