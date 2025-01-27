@@ -41,10 +41,10 @@
     "CrlOpenvpnPath": "/etc/openvpn/crl.pem"
   },
   "Elasticsearch": {
-    "Uri": "http://localhost:9200",
-    "Username": "elastic",
+    "Uri": "${ELASTIC_URI}",
+    "Username": "${ELASTIC_USER_NAME}",
     "Password": "${ELASTIC_PASSWORD}",
-    "IndexFormat": "app-logs-{0:yyyy.MM.dd}"
-  }
+    "IndexFormat": "${ELASTIC_INDEX_FORMAT}"
+  },
   "AllowedHosts": "*"
 }
