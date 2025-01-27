@@ -85,17 +85,35 @@ public class OpenVpnParserService : IOpenVpnParserService
         {
             if (line.StartsWith("CLIENT_LIST"))
             {
-                var parts = line.Split('\t');
+                Console.WriteLine($"Processing line: {line}");
+                var parts = line.Split('\t'); 
+                Console.WriteLine($"Split parts: {string.Join(" | ", parts)}");
                 if (parts.Length >= 13)
                 {
-                    users.Add(new OpenVpnUserStatistic
+                    try
                     {
-                        CommonName = parts[1],
-                        RealAddress = parts[2],
-                        BytesReceived = long.Parse(parts[3]),
-                        BytesSent = long.Parse(parts[4]),
-                        ConnectedSince = DateTime.Parse(parts[5])
-                    });
+                        users.Add(new OpenVpnUserStatistic
+                        {
+                            CommonName = parts[1],
+                            RealAddress = parts[2],
+                            BytesReceived = long.Parse(parts[5]),
+                            BytesSent = long.Parse(parts[6]),
+                            ConnectedSince = DateTime.Parse(parts[7])
+                        });
+                    }
+                    catch (FormatException ex)
+                    {
+                        Console.WriteLine($"Error parsing line: {line}");
+                        Console.WriteLine($"Exception: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Unexpected error: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Skipping malformed line: {line}");
                 }
             }
         }
