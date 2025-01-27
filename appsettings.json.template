@@ -40,5 +40,11 @@
     "CrlPkiPath": "/etc/openvpn/easy-rsa/pki/crl.pem",
     "CrlOpenvpnPath": "/etc/openvpn/crl.pem"
   },
+  "Elasticsearch": {
+    "Uri": "${ELASTIC_URI}",
+    "Username": "${ELASTIC_USER_NAME}",
+    "Password": "${ELASTIC_PASSWORD}",
+    "IndexFormat": "${ELASTIC_INDEX_FORMAT}"
+  },
   "AllowedHosts": "*"
 }

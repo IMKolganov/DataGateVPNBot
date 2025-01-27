@@ -1,11 +1,13 @@
 using DataGateVPNBotV1.Configurations;
-using DataGateVPNBotV1.Middlewares;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.ConfigureTelegram(builder.Configuration);
 builder.Services.ConfigureServices();
 builder.Services.DataBaseServices(builder.Configuration);
+
+builder.Host.ConfigureSerilog(builder.Configuration);
 
 builder.ConfigureWebHost();
 
@@ -15,3 +17,5 @@ app.ConfigureMiddleware();
 app.ConfigurePipeline();
 
 app.Run();
+Log.Information("Application has started");
+Log.Error("This is a test error log");
