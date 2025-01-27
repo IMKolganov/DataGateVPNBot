@@ -14,7 +14,7 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "OpenVpnUserStatistics",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -37,7 +37,7 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.DropTable(
                 name: "OpenVpnUserStatistics",
-                schema: "xgb_botvpndev");
+                schema: "xgb_botvpnprod");
         }
     }
 }
