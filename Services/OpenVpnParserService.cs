@@ -11,10 +11,10 @@ namespace DataGateVPNBotV1.Services;
 public class OpenVpnParserService : IOpenVpnParserService
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly ILogger<OpenVpnParserService> _logger;
+    private readonly ILogger<IOpenVpnParserService> _logger;
     private readonly string _statusFilePath;
 
-    public OpenVpnParserService(ApplicationDbContext dbContext, ILogger<OpenVpnParserService> logger,
+    public OpenVpnParserService(ApplicationDbContext dbContext, ILogger<IOpenVpnParserService> logger,
         IConfiguration configuration)
     {
         _dbContext = dbContext;

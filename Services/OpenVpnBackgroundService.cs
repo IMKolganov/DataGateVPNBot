@@ -5,13 +5,13 @@ namespace DataGateVPNBotV1.Services;
 public class OpenVpnBackgroundService : BackgroundService, IOpenVpnBackgroundService
 {
     private readonly ILogger<OpenVpnBackgroundService> _logger;
-    private readonly IOpenVpnParserService _parserService;
+    private readonly IServiceProvider _serviceProvider;
     private const int Seconds = 60;
 
-    public OpenVpnBackgroundService(ILogger<OpenVpnBackgroundService> logger, IOpenVpnParserService parserService)
+    public OpenVpnBackgroundService(ILogger<OpenVpnBackgroundService> logger, IServiceProvider serviceProvider)
     {
         _logger = logger;
-        _parserService = parserService;
+        _serviceProvider = serviceProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -20,17 +20,21 @@ public class OpenVpnBackgroundService : BackgroundService, IOpenVpnBackgroundSer
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
+            using (var scope = _serviceProvider.CreateScope())
             {
-                _logger.LogInformation("Parsing OpenVPN status file at {Time}", DateTimeOffset.Now);
-                await _parserService.ParseAndSaveAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex,$"Error occurred while parsing OpenVPN status file. Message: {ex.Message}");
+                var parserService = scope.ServiceProvider.GetRequiredService<IOpenVpnParserService>();
+                try
+                {
+                    _logger.LogInformation("Parsing OpenVPN status file at {Time}", DateTimeOffset.Now);
+                    await parserService.ParseAndSaveAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred while parsing OpenVPN status file.");
+                }
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(Seconds), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
 
         _logger.LogInformation("OpenVPN Background Service is stopping.");

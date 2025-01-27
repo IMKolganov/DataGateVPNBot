@@ -12,11 +12,11 @@ public class OpenVpnUserStatistic
 
     [Required]
     [MaxLength(255)]
-    public string CommonName { get; set; }
+    public string CommonName { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(255)]
-    public string RealAddress { get; set; }
+    public string RealAddress { get; set; } = string.Empty;
 
     [Required]
     public long BytesReceived { get; set; }

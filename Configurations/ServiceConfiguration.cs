@@ -13,22 +13,15 @@ public static class ServiceConfiguration
         services.AddScoped<ITelegramUsersService, TelegramUsersService>();
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddScoped<IErrorService, ErrorService>();
+        services.AddScoped<IOpenVpnParserService, OpenVpnParserService>();
         services.AddSingleton<TelegramUpdateHandler>();
         services.AddSingleton<ITelegramSettingsService, TelegramSettingsService>();
         services.AddSingleton<IOpenVpnClientService, OpenVpnClientService>();
         services.AddSingleton<IEasyRsaService, EasyRsaService>();
         services.AddHostedService<StartupNotificationHandler>();
+
+        services.AddHostedService<OpenVpnBackgroundService>();
         
-        services.AddSingleton<IOpenVpnParserService, OpenVpnParserService>();
-
-        services.AddHostedService(provider =>
-        {
-            var logger = provider.GetRequiredService<ILogger<OpenVpnBackgroundService>>();
-            var parserService = provider.GetRequiredService<IOpenVpnParserService>();
-
-            return new OpenVpnBackgroundService(logger, parserService);
-        });
-
         services.ConfigureTelegramBotMvc();
 
         services.AddControllers();
