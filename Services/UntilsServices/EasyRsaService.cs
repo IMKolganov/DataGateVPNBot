@@ -180,19 +180,19 @@ public class EasyRsaService : IEasyRsaService
             
             _logger.LogInformation($"chmodResult - {chmodResult}");
             
-            // string chownCommand = $"sudo chown openvpn:openvpn {_openVpnSettings.CrlOpenvpnPath}";
-            // var chownResult = RunCommand(chownCommand);
-            //
-            // if (chownResult.ExitCode != 0)
-            // {
-            //     resultmessage += $"Failed to change owner of CRL file: {chownResult.Error}";
-            //     _logger.LogWarning($"Failed to change owner of CRL file: {chownResult.Error}");
-            // }
-            // else
-            // {
-            //     resultmessage += "CRL ownership updated successfully.";
-            //     _logger.LogInformation("CRL ownership updated successfully.");
-            // }
+            string chownCommand = $"chown openvpn:openvpn {_openVpnSettings.CrlOpenvpnPath}";
+            var chownResult = RunCommand(chownCommand);
+            
+            if (chownResult.ExitCode != 0)
+            {
+                resultmessage += $"Failed to change owner of CRL file: {chownResult.Error}";
+                _logger.LogWarning($"Failed to change owner of CRL file: {chownResult.Error}");
+            }
+            else
+            {
+                resultmessage += "CRL ownership updated successfully.";
+                _logger.LogInformation("CRL ownership updated successfully.");
+            }
         }
         catch (Exception ex)
         {
