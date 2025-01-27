@@ -1,5 +1,8 @@
-﻿using DataGateVPNBotV1.Contexts;
+﻿using System.Security.Cryptography;
+using System.Text;
+using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
+using DataGateVPNBotV1.Models.Helpers;
 using DataGateVPNBotV1.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,69 +11,70 @@ namespace DataGateVPNBotV1.Services;
 public class OpenVpnParserService : IOpenVpnParserService
 {
     private readonly ApplicationDbContext _dbContext;
-    private readonly ILogger<OpenVpnParserService> _logger;
+    private readonly ILogger<IOpenVpnParserService> _logger;
+    private readonly string _statusFilePath;
 
-    public OpenVpnParserService(ApplicationDbContext dbContext, ILogger<OpenVpnParserService> logger)
+    public OpenVpnParserService(ApplicationDbContext dbContext, ILogger<IOpenVpnParserService> logger,
+        IConfiguration configuration)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _statusFilePath = configuration.GetSection("OpenVpn").Get<OpenVpnSettings>()?.StatusFilePath
+                          ?? throw new InvalidOperationException("Failed to load OpenVpnSettings from configuration.");
     }
 
-    public async Task ParseAndSaveAsync(string statusFilePath)
+    public async Task ParseAndSaveAsync()
     {
-        if (!File.Exists(statusFilePath))
+        if (!File.Exists(_statusFilePath))
         {
-            _logger.LogError("OpenVPN status file not found: {FilePath}", statusFilePath);
-            throw new FileNotFoundException($"OpenVPN status file not found: {statusFilePath}");
+            _logger.LogError("OpenVPN status file not found: {FilePath}", _statusFilePath);
+            throw new FileNotFoundException($"OpenVPN status file not found: {_statusFilePath}");
         }
 
-        _logger.LogInformation("Started reading the OpenVPN status file: {FilePath}", statusFilePath);
-        var users = ParseOpenVpnStatus(statusFilePath);
+        _logger.LogInformation("Started reading the OpenVPN status file: {FilePath}", _statusFilePath);
+        var users = ParseOpenVpnStatus(_statusFilePath);
 
         _logger.LogInformation("Found {UserCount} users in the status file.", users.Count);
 
-        _logger.LogInformation("Started saving data to the database.");
         foreach (var user in users)
         {
-            try
+            var sessionId = GenerateSessionId(user.CommonName, user.RealAddress, user.ConnectedSince);
+
+            var existingUser =
+                await _dbContext.OpenVpnUserStatistics.FirstOrDefaultAsync(u => u.SessionId == sessionId);//todo: make service
+
+            if (existingUser != null)
             {
-                var existingUser = await _dbContext.OpenVpnUserStatistics
-                    .FirstOrDefaultAsync(u => u.CommonName == user.CommonName && u.RealAddress == user.RealAddress);
-
-                if (existingUser != null)
-                {
-                    _logger.LogDebug("Updating data for user: {CommonName}, address: {RealAddress}",
-                        user.CommonName, user.RealAddress);
-
-                    existingUser.BytesReceived = user.BytesReceived;
-                    existingUser.BytesSent = user.BytesSent;
-                    existingUser.ConnectedSince = user.ConnectedSince;
-                }
-                else
-                {
-                    _logger.LogDebug("Adding new user: {CommonName}, address: {RealAddress}",
-                        user.CommonName, user.RealAddress);
-
-                    await _dbContext.OpenVpnUserStatistics.AddAsync(user);
-                }
+                existingUser.BytesReceived = user.BytesReceived;
+                existingUser.BytesSent = user.BytesSent;
+                existingUser.LastUpdated = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error processing user data: {CommonName}, address: {RealAddress}",
-                    user.CommonName, user.RealAddress);
+                _dbContext.OpenVpnUserStatistics.Add(new OpenVpnUserStatistic
+                {
+                    SessionId = sessionId,
+                    CommonName = user.CommonName,
+                    RealAddress = user.RealAddress,
+                    BytesReceived = user.BytesReceived,
+                    BytesSent = user.BytesSent,
+                    ConnectedSince = user.ConnectedSince,
+                    LastUpdated = DateTime.UtcNow
+                });
             }
         }
 
-        try
-        {
-            await _dbContext.SaveChangesAsync();
-            _logger.LogInformation("Data successfully saved to the database.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while saving data to the database.");
-            throw;
-        }
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Data successfully saved to the database.");
+    }
+
+    private Guid GenerateSessionId(string commonName, string realAddress, DateTime connectedSince)
+    {
+        var sessionString = $"{commonName}-{realAddress}-{connectedSince:o}";
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(sessionString));
+        return new Guid(hashBytes.Take(16).ToArray());
     }
 
     private List<OpenVpnUserStatistic> ParseOpenVpnStatus(string filePath)
@@ -82,11 +86,10 @@ public class OpenVpnParserService : IOpenVpnParserService
             if (line.StartsWith("CLIENT_LIST"))
             {
                 var parts = line.Split(',');
-                if (parts.Length >= 5)
+                if (parts.Length >= 6)
                 {
                     users.Add(new OpenVpnUserStatistic
                     {
-                        TelegramId = 0,
                         CommonName = parts[1],
                         RealAddress = parts[2],
                         BytesReceived = long.Parse(parts[3]),
@@ -99,4 +102,5 @@ public class OpenVpnParserService : IOpenVpnParserService
 
         return users;
     }
+
 }

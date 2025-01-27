@@ -2,5 +2,5 @@
 
 public interface IOpenVpnParserService
 {
-    Task ParseAndSaveAsync(string statusFilePath);
+    Task ParseAndSaveAsync();
 }

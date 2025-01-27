@@ -17,5 +17,3 @@ app.ConfigureMiddleware();
 app.ConfigurePipeline();
 
 app.Run();
-Log.Information("Application has started");
-Log.Error("This is a test error log");

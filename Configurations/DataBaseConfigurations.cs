@@ -11,15 +11,17 @@ public static class DataBaseConfigurations
         var dbSettings = configuration.GetSection("DataBaseSettings").Get<DataBaseSettings>() 
                          ?? throw new InvalidOperationException("DataBaseSettings section is missing in configuration.");
 
-        services.AddDbContext<ApplicationDbContext>(options =>
+        services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+        {
+            var config = serviceProvider.GetRequiredService<IConfiguration>();
             options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection")
+                config.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string not found."),
                 npgsqlOptions => npgsqlOptions.MigrationsHistoryTable(
                     dbSettings.MigrationTable ?? "__EFMigrationsHistory",
                     dbSettings.DefaultSchema ?? "public"
                 )
-            )
-        );
+            );
+        });
     }
 }

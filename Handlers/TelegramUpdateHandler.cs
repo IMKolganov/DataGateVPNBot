@@ -41,7 +41,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception,
         HandleErrorSource source, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("HandleError: {Exception}", exception);
+        _logger.LogCritical("HandleError: {Exception}", exception);
         using var scope = _serviceProvider.CreateScope();
         var errorService = scope.ServiceProvider.GetRequiredService<IErrorService>();
 

@@ -38,7 +38,8 @@
     "OutputDir": "/etc/openvpn/clients",
     "TlsAuthKey": "/etc/openvpn/easy-rsa/pki/ta.key",
     "CrlPkiPath": "/etc/openvpn/easy-rsa/pki/crl.pem",
-    "CrlOpenvpnPath": "/etc/openvpn/crl.pem"
+    "CrlOpenvpnPath": "/etc/openvpn/crl.pem",
+    "StatusFilePath": "/var/log/openvpn-status.log"
   },
   "Elasticsearch": {
     "Uri": "${ELASTIC_URI}",
