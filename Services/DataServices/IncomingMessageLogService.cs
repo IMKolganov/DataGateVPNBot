@@ -1,10 +1,10 @@
 ﻿using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
-using DataGateVPNBotV1.Services.Interfaces;
+using DataGateVPNBotV1.Services.DataServices.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace DataGateVPNBotV1.Services;
+namespace DataGateVPNBotV1.Services.DataServices;
 
 public class IncomingMessageLogService : IIncomingMessageLogService
 {

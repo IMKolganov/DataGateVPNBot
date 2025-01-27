@@ -1,6 +1,6 @@
 ﻿using DataGateVPNBotV1.Models.Helpers;
 
-namespace DataGateVPNBotV1.Services.Interfaces;
+namespace DataGateVPNBotV1.Services.BotServices.Interfaces;
 
 public interface IOpenVpnClientService
 {

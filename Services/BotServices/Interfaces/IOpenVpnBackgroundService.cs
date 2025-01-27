@@ -1,4 +1,4 @@
-﻿namespace DataGateVPNBotV1.Services;
+﻿namespace DataGateVPNBotV1.Services.BotServices.Interfaces;
 
 public interface IOpenVpnBackgroundService
 {

@@ -1,5 +1,9 @@
 ﻿using DataGateVPNBotV1.Handlers;
 using DataGateVPNBotV1.Services;
+using DataGateVPNBotV1.Services.BotServices;
+using DataGateVPNBotV1.Services.BotServices.Interfaces;
+using DataGateVPNBotV1.Services.DataServices;
+using DataGateVPNBotV1.Services.DataServices.Interfaces;
 using DataGateVPNBotV1.Services.Interfaces;
 
 namespace DataGateVPNBotV1.Configurations;
