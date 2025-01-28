@@ -14,6 +14,7 @@ public partial class TelegramUpdateHandler
 
         try
         {
+            if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
             _logger.LogInformation("Fetching client configurations...");
             var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
             _logger.LogInformation("Fetched {Count} configuration files.", clientConfigFiles.FileInfo.Count);
@@ -109,6 +110,7 @@ public partial class TelegramUpdateHandler
         //throw
         
         // Generate the client configuration file
+        if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
         var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.Chat.Id);
         if (clientConfigFile.FileInfo != null)
         {
@@ -135,6 +137,7 @@ public partial class TelegramUpdateHandler
     
     private async Task<Message> DeleteAllFiles(Message msg)
     {
+        if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
         await _openVpnClientService.DeleteAllClientConfigurations(msg.From!.Id);
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
@@ -145,6 +148,7 @@ public partial class TelegramUpdateHandler
 
     private async Task<Message> DeleteSelectedFile(Message msg)
     {
+        if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
         var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
         var rows = new List<InlineKeyboardButton[]>();
 
@@ -175,10 +179,20 @@ public partial class TelegramUpdateHandler
 
     private async Task DeleteFile(long telegramId, string fileName)
     {
+        if (!_openVpnClientService.CheckHealthFileSystem()) throw new Exception("Unable to delete file");
         await _openVpnClientService.DeleteClientConfiguration(telegramId, fileName);
         await _botClient.SendMessage(
             chatId: telegramId,
             text: await GetLocalizationTextAsync("SuccessfullyDeletedFile", telegramId),
+            replyMarkup: new ReplyKeyboardRemove()
+        );
+    }
+
+    private async Task<Message>  InformationClientAboutCertCriticalError(Message msg)
+    {
+        return await _botClient.SendMessage(
+            chatId: msg.Chat.Id,
+            text: await GetLocalizationTextAsync("ChooseFileForDelete", msg.From!.Id),
             replyMarkup: new ReplyKeyboardRemove()
         );
     }

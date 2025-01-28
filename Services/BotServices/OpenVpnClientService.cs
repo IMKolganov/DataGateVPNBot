@@ -2,7 +2,6 @@
 using DataGateVPNBotV1.Models.Helpers;
 using DataGateVPNBotV1.Services.BotServices.Interfaces;
 using DataGateVPNBotV1.Services.DataServices.Interfaces;
-using DataGateVPNBotV1.Services.Interfaces;
 using DataGateVPNBotV1.Services.UntilsServices.Interfaces;
 
 namespace DataGateVPNBotV1.Services.BotServices;
@@ -49,7 +48,8 @@ public class OpenVpnClientService : IOpenVpnClientService
 
         foreach (var issuedOvpnFile in issuedOvpnFiles)
         {
-            string existingOvpnFilePath = Path.Combine(_openVpnSettings.OutputDir, issuedOvpnFile!.FileName);
+            if (issuedOvpnFile.FileName == string.Empty) throw new Exception("File name is empty.");
+            string existingOvpnFilePath = Path.Combine(_openVpnSettings.OutputDir, issuedOvpnFile.FileName);
             _logger.LogInformation("Checking existence of file: {FilePath}", existingOvpnFilePath);
 
             if (File.Exists(existingOvpnFilePath))
@@ -175,7 +175,38 @@ public class OpenVpnClientService : IOpenVpnClientService
 
         await SetIsRevokeIssuedOvpnFile(issuedOvpnFile.Id, telegramId, revokedFilePath, issuedOvpnFile.CertName, message);
         _logger.LogInformation("Updated database for revoked certificate: {CertName}, Telegram ID: {TelegramId}", issuedOvpnFile.CertName, telegramId);
+    }
+    
+    public bool CheckHealthFileSystem()
+    {
+        _easyRsaService.InstallEasyRsa();
+        if (string.IsNullOrEmpty(_openVpnSettings.ServerIp))
+            throw new ArgumentNullException(nameof(_openVpnSettings.ServerIp));
+        
+        Directory.CreateDirectory(_openVpnSettings.OutputDir);
+        Directory.CreateDirectory(_revokedDirPath);
+        
+        if (!Directory.Exists(_openVpnSettings.OutputDir))
+        {
+            throw new FileNotFoundException("The output directory could not be found.");
+        }
+        if (!Directory.Exists(_revokedDirPath))
+        {
+            throw new FileNotFoundException("Revoked folder not found");
+        }
+        
+        string indexFilePath = Path.Combine(_pkiPath, "index.txt");
+        if (!File.Exists(indexFilePath))
+        {
+            throw new FileNotFoundException($"Index file not found at path: {indexFilePath}");
+        }
 
+        if (string.IsNullOrEmpty(_caCetrPath))
+            throw new ArgumentNullException(nameof(_caCetrPath));
+        if (string.IsNullOrEmpty(_openVpnSettings.TlsAuthKey))
+            throw new ArgumentNullException(nameof(_openVpnSettings.TlsAuthKey));
+
+        return true;
     }
 
     private string MoveRevokedOvpnFile(IssuedOvpnFile issuedOvpnFile)
@@ -244,39 +275,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         var prefix = environment != "Production" ? $"{environment}_" : string.Empty;
         return $"{prefix}{fileName}_{attempt}";
     }
-
-    private bool CheckHealthFileSystem()
-    {
-        _easyRsaService.InstallEasyRsa();
-        if (string.IsNullOrEmpty(_openVpnSettings.ServerIp))
-            throw new ArgumentNullException(nameof(_openVpnSettings.ServerIp));
-        
-        Directory.CreateDirectory(_openVpnSettings.OutputDir);
-        Directory.CreateDirectory(_revokedDirPath);
-        
-        if (!Directory.Exists(_openVpnSettings.OutputDir))
-        {
-            throw new FileNotFoundException("The output directory could not be found.");
-        }
-        if (!Directory.Exists(_revokedDirPath))
-        {
-            throw new FileNotFoundException("Revoked folder not found");
-        }
-        
-        string indexFilePath = Path.Combine(_pkiPath, "index.txt");
-        if (!File.Exists(indexFilePath))
-        {
-            throw new FileNotFoundException($"Index file not found at path: {indexFilePath}");
-        }
-
-        if (string.IsNullOrEmpty(_caCetrPath))
-            throw new ArgumentNullException(nameof(_caCetrPath));
-        if (string.IsNullOrEmpty(_openVpnSettings.TlsAuthKey))
-            throw new ArgumentNullException(nameof(_openVpnSettings.TlsAuthKey));
-
-        return false;
-    }
-
+    
     private static string GenerateOvpnFile(string serverIp, string caCert, string clientCert, 
         string clientKey, string tlsAuthKey)
     {
