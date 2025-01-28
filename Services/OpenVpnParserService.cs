@@ -84,12 +84,12 @@ public class OpenVpnParserService : IOpenVpnParserService
         var lines = File.ReadAllLines(filePath);
         foreach (var line in lines)
         {
-            Console.WriteLine($"Processing line: {line}");
+            _logger.LogInformation($"Processing line: {line}");
 
             if (line.StartsWith("CLIENT_LIST"))
             {
                 var parts = line.Split('\t');
-                Console.WriteLine($"Split parts: {string.Join(" | ", parts)}");
+                _logger.LogInformation($"Split parts: {string.Join(" | ", parts)}");
 
                 if (parts.Length >= 13)
                 {
@@ -109,13 +109,13 @@ public class OpenVpnParserService : IOpenVpnParserService
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error parsing line: {line}");
-                        Console.WriteLine($"Exception: {ex.Message}");
+                        _logger.LogError($"Error parsing line: {line}");
+                        _logger.LogError($"Exception: {ex.Message}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"Skipping malformed line: {line}");
+                    _logger.LogInformation($"Skipping malformed line: {line}");
                 }
             }
         }
