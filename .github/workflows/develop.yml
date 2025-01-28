@@ -57,4 +57,5 @@ jobs:
           -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
           -v /etc/openvpn/clients:/etc/openvpn/clients \
           -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
+          -v /var/log/openvpn-status.log:/var/log/openvpn-status.log \
           datagatevpn-develop

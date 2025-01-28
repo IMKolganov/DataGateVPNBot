@@ -1,6 +1,6 @@
 ﻿using DataGateVPNBotV1.Models.Enums;
 
-namespace DataGateVPNBotV1.Services.Interfaces;
+namespace DataGateVPNBotV1.Services.DataServices.Interfaces;
 
 public interface ILocalizationService
 {

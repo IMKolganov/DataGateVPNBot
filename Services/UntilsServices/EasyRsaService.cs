@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using DataGateVPNBotV1.Models.Helpers;
-using DataGateVPNBotV1.Services.Interfaces;
+using DataGateVPNBotV1.Services.UntilsServices.Interfaces;
 
-namespace DataGateVPNBotV1.Services;
+namespace DataGateVPNBotV1.Services.UntilsServices;
 
 public class EasyRsaService : IEasyRsaService
 {
@@ -60,6 +60,7 @@ public class EasyRsaService : IEasyRsaService
         {
             _logger.LogInformation("PKI directory does not exist. Initializing PKI...");
             RunCommand($"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa init-pki");
+            throw new Exception("PKI directory does not exist.");
         }
         else
         {
@@ -67,11 +68,107 @@ public class EasyRsaService : IEasyRsaService
         }
     }
 
-    public void BuildCertificate(string certName = "client1")
+    public CertificateResult BuildCertificate(string baseFileName = "client1")
     {
-        RunCommand($"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa build-client-full {certName} nopass");
+        var command = $"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa build-client-full {baseFileName} nopass";
+        var (output, error, exitCode) = RunCommand(command);
+
+        if (exitCode != 0)
+        {
+            throw new Exception($"Error while building certificate: {error}");
+        }
+        _logger.LogInformation($"Certificate generated successfully:\n{output}");
+
+        var certPath = Path.Combine(_pkiPath, "issued", $"{baseFileName}.crt");
+        var certificateInfoInIndexFile = FindAllCertificateInfoInIndexFile(baseFileName);
+        if (certificateInfoInIndexFile.Count <= 0)
+        {
+            throw new Exception($"Error certificate is not found in CA {certPath}");
+        }
+        if (!certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber.Contains(CheckCertInOpenssl(certPath)))
+        {
+            throw new Exception($"Certificate serial number " +
+                                $"{certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber} is invalid.");
+        }
+        var pemSerialPath = Path.Combine(_pkiPath, "certs_by_serial", 
+            $"{certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber}.pem");
+
+        _logger.LogInformation($"Certificate path: {pemSerialPath}");
+        return new CertificateResult
+        {
+            CertificatePath = certPath,
+            KeyPath = Path.Combine(_pkiPath, "private", $"{baseFileName}.key"),
+            RequestPath = Path.Combine(_pkiPath, "reqs", $"{baseFileName}.req"),
+            PemPath = pemSerialPath,
+            CertId = certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber
+        };
     }
 
+    private string CheckCertInOpenssl(string certPath)
+    {
+        var certPathCommand = $"openssl x509 -in {certPath} -serial -noout";
+        var (certOutput, certError, certExitCode) = RunCommand(certPathCommand);
+
+        if (certExitCode != 0)
+        {
+            throw new Exception($"Error occurred while retrieving certificate serial: {certError}");
+        }
+
+        var serial = certOutput.Split('=')[1].Trim();
+        _logger.LogInformation($"Certificate serial retrieved:\n{serial} Full response: \n{certOutput}");
+        return serial;
+    }
+
+    #region CA index.txt - batabase CA for all sertificate 
+    // parts[3] - serial number
+    // CN (Common Name) is a field that specifies the 
+    // common name of the subject in the certificate. It is used to identify
+    // the client or server and is part of X.509 certificates used in OpenVPN
+    // and other systems for authentication.
+    // V	555555555555Z		5D5C5F5555D555F5555C5C5555555B5C	unknown	/CN=imkolganov
+    public List<CertificateCaInfo> FindAllCertificateInfoInIndexFile(string baseFileName)
+    {
+        var result = new List<CertificateCaInfo>();
+        string indexFilePath = Path.Combine(_pkiPath, "index.txt");
+
+        foreach (var line in File.ReadLines(indexFilePath))
+        {
+            if (line.StartsWith("V") && line.Contains($"/CN={baseFileName}"))
+            {
+                var parts = line.Split('\t');
+                if (parts.Length >= 5)
+                {
+                    result.Add(new CertificateCaInfo
+                    {
+                        Status = parts[1],
+                        // ExpiryDate = ParseExpiryDate(parts[2]),
+                        SerialNumber = parts[3],
+                        UnknownField = parts[4],
+                        CommonName = parts[5].StartsWith("/CN=") ? parts[5].Substring(4) : parts[5]
+                    });
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // private DateTime ParseExpiryDate(string dateString)
+    // {
+    //     // date format from index.txt: "250128120000Z" (YYMMDDHHMMSSZ)
+    //     if (DateTime.TryParseExact(dateString.Substring(0, dateString.Length - 1), 
+    //             "yyMMddHHmmss", 
+    //             null, 
+    //             System.Globalization.DateTimeStyles.AssumeUniversal, 
+    //             out var date))
+    //     {
+    //         return date;
+    //     }
+    //
+    //     throw new FormatException($"Invalid date format: {dateString}");
+    // }
+    
+    #endregion
     public string ReadPemContent(string filePath)
     {
         var lines = File.ReadAllLines(filePath);
@@ -87,8 +184,9 @@ public class EasyRsaService : IEasyRsaService
         var certPath = Path.Combine(_pkiPath, "issued", $"{clientName}.crt");
         if (!File.Exists(certPath))
         {
-            _logger.LogError($"Certificate file not found: {certPath}");
-            return $"Certificate file not found: {certPath}";
+            _logger.LogInformation($"EasyRsa path: {_openVpnSettings.EasyRsaPath}");
+            _logger.LogInformation($"PKI path: {_pkiPath}");
+            throw new Exception($"Certificate file not found: {certPath}");
         }
 
         _logger.LogInformation($"Attempting to revoke certificate for: {clientName}");
@@ -160,36 +258,8 @@ public class EasyRsaService : IEasyRsaService
                 throw new Exception($"Failed to copy CRL file: {copyResult.Error}");
             }
 
+            _logger.LogInformation($"copyResult - {copyResult}");
             _logger.LogInformation($"CRL copied to {_openVpnSettings.CrlOpenvpnPath}");
-
-            // Update permissions for the CRL file
-            string chmodCommand = $"chmod 644 {_openVpnSettings.CrlOpenvpnPath}";
-            var chmodResult = RunCommand(chmodCommand);
-
-            if (chmodResult.ExitCode != 0)
-            {
-                resultmessage += $"Failed to set permissions on CRL file: {chmodResult.Error}";
-                _logger.LogWarning($"Failed to set permissions on CRL file: {chmodResult.Error}");
-            }
-            else
-            {
-                resultmessage += "CRL permissions updated successfully.";
-                _logger.LogInformation("CRL permissions updated successfully.");
-            }
-            
-            string chownCommand = $"chown openvpn:openvpn {_openVpnSettings.CrlOpenvpnPath}";
-            var chownResult = RunCommand(chownCommand);
-
-            if (chownResult.ExitCode != 0)
-            {
-                resultmessage += $"Failed to change owner of CRL file: {chownResult.Error}";
-                _logger.LogWarning($"Failed to change owner of CRL file: {chownResult.Error}");
-            }
-            else
-            {
-                resultmessage += "CRL ownership updated successfully.";
-                _logger.LogInformation("CRL ownership updated successfully.");
-            }
         }
         catch (Exception ex)
         {

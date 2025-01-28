@@ -1,5 +1,7 @@
 using DataGateVPNBotV1.Models.Configurations;
 using DataGateVPNBotV1.Models.Enums;
+using DataGateVPNBotV1.Services.BotServices.Interfaces;
+using DataGateVPNBotV1.Services.DataServices.Interfaces;
 using DataGateVPNBotV1.Services.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -41,7 +43,7 @@ public partial class TelegramUpdateHandler : IUpdateHandler
     public async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception,
         HandleErrorSource source, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("HandleError: {Exception}", exception);
+        _logger.LogCritical("HandleError: {Exception}", exception);
         using var scope = _serviceProvider.CreateScope();
         var errorService = scope.ServiceProvider.GetRequiredService<IErrorService>();
 

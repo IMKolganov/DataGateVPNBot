@@ -1,9 +1,10 @@
 ﻿using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
-using DataGateVPNBotV1.Services.Interfaces;
+using DataGateVPNBotV1.Models.Helpers;
+using DataGateVPNBotV1.Services.DataServices.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace DataGateVPNBotV1.Services;
+namespace DataGateVPNBotV1.Services.DataServices;
 
 public class IssuedOvpnFileService : IIssuedOvpnFileService
 {
@@ -14,21 +15,21 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         _dbContext = dbContext;
     }
 
-    public async Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, string crtPath, 
-        string keyPath, string reqPath, string pemPath)
+    public async Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, CertificateResult certificateResult)
     {
         var issuedFile = new IssuedOvpnFile()
         {
             TelegramId = telegramId,
             CertName = Path.GetFileNameWithoutExtension(fileInfo.Name),
+            CertId = certificateResult.CertId,
             FileName = fileInfo.Name,
             FilePath = fileInfo.FullName,
             IssuedAt = DateTime.UtcNow,
             IssuedTo = "TgBotUsers",
-            CertFilePath = crtPath,
-            KeyFilePath = keyPath,
-            ReqFilePath = reqPath,
-            PemFilePath = pemPath,
+            CertFilePath = certificateResult.CertificatePath,
+            KeyFilePath = certificateResult.KeyPath,
+            ReqFilePath = certificateResult.RequestPath,
+            PemFilePath = certificateResult.PemPath,
             IsRevoked = false
         };
         
@@ -85,6 +86,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         {
             existingFile.TelegramId = issuedFile.TelegramId;
             existingFile.CertName = issuedFile.CertName;
+            existingFile.CertId = issuedFile.CertId;
             existingFile.FileName = issuedFile.FileName;
             existingFile.FilePath = issuedFile.FilePath;
             existingFile.IssuedAt = issuedFile.IssuedAt;

@@ -3,6 +3,7 @@ using System;
 using DataGateVPNBotV1.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataGateVPNBotV1.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250127042240_OpenVpnUserStatistic_SessionId")]
+    partial class OpenVpnUserStatistic_SessionId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -113,11 +116,6 @@ namespace DataGateVPNBotV1.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
-
-                    b.Property<string>("CertId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("CertName")
                         .IsRequired()
@@ -574,27 +572,6 @@ namespace DataGateVPNBotV1.Migrations
                             Key = "WhatIsRaspberryPi",
                             Language = 2,
                             Text = "Τι είναι το Raspberry Pi;"
-                        },
-                        new
-                        {
-                            Id = 58,
-                            Key = "CertCriticalError",
-                            Language = 1,
-                            Text = "Critical error. Something wrong with certification service. Now we stop all processing, please try again later."
-                        },
-                        new
-                        {
-                            Id = 59,
-                            Key = "CertCriticalError",
-                            Language = 3,
-                            Text = "Критическая ошибка. Что-то пошло не так в сервисе сертификации. Все операции остановлены, пожалуйста, попробуйте позже."
-                        },
-                        new
-                        {
-                            Id = 60,
-                            Key = "CertCriticalError",
-                            Language = 2,
-                            Text = "Κρίσιμο σφάλμα. Κάτι πήγε στραβά με την υπηρεσία πιστοποίησης. Τώρα σταματάμε όλες τις διαδικασίες, παρακαλώ δοκιμάστε αργότερα."
                         });
                 });
 
