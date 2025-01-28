@@ -114,6 +114,7 @@ public class OpenVpnClientService : IOpenVpnClientService
             _logger.LogInformation("Step 1.4: Final file path determined: {OvpnFilePath}. Proceeding with configuration creation.", ovpnFilePath);
 
             _logger.LogInformation("Step 2: Building client certificate...");
+            RevokeCertByCnName(baseFileName);//remove old certs with this CN name if we have
             var certificateResult =_easyRsaService.BuildCertificate($"{baseFileName}");
 
             _logger.LogInformation("Step 3: Defining paths to certificates and keys...");
@@ -178,6 +179,27 @@ public class OpenVpnClientService : IOpenVpnClientService
             issuedOvpnFile.CertName, message);
         _logger.LogInformation($"Updated database for revoked certificate: {issuedOvpnFile.CertName}, " +
                                $"Telegram ID: {telegramId}");
+    }
+
+    private void RevokeCertByCnName(string baseFileName)
+    {
+        //looking for another cert with the same CN
+        var oldCertSerials = _easyRsaService.FindAllCertificateInfoInIndexFile(baseFileName);
+        foreach (var oldCertSerial in oldCertSerials)
+        {
+            _logger.LogInformation($"Older certificate found: {oldCertSerial}");
+            
+            string message = _easyRsaService.RevokeCertificate(oldCertSerial.CommonName);
+            _logger.LogInformation($"Revoke old certificate result: {message} for CertName: {baseFileName}, " +
+                                   $"Serial:{oldCertSerial.SerialNumber}");
+        }
+        oldCertSerials.Clear();
+        var certInfoInIndexFile = _easyRsaService.FindAllCertificateInfoInIndexFile(baseFileName);
+        if (certInfoInIndexFile.Count >= 1)
+        {
+            throw new Exception($"Conflict in index.txt. Please check index.txt CA for client {baseFileName}," +
+                                $"{certInfoInIndexFile.FirstOrDefault()?.SerialNumber}");
+        }
     }
     
     public bool CheckHealthFileSystem()

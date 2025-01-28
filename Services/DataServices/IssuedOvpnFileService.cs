@@ -21,6 +21,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         {
             TelegramId = telegramId,
             CertName = Path.GetFileNameWithoutExtension(fileInfo.Name),
+            CertId = certificateResult.CertId,
             FileName = fileInfo.Name,
             FilePath = fileInfo.FullName,
             IssuedAt = DateTime.UtcNow,
@@ -85,6 +86,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         {
             existingFile.TelegramId = issuedFile.TelegramId;
             existingFile.CertName = issuedFile.CertName;
+            existingFile.CertId = issuedFile.CertId;
             existingFile.FileName = issuedFile.FileName;
             existingFile.FilePath = issuedFile.FilePath;
             existingFile.IssuedAt = issuedFile.IssuedAt;

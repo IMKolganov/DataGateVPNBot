@@ -70,25 +70,6 @@ public class EasyRsaService : IEasyRsaService
 
     public CertificateResult BuildCertificate(string baseFileName = "client1")
     {
-        //looking for another cert with the same CN
-        var oldCertSerials = FindAllCertificateInfoInIndexFile(baseFileName);
-        foreach (var oldCertSerial in oldCertSerials)
-        {
-            _logger.LogInformation($"Older certificate found: {oldCertSerial}");
-            
-            string message = RevokeCertificate(oldCertSerial.CommonName);
-            _logger.LogInformation($"Revoke old certificate result: {message} for CertName: {baseFileName}, " +
-                                   $"Serial:{oldCertSerial.SerialNumber}");
-        }
-        oldCertSerials.Clear();
-        var certInfoInIndexFile = FindAllCertificateInfoInIndexFile(baseFileName);
-        if (certInfoInIndexFile.Count >= 1)
-        {
-            throw new Exception($"Conflict in index.txt. Please check index.txt CA for client {baseFileName}," +
-                                $"{certInfoInIndexFile.FirstOrDefault()?.SerialNumber}");
-        }
-        
-        
         var command = $"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa build-client-full {baseFileName} nopass";
         var (output, error, exitCode) = RunCommand(command);
 
@@ -118,7 +99,8 @@ public class EasyRsaService : IEasyRsaService
             CertificatePath = certPath,
             KeyPath = Path.Combine(_pkiPath, "private", $"{baseFileName}.key"),
             RequestPath = Path.Combine(_pkiPath, "reqs", $"{baseFileName}.req"),
-            PemPath = pemSerialPath
+            PemPath = pemSerialPath,
+            CertId = certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber
         };
     }
 
@@ -144,7 +126,7 @@ public class EasyRsaService : IEasyRsaService
     // the client or server and is part of X.509 certificates used in OpenVPN
     // and other systems for authentication.
     // V	555555555555Z		5D5C5F5555D555F5555C5C5555555B5C	unknown	/CN=imkolganov
-    private List<CertificateCaInfo> FindAllCertificateInfoInIndexFile(string baseFileName)
+    public List<CertificateCaInfo> FindAllCertificateInfoInIndexFile(string baseFileName)
     {
         var result = new List<CertificateCaInfo>();
         string indexFilePath = Path.Combine(_pkiPath, "index.txt");
