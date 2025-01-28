@@ -1,8 +1,8 @@
 ﻿#!/bin/bash
 
 # Specify the old and new schema names
-OLD_SCHEMA="xgb_botvpnprod"
-NEW_SCHEMA="xgb_botvpndev"
+OLD_SCHEMA="xgb_botvpndev"
+NEW_SCHEMA="xgb_botvpnprod"
 
 # Get the current directory (assumes the script is in the migrations folder)
 MIGRATIONS_FOLDER=$(pwd)
