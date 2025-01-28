@@ -162,7 +162,7 @@ public class EasyRsaService : IEasyRsaService
                         // ExpiryDate = ParseExpiryDate(parts[2]),
                         SerialNumber = parts[3],
                         UnknownField = parts[4],
-                        CommonName = parts[5]
+                        CommonName = parts[5].StartsWith("/CN") ? parts[5].Substring(3) : parts[5]
                     });
                 }
             }
