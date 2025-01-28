@@ -155,11 +155,11 @@ public class EasyRsaService : IEasyRsaService
                 {
                     result.Add(new CertificateCaInfo
                     {
-                        Status = parts[0],
-                        // ExpiryDate = ParseExpiryDate(parts[1]),
-                        SerialNumber = parts[2],
-                        UnknownField = parts[3],
-                        CommonName = parts[4]
+                        Status = parts[1],
+                        // ExpiryDate = ParseExpiryDate(parts[2]),
+                        SerialNumber = parts[3],
+                        UnknownField = parts[4],
+                        CommonName = parts[5]
                     });
                 }
             }
