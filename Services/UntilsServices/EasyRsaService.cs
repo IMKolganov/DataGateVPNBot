@@ -77,12 +77,15 @@ public class EasyRsaService : IEasyRsaService
             _logger.LogInformation($"Older certificate found: {oldCertSerial}");
             
             string message = RevokeCertificate(oldCertSerial.CommonName);
-            _logger.LogInformation($"RevokeCertificate result: {message} for CertName: {baseFileName}");
+            _logger.LogInformation($"RevokeCertificate result: {message} for CertName: {baseFileName}, " +
+                                   $"Serial:{oldCertSerial.SerialNumber}");
         }
         oldCertSerials.Clear();
-        if (FindAllCertificateInfoInIndexFile(baseFileName).Count >= 1)
+        var certInfoInIndexFile = FindAllCertificateInfoInIndexFile(baseFileName);
+        if (certInfoInIndexFile.Count >= 1)
         {
-            throw new Exception($"Conflict in index.txt. Please check index.txt CA for client {baseFileName}");
+            throw new Exception($"Conflict in index.txt. Please check index.txt CA for client {baseFileName}," +
+                                $"{certInfoInIndexFile.FirstOrDefault()?.SerialNumber}");
         }
         
         
