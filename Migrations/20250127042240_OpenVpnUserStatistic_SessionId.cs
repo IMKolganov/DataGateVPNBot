@@ -13,12 +13,12 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "TelegramId",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics");
 
             migrationBuilder.AlterColumn<string>(
                 name: "RealAddress",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics",
                 type: "character varying(255)",
                 maxLength: 255,
@@ -29,7 +29,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "CommonName",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics",
                 type: "character varying(255)",
                 maxLength: 255,
@@ -40,7 +40,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "LastUpdated",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics",
                 type: "timestamp with time zone",
                 nullable: false,
@@ -48,7 +48,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.AddColumn<Guid>(
                 name: "SessionId",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics",
                 type: "uuid",
                 nullable: false,
@@ -60,17 +60,17 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "LastUpdated",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics");
 
             migrationBuilder.DropColumn(
                 name: "SessionId",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics");
 
             migrationBuilder.AlterColumn<string>(
                 name: "RealAddress",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics",
                 type: "character varying(100)",
                 maxLength: 100,
@@ -81,7 +81,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "CommonName",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics",
                 type: "character varying(100)",
                 maxLength: 100,
@@ -92,7 +92,7 @@ namespace DataGateVPNBotV1.Migrations
 
             migrationBuilder.AddColumn<long>(
                 name: "TelegramId",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "OpenVpnUserStatistics",
                 type: "bigint",
                 nullable: false,

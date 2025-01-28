@@ -14,7 +14,7 @@ namespace DataGateVPNBotV1.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "CertId",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "IssuedOvpnFiles",
                 type: "character varying(255)",
                 maxLength: 255,
@@ -22,7 +22,7 @@ namespace DataGateVPNBotV1.Migrations
                 defaultValue: "");
 
             migrationBuilder.InsertData(
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "LocalizationTexts",
                 columns: new[] { "Id", "Key", "Language", "Text" },
                 values: new object[,]
@@ -37,26 +37,26 @@ namespace DataGateVPNBotV1.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 58);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 59);
 
             migrationBuilder.DeleteData(
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "LocalizationTexts",
                 keyColumn: "Id",
                 keyValue: 60);
 
             migrationBuilder.DropColumn(
                 name: "CertId",
-                schema: "xgb_botvpndev",
+                schema: "xgb_botvpnprod",
                 table: "IssuedOvpnFiles");
         }
     }
