@@ -192,7 +192,7 @@ public partial class TelegramUpdateHandler
     {
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: await GetLocalizationTextAsync("ChooseFileForDelete", msg.From!.Id),
+            text: await GetLocalizationTextAsync("CertCriticalError", msg.From!.Id),
             replyMarkup: new ReplyKeyboardRemove()
         );
     }

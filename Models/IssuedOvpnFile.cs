@@ -10,6 +10,7 @@ public class IssuedOvpnFile
     public long TelegramId { get; set; }
     [Required]
     public string CertName { get; set; } = null!;
+    public string CertId { get; set; } = string.Empty;
     public string FileName { get; set; } = null!;
 
     public string FilePath { get; set; } = null!;

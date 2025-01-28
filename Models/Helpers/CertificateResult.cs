@@ -6,4 +6,5 @@ public class CertificateResult
     public string KeyPath { get; set; } = string.Empty;
     public string RequestPath { get; set; } = string.Empty;
     public string PemPath { get; set; } = string.Empty;
+    public string CertId { get; set; }
 }

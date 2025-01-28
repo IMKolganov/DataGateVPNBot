@@ -6,13 +6,11 @@ namespace DataGateVPNBotV1.Contexts;
 
 public class ApplicationDbContext : DbContext
 {
-    private readonly IConfiguration _configuration;
     private readonly string _defaultSchema;
     
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IConfiguration configuration)
         : base(options)
     {
-        _configuration = configuration;
         _defaultSchema = configuration["DataBaseSettings:DefaultSchema"] ?? throw new InvalidOperationException();
     }
     
@@ -43,7 +41,10 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CertName)
                 .IsRequired()
                 .HasMaxLength(255);
-
+            
+            entity.Property(e => e.CertId)
+                .HasMaxLength(255);
+            
             entity.Property(e => e.FileName)
                 .IsRequired()
                 .HasMaxLength(255);
@@ -202,7 +203,11 @@ public class ApplicationDbContext : DbContext
 
             new LocalizationText { Id = 55, Key = "WhatIsRaspberryPi", Language = Language.English, Text = "What is Raspberry Pi?" },
             new LocalizationText { Id = 56, Key = "WhatIsRaspberryPi", Language = Language.Russian, Text = "Что такое Raspberry Pi?" },
-            new LocalizationText { Id = 57, Key = "WhatIsRaspberryPi", Language = Language.Greek, Text = "Τι είναι το Raspberry Pi;" }
+            new LocalizationText { Id = 57, Key = "WhatIsRaspberryPi", Language = Language.Greek, Text = "Τι είναι το Raspberry Pi;" },
+            
+            new LocalizationText { Id = 58, Key = "CertCriticalError", Language = Language.English, Text = "Critical error. Something wrong with certification service. Now we stop all processing, please try again later." },
+            new LocalizationText { Id = 59, Key = "CertCriticalError", Language = Language.Russian, Text = "Критическая ошибка. Что-то пошло не так в сервисе сертификации. Все операции остановлены, пожалуйста, попробуйте позже." },
+            new LocalizationText { Id = 60, Key = "CertCriticalError", Language = Language.Greek, Text = "Κρίσιμο σφάλμα. Κάτι πήγε στραβά με την υπηρεσία πιστοποίησης. Τώρα σταματάμε όλες τις διαδικασίες, παρακαλώ δοκιμάστε αργότερα." }
         );
     }
     
