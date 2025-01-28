@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using DataGateVPNBotV1.Models.Helpers;
-using DataGateVPNBotV1.Services.Interfaces;
 using DataGateVPNBotV1.Services.UntilsServices.Interfaces;
 
 namespace DataGateVPNBotV1.Services.UntilsServices;
@@ -71,6 +70,22 @@ public class EasyRsaService : IEasyRsaService
 
     public CertificateResult BuildCertificate(string baseFileName = "client1")
     {
+        //looking for another cert with the same CN
+        var oldCertSerials = FindAllCertificateInfoInIndexFile(baseFileName);
+        foreach (var oldCertSerial in oldCertSerials)
+        {
+            _logger.LogInformation($"Older certificate found: {oldCertSerial}");
+            
+            string message = RevokeCertificate(oldCertSerial.CommonName);
+            _logger.LogInformation($"RevokeCertificate result: {message} for CertName: {baseFileName}");
+        }
+        oldCertSerials.Clear();
+        if (FindAllCertificateInfoInIndexFile(baseFileName).Count >= 1)
+        {
+            throw new Exception($"Conflict in index.txt. Please check index.txt CA for client {baseFileName}");
+        }
+        
+        
         var command = $"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa build-client-full {baseFileName} nopass";
         var (output, error, exitCode) = RunCommand(command);
 
@@ -80,18 +95,24 @@ public class EasyRsaService : IEasyRsaService
         }
         _logger.LogInformation($"Certificate generated successfully:\n{output}");
 
-        string certPath = Path.Combine(_pkiPath, "issued", $"{baseFileName}.crt");
-        string certSerial = FindCertificateSerialInIndexFile(baseFileName);
-        if (!certSerial.Contains(CheckCertInOpenssl(certPath)))
+        var certPath = Path.Combine(_pkiPath, "issued", $"{baseFileName}.crt");
+        var certificateInfoInIndexFile = FindAllCertificateInfoInIndexFile(baseFileName);
+        if (certificateInfoInIndexFile.Count <= 0)
         {
-            throw new Exception($"Certificate serial number {certSerial} is invalid.");
+            throw new Exception($"Error certificate is not found in CA {certPath}");
         }
-        var pemSerialPath = $"{_openVpnSettings.EasyRsaPath}/pki/certs_by_serial/{certSerial}.pem";
+        if (!certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber.Contains(CheckCertInOpenssl(certPath)))
+        {
+            throw new Exception($"Certificate serial number " +
+                                $"{certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber} is invalid.");
+        }
+        var pemSerialPath = Path.Combine(_pkiPath, "certs_by_serial", 
+            $"{certificateInfoInIndexFile.FirstOrDefault()!.SerialNumber}.pem");
 
         _logger.LogInformation($"Certificate path: {pemSerialPath}");
         return new CertificateResult
         {
-            CertificatePath = Path.Combine(_pkiPath, "issued", $"{baseFileName}.crt"),
+            CertificatePath = certPath,
             KeyPath = Path.Combine(_pkiPath, "private", $"{baseFileName}.key"),
             RequestPath = Path.Combine(_pkiPath, "reqs", $"{baseFileName}.req"),
             PemPath = pemSerialPath
@@ -108,30 +129,61 @@ public class EasyRsaService : IEasyRsaService
             throw new Exception($"Error occurred while retrieving certificate serial: {certError}");
         }
 
-        _logger.LogInformation($"Certificate serial retrieved:\n{certOutput}");
         var serial = certOutput.Split('=')[1].Trim();
+        _logger.LogInformation($"Certificate serial retrieved:\n{serial} Full response: \n{certOutput}");
         return serial;
     }
 
-    private string FindCertificateSerialInIndexFile(string baseFileName)
+    #region CA index.txt - batabase CA for all sertificate 
+    // parts[3] - serial number
+    // CN (Common Name) is a field that specifies the 
+    // common name of the subject in the certificate. It is used to identify
+    // the client or server and is part of X.509 certificates used in OpenVPN
+    // and other systems for authentication.
+    // V	555555555555Z		5D5C5F5555D555F5555C5C5555555B5C	unknown	/CN=imkolganov
+    private List<CertificateCaInfo> FindAllCertificateInfoInIndexFile(string baseFileName)
     {
+        var result = new List<CertificateCaInfo>();
         string indexFilePath = Path.Combine(_pkiPath, "index.txt");
 
         foreach (var line in File.ReadLines(indexFilePath))
         {
-            if (line.StartsWith("V") && line.Contains($"/CN={baseFileName}"))
+            if (line.Contains($"/CN={baseFileName}"))
             {
                 var parts = line.Split('\t');
-                if (parts.Length > 2)
+                if (parts.Length >= 5)
                 {
-                    return parts[2];
+                    result.Add(new CertificateCaInfo
+                    {
+                        Status = parts[0],
+                        // ExpiryDate = ParseExpiryDate(parts[1]),
+                        SerialNumber = parts[2],
+                        UnknownField = parts[3],
+                        CommonName = parts[4]
+                    });
                 }
             }
         }
 
-        throw new Exception($"Valid serial number for {baseFileName} not found in index.txt");
+        return result;
     }
 
+    // private DateTime ParseExpiryDate(string dateString)
+    // {
+    //     // date format from index.txt: "250128120000Z" (YYMMDDHHMMSSZ)
+    //     if (DateTime.TryParseExact(dateString.Substring(0, dateString.Length - 1), 
+    //             "yyMMddHHmmss", 
+    //             null, 
+    //             System.Globalization.DateTimeStyles.AssumeUniversal, 
+    //             out var date))
+    //     {
+    //         return date;
+    //     }
+    //
+    //     throw new FormatException($"Invalid date format: {dateString}");
+    // }
+    
+    #endregion
     public string ReadPemContent(string filePath)
     {
         var lines = File.ReadAllLines(filePath);

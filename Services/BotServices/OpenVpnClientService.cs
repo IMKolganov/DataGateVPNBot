@@ -132,7 +132,8 @@ public class OpenVpnClientService : IOpenVpnClientService
             _logger.LogInformation($"Client configuration file created: {ovpnFilePath}");
             var fileInfo = new FileInfo(ovpnFilePath);
             await SaveInfoInDataBase(telegramId, fileInfo, certificateResult);
-            return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId,"HereIsConfig") };
+            return new FileCreationResult { FileInfo = fileInfo, Message = await GetResponseText(telegramId,
+                "HereIsConfig") };
 
         }
         catch (Exception ex)
@@ -169,12 +170,14 @@ public class OpenVpnClientService : IOpenVpnClientService
     private async Task RevokeCert(IssuedOvpnFile issuedOvpnFile, long telegramId)
     {
         string message = _easyRsaService.RevokeCertificate(issuedOvpnFile.CertName);
-        _logger.LogInformation("RevokeCertificate result: {Message} for CertName: {CertName}", message, issuedOvpnFile.CertName);
+        _logger.LogInformation($"RevokeCertificate result: {message} for CertName: {issuedOvpnFile.CertName}");
         string revokedFilePath = MoveRevokedOvpnFile(issuedOvpnFile);
-        _logger.LogInformation("Successfully moved revoked .ovpn file to: {RevokedFilePath}", revokedFilePath);
+        _logger.LogInformation($"Successfully moved revoked .ovpn file to: {revokedFilePath}");
 
-        await SetIsRevokeIssuedOvpnFile(issuedOvpnFile.Id, telegramId, revokedFilePath, issuedOvpnFile.CertName, message);
-        _logger.LogInformation("Updated database for revoked certificate: {CertName}, Telegram ID: {TelegramId}", issuedOvpnFile.CertName, telegramId);
+        await SetIsRevokeIssuedOvpnFile(issuedOvpnFile.Id, telegramId, revokedFilePath, 
+            issuedOvpnFile.CertName, message);
+        _logger.LogInformation($"Updated database for revoked certificate: {issuedOvpnFile.CertName}, " +
+                               $"Telegram ID: {telegramId}");
     }
     
     public bool CheckHealthFileSystem()
@@ -214,7 +217,11 @@ public class OpenVpnClientService : IOpenVpnClientService
         string ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, issuedOvpnFile.FileName);
         
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        var uniqueFileName = $"{Path.GetFileNameWithoutExtension(issuedOvpnFile.FileName)}_{issuedOvpnFile.Id}_{timestamp}{Path.GetExtension(issuedOvpnFile.FileName)}";
+        var uniqueFileName = 
+            $"{Path.GetFileNameWithoutExtension(issuedOvpnFile.FileName)}" +
+            $"_{issuedOvpnFile.Id}" +
+            $"_{timestamp}" +
+            $"{Path.GetExtension(issuedOvpnFile.FileName)}";
 
         string revokedFilePath = Path.Combine(_revokedDirPath, uniqueFileName);
 
