@@ -1,9 +1,11 @@
-﻿namespace DataGateVPNBotV1.Services.Interfaces;
+﻿using DataGateVPNBotV1.Models.Helpers;
+
+namespace DataGateVPNBotV1.Services.UntilsServices.Interfaces;
 
 public interface IEasyRsaService
 {
     void InstallEasyRsa();
-    void BuildCertificate(string certName = "client1");
+    CertificateResult BuildCertificate(string certName = "client1");
     string ReadPemContent(string filePath);
     string RevokeCertificate(string clientName);
 }

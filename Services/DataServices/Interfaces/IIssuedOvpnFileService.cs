@@ -1,11 +1,11 @@
 ﻿using DataGateVPNBotV1.Models;
+using DataGateVPNBotV1.Models.Helpers;
 
 namespace DataGateVPNBotV1.Services.DataServices.Interfaces;
 
 public interface IIssuedOvpnFileService
 {
-    Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, string crtPath, string keyPath, string reqPath,
-        string pemPath);
+    Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, CertificateResult certificateResult);
     Task<IssuedOvpnFile?> GetIssuedOvpnFileByIdAsync(int id);
     Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId);
     Task<IssuedOvpnFile?> GetIssuedOvpnFilesByTelegramAndFileNameIdAsync(long telegramId, string certName);

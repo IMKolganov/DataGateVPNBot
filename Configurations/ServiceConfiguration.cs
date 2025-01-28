@@ -5,6 +5,8 @@ using DataGateVPNBotV1.Services.BotServices.Interfaces;
 using DataGateVPNBotV1.Services.DataServices;
 using DataGateVPNBotV1.Services.DataServices.Interfaces;
 using DataGateVPNBotV1.Services.Interfaces;
+using DataGateVPNBotV1.Services.UntilsServices;
+using DataGateVPNBotV1.Services.UntilsServices.Interfaces;
 
 namespace DataGateVPNBotV1.Configurations;
 

@@ -1,5 +1,6 @@
 ﻿using DataGateVPNBotV1.Contexts;
 using DataGateVPNBotV1.Models;
+using DataGateVPNBotV1.Models.Helpers;
 using DataGateVPNBotV1.Services.DataServices.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,8 +15,7 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         _dbContext = dbContext;
     }
 
-    public async Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, string crtPath, 
-        string keyPath, string reqPath, string pemPath)
+    public async Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, CertificateResult certificateResult)
     {
         var issuedFile = new IssuedOvpnFile()
         {
@@ -25,10 +25,10 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
             FilePath = fileInfo.FullName,
             IssuedAt = DateTime.UtcNow,
             IssuedTo = "TgBotUsers",
-            CertFilePath = crtPath,
-            KeyFilePath = keyPath,
-            ReqFilePath = reqPath,
-            PemFilePath = pemPath,
+            CertFilePath = certificateResult.CertificatePath,
+            KeyFilePath = certificateResult.KeyPath,
+            ReqFilePath = certificateResult.RequestPath,
+            PemFilePath = certificateResult.PemPath,
             IsRevoked = false
         };
         

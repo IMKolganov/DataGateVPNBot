@@ -105,6 +105,9 @@ public partial class TelegramUpdateHandler
 
     private async Task<Message> MakeNewVpnFile(Message msg)
     {
+        // if (check )//todo: need check
+        //throw
+        
         // Generate the client configuration file
         var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.Chat.Id);
         if (clientConfigFile.FileInfo != null)

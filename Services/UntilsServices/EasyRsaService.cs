@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics;
 using DataGateVPNBotV1.Models.Helpers;
 using DataGateVPNBotV1.Services.Interfaces;
+using DataGateVPNBotV1.Services.UntilsServices.Interfaces;
 
-namespace DataGateVPNBotV1.Services;
+namespace DataGateVPNBotV1.Services.UntilsServices;
 
 public class EasyRsaService : IEasyRsaService
 {
@@ -60,6 +61,7 @@ public class EasyRsaService : IEasyRsaService
         {
             _logger.LogInformation("PKI directory does not exist. Initializing PKI...");
             RunCommand($"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa init-pki");
+            throw new Exception("PKI directory does not exist.");
         }
         else
         {
@@ -67,9 +69,67 @@ public class EasyRsaService : IEasyRsaService
         }
     }
 
-    public void BuildCertificate(string certName = "client1")
+    public CertificateResult BuildCertificate(string baseFileName = "client1")
     {
-        RunCommand($"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa build-client-full {certName} nopass");
+        var command = $"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa build-client-full {baseFileName} nopass";
+        var (output, error, exitCode) = RunCommand(command);
+
+        if (exitCode != 0)
+        {
+            throw new Exception($"Error while building certificate: {error}");
+        }
+        _logger.LogInformation($"Certificate generated successfully:\n{output}");
+
+        string certPath = Path.Combine(_pkiPath, "issued", $"{baseFileName}.crt");
+        string certSerial = FindCertificateSerialInIndexFile(baseFileName);
+        if (!certSerial.Contains(CheckCertInOpenssl(certPath)))
+        {
+            throw new Exception($"Certificate serial number {certSerial} is invalid.");
+        }
+        var pemSerialPath = $"{_openVpnSettings.EasyRsaPath}/pki/certs_by_serial/{certSerial}.pem";
+
+        _logger.LogInformation($"Certificate path: {pemSerialPath}");
+        return new CertificateResult
+        {
+            CertificatePath = Path.Combine(_pkiPath, "issued", $"{baseFileName}.crt"),
+            KeyPath = Path.Combine(_pkiPath, "private", $"{baseFileName}.key"),
+            RequestPath = Path.Combine(_pkiPath, "reqs", $"{baseFileName}.req"),
+            PemPath = pemSerialPath
+        };
+    }
+
+    private string CheckCertInOpenssl(string certPath)
+    {
+        var certPathCommand = $"openssl x509 -in {certPath} -serial -noout";
+        var (certOutput, certError, certExitCode) = RunCommand(certPathCommand);
+
+        if (certExitCode != 0)
+        {
+            throw new Exception($"Error occurred while retrieving certificate serial: {certError}");
+        }
+
+        _logger.LogInformation($"Certificate serial retrieved:\n{certOutput}");
+        var serial = certOutput.Split('=')[1].Trim();
+        return serial;
+    }
+
+    private string FindCertificateSerialInIndexFile(string baseFileName)
+    {
+        string indexFilePath = Path.Combine(_pkiPath, "index.txt");
+
+        foreach (var line in File.ReadLines(indexFilePath))
+        {
+            if (line.StartsWith("V") && line.Contains($"/CN={baseFileName}"))
+            {
+                var parts = line.Split('\t');
+                if (parts.Length > 2)
+                {
+                    return parts[2];
+                }
+            }
+        }
+
+        throw new Exception($"Valid serial number for {baseFileName} not found in index.txt");
     }
 
     public string ReadPemContent(string filePath)
