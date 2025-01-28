@@ -20,7 +20,7 @@ namespace DataGateVPNBotV1.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("xgb_botvpnprod")
+                .HasDefaultSchema("xgb_botvpndev")
                 .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -70,7 +70,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("IncomingMessageLog", "xgb_botvpnprod");
+                    b.ToTable("IncomingMessageLog", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.IssuedOvpnFile", b =>
@@ -131,7 +131,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("IssuedOvpnFiles", "xgb_botvpnprod");
+                    b.ToTable("IssuedOvpnFiles", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.LocalizationText", b =>
@@ -156,7 +156,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LocalizationTexts", "xgb_botvpnprod");
+                    b.ToTable("LocalizationTexts", "xgb_botvpndev");
 
                     b.HasData(
                         new
@@ -567,7 +567,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TelegramUsers", "xgb_botvpnprod");
+                    b.ToTable("TelegramUsers", "xgb_botvpndev");
                 });
 
             modelBuilder.Entity("DataGateVPNBotV1.Models.UserLanguagePreference", b =>
@@ -586,7 +586,7 @@ namespace DataGateVPNBotV1.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserLanguagePreferences", "xgb_botvpnprod");
+                    b.ToTable("UserLanguagePreferences", "xgb_botvpndev");
                 });
 #pragma warning restore 612, 618
         }
