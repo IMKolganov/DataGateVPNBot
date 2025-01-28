@@ -260,37 +260,6 @@ public class EasyRsaService : IEasyRsaService
 
             _logger.LogInformation($"copyResult - {copyResult}");
             _logger.LogInformation($"CRL copied to {_openVpnSettings.CrlOpenvpnPath}");
-
-            // Update permissions for the CRL file
-            string chmodCommand = $"chmod 644 {_openVpnSettings.CrlOpenvpnPath}";
-            var chmodResult = RunCommand(chmodCommand);
-
-            if (chmodResult.ExitCode != 0)
-            {
-                resultmessage += $"Failed to set permissions on CRL file: {chmodResult.Error}";
-                _logger.LogWarning($"Failed to set permissions on CRL file: {chmodResult.Error}");
-            }
-            else
-            {
-                resultmessage += "CRL permissions updated successfully.";
-                _logger.LogInformation("CRL permissions updated successfully.");
-            }
-            
-            _logger.LogInformation($"chmodResult - {chmodResult}");
-            
-            string chownCommand = $"chown openvpn:openvpn {_openVpnSettings.CrlOpenvpnPath}";
-            var chownResult = RunCommand(chownCommand);
-            
-            if (chownResult.ExitCode != 0)
-            {
-                resultmessage += $"Failed to change owner of CRL file: {chownResult.Error}";
-                _logger.LogWarning($"Failed to change owner of CRL file: {chownResult.Error}");
-            }
-            else
-            {
-                resultmessage += "CRL ownership updated successfully.";
-                _logger.LogInformation("CRL ownership updated successfully.");
-            }
         }
         catch (Exception ex)
         {
