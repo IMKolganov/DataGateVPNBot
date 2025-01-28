@@ -148,7 +148,7 @@ public class EasyRsaService : IEasyRsaService
 
         foreach (var line in File.ReadLines(indexFilePath))
         {
-            if (line.Contains($"/CN={baseFileName}"))
+            if (line.StartsWith("V") && line.Contains($"/CN={baseFileName}"))
             {
                 var parts = line.Split('\t');
                 if (parts.Length >= 5)
