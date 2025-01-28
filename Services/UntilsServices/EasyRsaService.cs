@@ -77,7 +77,7 @@ public class EasyRsaService : IEasyRsaService
             _logger.LogInformation($"Older certificate found: {oldCertSerial}");
             
             string message = RevokeCertificate(oldCertSerial.CommonName);
-            _logger.LogInformation($"RevokeCertificate result: {message} for CertName: {baseFileName}, " +
+            _logger.LogInformation($"Revoke old certificate result: {message} for CertName: {baseFileName}, " +
                                    $"Serial:{oldCertSerial.SerialNumber}");
         }
         oldCertSerials.Clear();
@@ -202,8 +202,9 @@ public class EasyRsaService : IEasyRsaService
         var certPath = Path.Combine(_pkiPath, "issued", $"{clientName}.crt");
         if (!File.Exists(certPath))
         {
-            _logger.LogError($"Certificate file not found: {certPath}");
-            return $"Certificate file not found: {certPath}";
+            _logger.LogInformation($"EasyRsa path: {_openVpnSettings.EasyRsaPath}");
+            _logger.LogInformation($"PKI path: {_pkiPath}");
+            throw new Exception($"Certificate file not found: {certPath}");
         }
 
         _logger.LogInformation($"Attempting to revoke certificate for: {clientName}");
