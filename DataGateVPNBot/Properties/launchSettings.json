@@ -1,0 +1,24 @@
+﻿{
+  "profiles": {
+    "DataGateVPNBot Development": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5050;https://localhost:8443",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "DataGateVPNBot Release": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5050;https://localhost:8443",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": ""
+      }
+    }
+  }
+}
