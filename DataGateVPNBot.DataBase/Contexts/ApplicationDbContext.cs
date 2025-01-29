@@ -1,8 +1,9 @@
 ﻿using DataGateVPNBot.Models;
 using DataGateVPNBot.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
-namespace DataGateVPNBot.Contexts;
+namespace DataGateVPNBot.DataBase.Contexts;
 
 public class ApplicationDbContext : DbContext
 {

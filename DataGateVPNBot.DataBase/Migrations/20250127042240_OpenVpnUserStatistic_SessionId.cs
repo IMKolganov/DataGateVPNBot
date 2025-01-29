@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace DataGateVPNBot.Migrations
+namespace DataGateVPNBot.DataBase.Migrations
 {
     /// <inheritdoc />
     public partial class OpenVpnUserStatistic_SessionId : Migration

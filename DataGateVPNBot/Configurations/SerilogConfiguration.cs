@@ -1,5 +1,4 @@
-﻿using DataGateVPNBot.Contexts;
-using DataGateVPNBot.Models.Helpers;
+﻿using DataGateVPNBot.Models.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Sinks.Elasticsearch;

@@ -1,4 +1,4 @@
-﻿using DataGateVPNBot.Contexts;
+﻿using DataGateVPNBot.DataBase.Contexts;
 using DataGateVPNBot.Models.Helpers;
 using Microsoft.EntityFrameworkCore;
 

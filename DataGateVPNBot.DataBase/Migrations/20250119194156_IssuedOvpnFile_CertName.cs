@@ -2,29 +2,26 @@
 
 #nullable disable
 
-namespace DataGateVPNBot.Migrations
+namespace DataGateVPNBot.DataBase.Migrations
 {
-    /// <inheritdoc />
-    public partial class IssuedOvpnFileMessage : Migration
+    public partial class IssuedOvpnFile_CertName : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "Message",
+                name: "CertName",
                 schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles",
-                type: "character varying(500)",
-                maxLength: 500,
+                type: "character varying(255)",
+                maxLength: 255,
                 nullable: false,
                 defaultValue: "");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Message",
+                name: "CertName",
                 schema: "xgb_botvpndev",
                 table: "IssuedOvpnFiles");
         }

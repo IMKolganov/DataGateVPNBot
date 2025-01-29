@@ -4,7 +4,7 @@
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace DataGateVPNBot.Migrations
+namespace DataGateVPNBot.DataBase.Migrations
 {
     /// <inheritdoc />
     public partial class IssuedOvpnFile_CertId : Migration

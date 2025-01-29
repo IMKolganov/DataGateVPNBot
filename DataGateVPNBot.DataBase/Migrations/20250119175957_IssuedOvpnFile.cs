@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace DataGateVPNBot.Migrations
+namespace DataGateVPNBot.DataBase.Migrations
 {
     public partial class IssuedOvpnFile : Migration
     {

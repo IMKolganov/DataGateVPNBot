@@ -36,4 +36,9 @@
       </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\DataGateVPNBot.DataBase\DataGateVPNBot.DataBase.csproj" />
+      <ProjectReference Include="..\DataGateVPNBot.Models\DataGateVPNBot.Models.csproj" />
+    </ItemGroup>
+
 </Project>

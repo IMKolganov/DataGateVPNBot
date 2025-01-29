@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using DataGateVPNBot.Contexts;
+using DataGateVPNBot.DataBase.Contexts;
 using DataGateVPNBot.Models;
 using DataGateVPNBot.Models.Helpers;
 using DataGateVPNBot.Services.Interfaces;

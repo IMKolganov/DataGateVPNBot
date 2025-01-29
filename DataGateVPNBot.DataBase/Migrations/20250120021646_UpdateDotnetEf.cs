@@ -2,10 +2,10 @@
 
 #nullable disable
 
-namespace DataGateVPNBot.Migrations
+namespace DataGateVPNBot.DataBase.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateEFToNet8 : Migration
+    public partial class UpdateDotnetEf : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

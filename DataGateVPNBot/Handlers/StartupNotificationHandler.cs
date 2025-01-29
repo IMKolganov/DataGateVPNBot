@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using DataGateVPNBot.Contexts;
 using DataGateVPNBot.Services.Interfaces;
 using Telegram.Bot;
 
