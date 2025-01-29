@@ -1,4 +1,9 @@
 ﻿using DataGateVPNBot.DataBase.Contexts;
+using DataGateVPNBot.DataBase.Repositories;
+using DataGateVPNBot.DataBase.Repositories.Interfaces;
+using DataGateVPNBot.DataBase.Repositories.Queries;
+using DataGateVPNBot.DataBase.Repositories.Queries.Interfaces;
+using DataGateVPNBot.DataBase.UnitOfWork;
 using DataGateVPNBot.Models.Helpers;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,5 +28,11 @@ public static class DataBaseConfigurations
                 )
             );
         });
+        
+        services.AddScoped<IRepositoryFactory, RepositoryFactory>();
+        services.AddScoped<IQueryFactory, QueryFactory>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        
+        services.AddScoped<ITelegramUserQuery, TelegramUserQuery>();
     }
 }

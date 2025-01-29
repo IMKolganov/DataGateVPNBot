@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using DataGateVPNBot.Services;
 using DataGateVPNBot.Services.UntilsServices;
 
 namespace DataGateVPNBot.Configurations;
@@ -18,14 +17,18 @@ public static class PipelineConfiguration
         app.UseAuthorization();
         app.MapControllers();
         
-        app.MapGet("/", (ILogger<EasyRsaService> logger) =>
-        {
-            logger.LogInformation("Hello, Elasticsearch!");
-            return "Hello, Elasticsearch!";
-        });
-        
+        app.UseStatusCodePagesWithReExecute("/error/{0}");
+        app.MapGet("/error/404", () => Results.Problem(statusCode: 404, title: "Page Not Found", 
+                detail: "The requested resource was not found."))
+            .ExcludeFromDescription();
+
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown version";
         var environmentName = app.Environment.EnvironmentName;
-        app.Logger.LogInformation("Application version: {Version} ; Environment: {Environment}", version, environmentName);
+        
+        app.MapGet("/",
+            (ILogger<EasyRsaService> logger) => Results.Text(statusCode: 200, 
+                content: $"DataGateVPNBot Application version: {version}; Environment: {environmentName};"));
+
+        app.Logger.LogInformation($"Application version: {version}; Environment: {environmentName};");
     }
 }

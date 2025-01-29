@@ -35,7 +35,7 @@ public class OpenVpnBackgroundService : BackgroundService, IOpenVpnBackgroundSer
                 }
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(Seconds), stoppingToken);
         }
 
         _logger.LogInformation("OpenVPN Background Service is stopping.");
