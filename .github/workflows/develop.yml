@@ -40,7 +40,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t datagatevpn-develop -f Dockerfile-develop .
+          docker build -t datagatevpn-develop -f DataGateVPNBot/Dockerfile-develop .
 
       - name: Deploy Docker container
         run: |
