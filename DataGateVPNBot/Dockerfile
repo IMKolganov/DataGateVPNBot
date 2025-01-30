@@ -5,22 +5,23 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy the project file and restore dependencies
-COPY ["DataGateVPNBot.csproj", "./"]
+COPY ["DataGateVPNBot/DataGateVPNBot.csproj", "DataGateVPNBot/"]
+WORKDIR /src/DataGateVPNBot
 RUN dotnet restore "DataGateVPNBot.csproj"
 
 # Copy the rest of the application source code
+WORKDIR /src
 COPY . .
 
 # Build the application
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet build "DataGateVPNBot.csproj" -c $BUILD_CONFIGURATION -o /app/build --runtime linux-arm64 --self-contained false
+RUN dotnet build "DataGateVPNBot/DataGateVPNBot.csproj" -c $BUILD_CONFIGURATION -o /app/build --runtime linux-arm64 --self-contained false
 
 # Publish the application
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN echo "Using build configuration: $BUILD_CONFIGURATION" && \
-    dotnet publish "DataGateVPNBot.csproj" -c $BUILD_CONFIGURATION -o /app/publish --runtime linux-arm64 --self-contained false
-
+    dotnet publish "DataGateVPNBot/DataGateVPNBot.csproj" -c $BUILD_CONFIGURATION -o /app/publish --runtime linux-arm64 --self-contained false
 
 # Use the ASP.NET runtime for the final image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
@@ -42,8 +43,8 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Copy configuration files (if they exist in the context)
-COPY appsettings.json .
-COPY appsettings.Development.json .
+COPY DataGateVPNBot/appsettings.json .
+COPY DataGateVPNBot/appsettings.Development.json .
 
 # Specify the entry point for the application
 ENTRYPOINT ["dotnet", "DataGateVPNBot.dll"]
