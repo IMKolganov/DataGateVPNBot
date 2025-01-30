@@ -43,8 +43,8 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Copy configuration files (if they exist in the context)
-COPY DataGateVPNBot/appsettings.json .
-COPY DataGateVPNBot/appsettings.Development.json .
+COPY appsettings.json .
+COPY appsettings.Development.json .
 
 # Specify the entry point for the application
 ENTRYPOINT ["dotnet", "DataGateVPNBot.dll"]
