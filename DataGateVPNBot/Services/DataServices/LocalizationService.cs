@@ -1,4 +1,5 @@
 ﻿using DataGateVPNBot.DataBase.Contexts;
+using DataGateVPNBot.DataBase.UnitOfWork;
 using DataGateVPNBot.Models;
 using DataGateVPNBot.Models.Enums;
 using DataGateVPNBot.Services.DataServices.Interfaces;
@@ -8,60 +9,56 @@ namespace DataGateVPNBot.Services.DataServices;
 
 public class LocalizationService : ILocalizationService
 {
-    private readonly ApplicationDbContext _context;
     private readonly ILogger<LocalizationService> _logger;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public LocalizationService(ApplicationDbContext context, ILogger<LocalizationService> logger)
+    public LocalizationService(IUnitOfWork unitOfWork, ILogger<LocalizationService> logger)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _unitOfWork = unitOfWork;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task SetUserLanguageAsync(long telegramId, Language language)
     {
-        _logger.LogInformation("Attempting to set language for TelegramId: {TelegramId} to {Language}.", telegramId, language);
+        _logger.LogInformation($"Attempting to set language for TelegramId: {telegramId} to {language}.");
 
-        var userPreference = await _context.UserLanguagePreferences
-            .FirstOrDefaultAsync(u => u.TelegramId == telegramId);
+        var userLanguagePreferenceRepository = _unitOfWork.GetRepository<UserLanguagePreference>();
+        var userPreference = await userLanguagePreferenceRepository.Query
+            .FirstOrDefaultAsync(x => x.TelegramId == telegramId);
 
         if (userPreference == null)
         {
-            _logger.LogInformation("No existing language preference found for TelegramId: {TelegramId}. Creating a new record.", telegramId);
+            _logger.LogInformation($"No existing language preference found for TelegramId: {telegramId}. " +
+                                   $"Creating a new record.", telegramId);
 
             userPreference = new UserLanguagePreference
             {
                 TelegramId = telegramId,
                 PreferredLanguage = language
             };
-            _context.UserLanguagePreferences.Add(userPreference);
+            await userLanguagePreferenceRepository.AddAsync(userPreference);
 
-            _logger.LogInformation("New language preference created for TelegramId: {TelegramId} with language: {Language}.", telegramId, language);
+            _logger.LogInformation($"New language preference created for TelegramId: {telegramId} " +
+                                   $"with language: {language}.");
         }
         else
         {
-            _logger.LogInformation("Existing language preference found for TelegramId: {TelegramId}. Updating language to: {Language}.", telegramId, language);
+            _logger.LogInformation($"Existing language preference found for TelegramId: {telegramId}. " +
+                                   $"Updating language to: {language}.");
 
             userPreference.PreferredLanguage = language;
         }
 
-        await _context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
         _logger.LogInformation("Language preference saved for TelegramId: {TelegramId}.", telegramId);
     }
 
     public async Task<Language> GetUserLanguageAsync(long telegramId)
     {
-        var userPreference = await _context.UserLanguagePreferences
-            .FirstOrDefaultAsync(u => u.TelegramId == telegramId);
+        var userPreference = await _unitOfWork.GetQuery<UserLanguagePreference>()
+            .AsQueryable().FirstOrDefaultAsync(x => x.TelegramId == telegramId);
 
         return userPreference?.PreferredLanguage ?? Language.English;
-    }
-    
-    public async Task<Language?> GetUserLanguageOrNullAsync(long userId)
-    {
-        var userPreference = await _context.UserLanguagePreferences
-            .FirstOrDefaultAsync(u => u.TelegramId == userId);
-
-        return userPreference?.PreferredLanguage;
     }
 
     public async Task<string> GetTextAsync(string key, long telegramId, Language? language = null)
@@ -70,10 +67,11 @@ public class LocalizationService : ILocalizationService
         {
             language = await GetUserLanguageAsync(telegramId);
         }
-        
-        var text = await _context.LocalizationTexts
-            .Where(t => t.Key == key && t.Language == language)
-            .Select(t => t.Text)
+
+        var text = await _unitOfWork.GetQuery<LocalizationText>()
+            .AsQueryable()
+            .Where(x => x.Key == key && x.Language == language)
+            .Select(x => x.Text)
             .FirstOrDefaultAsync();
 
         return text ?? $"[Translation missing for key: {key}, language: {language}]";
@@ -83,11 +81,11 @@ public class LocalizationService : ILocalizationService
     {
         _logger.LogInformation("Checking database for TelegramId: {TelegramId}.", telegramId);
 
-        var result = await _context.UserLanguagePreferences
-            .AnyAsync(u => u.TelegramId == telegramId);
+        var userLanguagePreference = await _unitOfWork.GetQuery<UserLanguagePreference>()
+            .AsQueryable().AnyAsync(x => x.TelegramId == telegramId);
 
-        _logger.LogInformation("Database check for TelegramId {TelegramId}: {Result}", telegramId, result);
+        _logger.LogInformation($"Database check for TelegramId {telegramId}: {userLanguagePreference}");
 
-        return result;
+        return userLanguagePreference;
     }
 }
