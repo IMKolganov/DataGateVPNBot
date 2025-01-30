@@ -18,18 +18,18 @@ jobs:
 
       - name: Use existing configuration files
         run: |
-          cp /home/rackot/configs/appsettings.json ./appsettings.json
-          cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
+          cp /home/rackot/configs/appsettings.json ./DataGateVPNBot/appsettings.json
+          cp /home/rackot/configs/appsettings.Development.json ./DataGateVPNBot/appsettings.Development.json
           
-          cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
-          cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
+          cp /home/rackot/certs/datagatetgbot.pem ./DataGateVPNBot/datagatetgbot.pem
+          cp /home/rackot/certs/datagatetgbot.key ./DataGateVPNBot/datagatetgbot.key
           
           cp /home/rackot/Photo/bot.gif ./bot.gif
 
       - name: Verify files
         run: |
           echo "Verifying required files..."
-          for file in appsettings.json appsettings.Development.json datagatetgbot.pem datagatetgbot.key bot.gif; do
+          for file in DataGateVPNBot/appsettings.json DataGateVPNBot/appsettings.Development.json DataGateVPNBot/datagatetgbot.pem DataGateVPNBot/datagatetgbot.key bot.gif; do
             if [ -s ./$file ]; then
               echo "$file is present and not empty.";
             else

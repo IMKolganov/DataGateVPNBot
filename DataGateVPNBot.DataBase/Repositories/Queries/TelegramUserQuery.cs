@@ -18,6 +18,5 @@ public class TelegramUserQuery : Query<TelegramUser>, ITelegramUserQuery
     public IQueryable<TelegramUser> GetAdmins()
     {
         return AsQueryable().Where(u => u.TelegramId == 5767006971);//todo: make isAdmin
-        throw new NotImplementedException();
     }
 }
