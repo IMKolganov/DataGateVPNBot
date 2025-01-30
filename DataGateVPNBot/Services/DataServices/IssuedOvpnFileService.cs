@@ -1,4 +1,5 @@
 ﻿using DataGateVPNBot.DataBase.Contexts;
+using DataGateVPNBot.DataBase.UnitOfWork;
 using DataGateVPNBot.Models;
 using DataGateVPNBot.Models.Helpers;
 using DataGateVPNBot.Services.DataServices.Interfaces;
@@ -8,15 +9,15 @@ namespace DataGateVPNBot.Services.DataServices;
 
 public class IssuedOvpnFileService : IIssuedOvpnFileService
 {
-    private readonly ApplicationDbContext _dbContext;
-
-    public IssuedOvpnFileService(ApplicationDbContext dbContext)
+    private readonly IUnitOfWork _unitOfWork;
+    public IssuedOvpnFileService(IUnitOfWork unitOfWork)
     {
-        _dbContext = dbContext;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task AddIssuedOvpnFileAsync(long telegramId, FileInfo fileInfo, CertificateResult certificateResult)
     {
+        var repository = _unitOfWork.GetRepository<IssuedOvpnFile>();
         var issuedFile = new IssuedOvpnFile()
         {
             TelegramId = telegramId,
@@ -33,33 +34,32 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
             IsRevoked = false
         };
         
-        _dbContext.IssuedOvpnFiles.Add(issuedFile);
-        await _dbContext.SaveChangesAsync();
+        await repository.AddAsync(issuedFile);
+        await _unitOfWork.SaveChangesAsync();
     }
-
-    public async Task<IssuedOvpnFile?> GetIssuedOvpnFileByIdAsync(int id)
-    {
-        return await _dbContext.IssuedOvpnFiles.FindAsync(id);
-    }
+    
     public async Task<List<IssuedOvpnFile>> GetIssuedOvpnFilesByTelegramIdAsync(long telegramId)
     {
-        return await _dbContext.IssuedOvpnFiles
-            .Where(f => f.TelegramId == telegramId && f.IsRevoked == false)
+        return await _unitOfWork.GetQuery<IssuedOvpnFile>()
+            .AsQueryable().Where(x => 
+                x.TelegramId == telegramId && x.IsRevoked == false)
             .ToListAsync();
     }
 
     public async Task<IssuedOvpnFile?> GetIssuedOvpnFilesByTelegramAndFileNameIdAsync(long telegramId, string fileName)
     {
-        return await _dbContext.IssuedOvpnFiles
-            .Where(f => f.TelegramId == telegramId && f.FileName == fileName && f.IsRevoked == false)
-            .FirstOrDefaultAsync();
+        return await _unitOfWork.GetQuery<IssuedOvpnFile>()
+        .AsQueryable().Where(x => 
+            x.TelegramId == telegramId && x.FileName == fileName && x.IsRevoked == false)
+        .FirstOrDefaultAsync();
     }
 
     public async Task SetIsRevokeIssuedOvpnFileByTelegramIdAndCertNameAsync(int id, long telegramId, 
         string revokedFilePath, string certName, string message)
     {
-        var issuedFile = await _dbContext.IssuedOvpnFiles
-            .Where(f => f.Id == id && f.TelegramId == telegramId && f.CertName == certName)
+        var issuedOvpnFileRepository = _unitOfWork.GetRepository<IssuedOvpnFile>();
+        var issuedFile = await issuedOvpnFileRepository.Query
+            .Where(x => x.Id == id && x.TelegramId == telegramId && x.CertName == certName)
             .FirstOrDefaultAsync();
 
         if (issuedFile == null)
@@ -71,43 +71,8 @@ public class IssuedOvpnFileService : IIssuedOvpnFileService
         issuedFile.IsRevoked = true;
         issuedFile.Message = message;
 
-        await UpdateIssuedOvpnFileAsync(issuedFile);
-    }
-
-    public async Task<List<IssuedOvpnFile>> GetAllIssuedOvpnFilesAsync()
-    {
-        return await _dbContext.IssuedOvpnFiles.ToListAsync();
-    }
-
-    public async Task UpdateIssuedOvpnFileAsync(IssuedOvpnFile issuedFile)
-    {
-        var existingFile = await _dbContext.IssuedOvpnFiles.FindAsync(issuedFile.Id);
-        if (existingFile != null)
-        {
-            existingFile.TelegramId = issuedFile.TelegramId;
-            existingFile.CertName = issuedFile.CertName;
-            existingFile.CertId = issuedFile.CertId;
-            existingFile.FileName = issuedFile.FileName;
-            existingFile.FilePath = issuedFile.FilePath;
-            existingFile.IssuedAt = issuedFile.IssuedAt;
-            existingFile.IssuedTo = issuedFile.IssuedTo;
-            existingFile.CertFilePath = issuedFile.CertFilePath;
-            existingFile.KeyFilePath = issuedFile.KeyFilePath;
-            existingFile.ReqFilePath = issuedFile.ReqFilePath;
-            existingFile.PemFilePath = issuedFile.PemFilePath;
-            existingFile.IsRevoked = issuedFile.IsRevoked;
-
-            await _dbContext.SaveChangesAsync();
-        }
-    }
-
-    public async Task DeleteIssuedOvpnFileAsync(int id)
-    {
-        var issuedFile = await _dbContext.IssuedOvpnFiles.FindAsync(id);
-        if (issuedFile != null)
-        {
-            _dbContext.IssuedOvpnFiles.Remove(issuedFile);
-            await _dbContext.SaveChangesAsync();
-        }
+        
+        issuedOvpnFileRepository.Update(issuedFile);
+        await _unitOfWork.SaveChangesAsync();
     }
 }
