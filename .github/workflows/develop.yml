@@ -18,18 +18,18 @@ jobs:
 
       - name: Use existing configuration files
         run: |
-          cp /home/rackot/configs/appsettings.json ./DataGateVPNBot/appsettings.json
-          cp /home/rackot/configs/appsettings.Development.json ./DataGateVPNBot/appsettings.Development.json
+          cp /home/rackot/configs/appsettings.json ./appsettings.json
+          cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
           
-          cp /home/rackot/certs/datagatetgbot.pem ./DataGateVPNBot/datagatetgbot.pem
-          cp /home/rackot/certs/datagatetgbot.key ./DataGateVPNBot/datagatetgbot.key
+          cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
+          cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
           
           cp /home/rackot/Photo/bot.gif ./bot.gif
 
       - name: Verify files
         run: |
           echo "Verifying required files..."
-          for file in DataGateVPNBot/appsettings.json DataGateVPNBot/appsettings.Development.json DataGateVPNBot/datagatetgbot.pem DataGateVPNBot/datagatetgbot.key bot.gif; do
+          for file in appsettings.json appsettings.Development.json datagatetgbot.pem datagatetgbot.key bot.gif; do
             if [ -s ./$file ]; then
               echo "$file is present and not empty.";
             else
@@ -49,11 +49,11 @@ jobs:
           docker run -d --name datagatevpn_develop_container \
           -p 88:88 \
           -e ASPNETCORE_ENVIRONMENT=Development \
-          -v $PWD/DataGateVPNBot/appsettings.json:/app/DataGateVPNBot/appsettings.json \
-          -v $PWD/DataGateVPNBot/appsettings.Development.json:/app/DataGateVPNBot/appsettings.Development.json \
-          -v $PWD/DataGateVPNBot/datagatetgbot.pem:/app/DataGateVPNBot/datagatetgbot.pem \
-          -v $PWD/DataGateVPNBot/datagatetgbot.key:/app/DataGateVPNBot/datagatetgbot.key \
-          -v $PWD/DataGateVPNBot/bot.gif:/app/bot.gif \
+          -v $PWD/appsettings.json:/app/appsettings.json \
+          -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
+          -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
+          -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
+          -v $PWD/bot.gif:/app/bot.gif \
           -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
           -v /etc/openvpn/clients:/etc/openvpn/clients \
           -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
