@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using DataGateVPNBot.DataBase.Contexts;
+using DataGateVPNBot.DataBase.UnitOfWork;
 using DataGateVPNBot.Models;
 using DataGateVPNBot.Models.Helpers;
 using DataGateVPNBot.Services.Interfaces;
@@ -10,20 +11,20 @@ namespace DataGateVPNBot.Services;
 
 public class OpenVpnParserService : IOpenVpnParserService
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<IOpenVpnParserService> _logger;
     private readonly string _statusFilePath;
 
-    public OpenVpnParserService(ApplicationDbContext dbContext, ILogger<IOpenVpnParserService> logger,
+    public OpenVpnParserService(IUnitOfWork unitOfWork, ILogger<IOpenVpnParserService> logger,
         IConfiguration configuration)
     {
-        _dbContext = dbContext;
+        _unitOfWork = unitOfWork;
         _logger = logger;
         _statusFilePath = configuration.GetSection("OpenVpn").Get<OpenVpnSettings>()?.StatusFilePath
                           ?? throw new InvalidOperationException("Failed to load OpenVpnSettings from configuration.");
     }
 
-    public async Task ParseAndSaveAsync()
+    public async Task ParseAndSaveAsync()//todo: needed check statistics maybe statistic is incorrect in DB
     {
         if (!File.Exists(_statusFilePath))
         {
@@ -35,23 +36,24 @@ public class OpenVpnParserService : IOpenVpnParserService
         var users = ParseOpenVpnStatus(_statusFilePath);
 
         _logger.LogInformation("Found {UserCount} users in the status file.", users.Count);
+        var openVpnUserStatisticRepository = _unitOfWork.GetRepository<OpenVpnUserStatistic>();
 
         foreach (var user in users)
         {
             var sessionId = GenerateSessionId(user.CommonName, user.RealAddress, user.ConnectedSince);
-
-            var existingUser =
-                await _dbContext.OpenVpnUserStatistics.FirstOrDefaultAsync(u => u.SessionId == sessionId);//todo: make service
-
-            if (existingUser != null)
+            
+            var existingOpenVpnUserStatistic = await openVpnUserStatisticRepository.Query
+                .FirstOrDefaultAsync(x => x.SessionId == sessionId);
+            if (existingOpenVpnUserStatistic != null)
             {
-                existingUser.BytesReceived = user.BytesReceived;
-                existingUser.BytesSent = user.BytesSent;
-                existingUser.LastUpdated = DateTime.UtcNow;
+                existingOpenVpnUserStatistic.BytesReceived = user.BytesReceived;
+                existingOpenVpnUserStatistic.BytesSent = user.BytesSent;
+                existingOpenVpnUserStatistic.LastUpdated = DateTime.UtcNow;
+                openVpnUserStatisticRepository.Update(existingOpenVpnUserStatistic);
             }
             else
             {
-                _dbContext.OpenVpnUserStatistics.Add(new OpenVpnUserStatistic
+                await openVpnUserStatisticRepository.AddAsync(new OpenVpnUserStatistic
                 {
                     SessionId = sessionId,
                     CommonName = user.CommonName,
@@ -64,7 +66,8 @@ public class OpenVpnParserService : IOpenVpnParserService
             }
         }
 
-        await _dbContext.SaveChangesAsync();
+        
+        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation("Data successfully saved to the database.");
     }
