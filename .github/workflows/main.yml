@@ -18,12 +18,11 @@ jobs:
 
       - name: Use existing configuration files
         run: |
+          echo "Copying configuration files..."
           cp /home/rackot/configs/appsettings.json ./appsettings.json
           cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
-          
           cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
           cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
-          
           cp /home/rackot/Photo/bot.gif ./bot.gif
 
       - name: Verify files
@@ -33,20 +32,29 @@ jobs:
             if [ -s ./$file ]; then
               echo "$file is present and not empty.";
             else
-              echo "$file is missing or empty!";
+              echo "ERROR: $file is missing or empty!";
               exit 1;
             fi
           done
+          echo "✅ All required files are present."
 
       - name: Build Docker image
         run: |
+          echo "Building Docker image..."
           docker build -t datagatevpn-main -f DataGateVPNBot/Dockerfile .
+
+      - name: Verify Docker image
+        run: |
+          echo "Listing Docker images:"
+          docker images | grep datagatevpn-main || echo "ERROR: Image datagatevpn-main not found"
 
       - name: Deploy Docker container
         run: |
-          docker stop datagatevpn_develop_container || true
-          docker rm datagatevpn_develop_container || true
-          docker run -d --name datagatevpn_develop_container \
+          echo "Stopping and removing old container if exists..."
+          docker stop datagatevpn_main_container || true
+          docker rm datagatevpn_main_container || true
+          echo "Starting new container..."
+          docker run -d --name datagatevpn_main_container \
           -p 88:88 \
           -e ASPNETCORE_ENVIRONMENT=Development \
           -v $PWD/appsettings.json:/app/appsettings.json \
@@ -58,4 +66,4 @@ jobs:
           -v /etc/openvpn/clients:/etc/openvpn/clients \
           -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
           -v /var/log/openvpn-status.log:/var/log/openvpn-status.log \
-          datagatevpn-develop
+          datagatevpn_main

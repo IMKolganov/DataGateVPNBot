@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.17.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="9.0.1" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

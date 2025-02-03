@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<IncomingMessageLog> IncomingMessageLog { get; set; } = null!;
     public DbSet<OpenVpnUserStatistic> OpenVpnUserStatistics { get; set; } = null!;
     public DbSet<ErrorLog> ErrorLogs { get; set; } = null!;
+    public DbSet<VpnUser> VpnUsers { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +34,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new LocalizationTextConfiguration());
         modelBuilder.ApplyConfiguration(new OpenVpnUserStatisticConfiguration());
         modelBuilder.ApplyConfiguration(new ErrorLogConfiguration());
+        modelBuilder.ApplyConfiguration(new VpnUserConfiguration());
     }
     
 

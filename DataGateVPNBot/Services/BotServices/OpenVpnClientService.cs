@@ -42,7 +42,7 @@ public class OpenVpnClientService : IOpenVpnClientService
     public async Task<GetAllFilesResult> GetAllClientConfigurations(long telegramId)
     {
         var issuedOvpnFiles = await GetIssuedOvpnFilesByTelegramIdAsync(telegramId);
-        _logger.LogInformation("Found {Count} issued files in database.", issuedOvpnFiles.Count);
+        _logger.LogInformation($"Found {issuedOvpnFiles.Count} issued files in database.");
 
         List<FileInfo> fileInfos = new List<FileInfo>();
 
@@ -50,11 +50,11 @@ public class OpenVpnClientService : IOpenVpnClientService
         {
             if (issuedOvpnFile.FileName == string.Empty) throw new Exception("File name is empty.");
             string existingOvpnFilePath = Path.Combine(_openVpnSettings.OutputDir, issuedOvpnFile.FileName);
-            _logger.LogInformation("Checking existence of file: {FilePath}", existingOvpnFilePath);
+            _logger.LogInformation($"Checking existence of file: {existingOvpnFilePath}");
 
             if (File.Exists(existingOvpnFilePath))
             {
-                _logger.LogInformation("File exists: {FilePath}", existingOvpnFilePath);
+                _logger.LogInformation($"File exists: {existingOvpnFilePath}");
                 fileInfos.Add(new FileInfo(existingOvpnFilePath));
             }
             else
@@ -64,7 +64,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         }
 
         var responseMessage = await GetResponseText(telegramId, "HereIsConfig");
-        _logger.LogInformation("Generated response message for user: {TelegramId}", telegramId);
+        _logger.LogInformation($"Generated response message for user: {telegramId}");
 
         return new GetAllFilesResult
         {
@@ -80,10 +80,12 @@ public class OpenVpnClientService : IOpenVpnClientService
             var issuedOvpnFiles = await GetIssuedOvpnFilesByTelegramIdAsync(telegramId);
             if (issuedOvpnFiles.Count >= _maxAttempts)
             {
-                return new FileCreationResult { FileInfo = null, Message = await GetResponseText(telegramId, "MaxConfigError") };
+                return new FileCreationResult { FileInfo = null, Message = 
+                    await GetResponseText(telegramId, "MaxConfigError") };
             }
 
-            _logger.LogInformation("Step 1.1: Checking if configuration already exists for this client with TelegramId: {TelegramId}.", telegramId);
+            _logger.LogInformation($"Step 1.1: Checking if configuration already exists" +
+                                   $" for this client with TelegramId: {telegramId}.");
 
             int attempt = 0;
             string baseFileName = GetBaseFileNameForCerts(telegramId.ToString(), attempt);
@@ -96,22 +98,24 @@ public class OpenVpnClientService : IOpenVpnClientService
 
             while (File.Exists(ovpnFilePath) && attempt < _maxAttempts)
             {
-                _logger.LogInformation("File already exists: {OvpnFilePath}. Incrementing attempt counter.", ovpnFilePath);
+                _logger.LogInformation($"File already exists: {ovpnFilePath}. Incrementing attempt counter.");
                 attempt++;
                 baseFileName = GetBaseFileNameForCerts(telegramId.ToString(), attempt);
                 ovpnFilePath = Path.Combine(_openVpnSettings.OutputDir, $"{baseFileName}.ovpn");
-                _logger.LogInformation("New file path after attempt {Attempt}: {OvpnFilePath}", attempt, ovpnFilePath);
+                _logger.LogInformation($"New file path after attempt {attempt}: {ovpnFilePath}");
             }
 
             if (attempt >= _maxAttempts)
             {
                 _logger.LogError(
-                    "Maximum limit of {MaxAttempts} configurations reached for client '{TelegramId}'. Cannot create more files.",
-                    _maxAttempts, telegramId);
+                    $"Maximum limit of {_maxAttempts} configurations reached " +
+                    $"for client '{telegramId}'. Cannot create more files.");
                 throw new InvalidOperationException(
-                    $"Maximum limit of {_maxAttempts} configurations for client '{telegramId}' has been reached. Cannot create more files.");
+                    $"Maximum limit of {_maxAttempts} configurations " +
+                    $"for client '{telegramId}' has been reached. Cannot create more files.");
             }
-            _logger.LogInformation("Step 1.4: Final file path determined: {OvpnFilePath}. Proceeding with configuration creation.", ovpnFilePath);
+            _logger.LogInformation($"Step 1.4: Final file path determined: {ovpnFilePath}. " +
+                                   "Proceeding with configuration creation.");
 
             _logger.LogInformation("Step 2: Building client certificate...");
             RevokeCertByCnName(baseFileName);//remove old certs with this CN name if we have
@@ -160,7 +164,7 @@ public class OpenVpnClientService : IOpenVpnClientService
 
     public async Task DeleteClientConfiguration(long telegramId, string filename)
     {
-        _logger.LogInformation("Starting deletion process for client with Telegram ID: {TelegramId}", telegramId);
+        _logger.LogInformation($"Starting deletion process for client with Telegram ID: {telegramId}");
         var issuedOvpnFile = await GetIssuedOvpnFilesByTelegramAndFileNameIdAsync(telegramId, filename);
         if (issuedOvpnFile != null)
         { 
@@ -319,6 +323,7 @@ public class OpenVpnClientService : IOpenVpnClientService
         if (string.IsNullOrEmpty(tlsAuthKey))
             throw new ArgumentNullException(nameof(tlsAuthKey));
         
+        //todo: setenv FRIENDLY_NAME 2
         return $@"client
 dev tun
 proto udp
