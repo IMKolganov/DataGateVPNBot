@@ -58,13 +58,13 @@ public class EasyRsaService : IEasyRsaService
     {
         if (!Directory.Exists(_pkiPath))
         {
-            _logger.LogInformation("PKI directory does not exist. Initializing PKI...");
+            _logger.LogInformation($"PKI directory does not exist. Initializing PKI... _pkiPath: {_pkiPath}");
             RunCommand($"cd {_openVpnSettings.EasyRsaPath} && ./easyrsa init-pki");
-            throw new Exception("PKI directory does not exist.");
+            throw new Exception($"PKI directory does not exist. _pkiPath: {_pkiPath}");
         }
         else
         {
-            _logger.LogInformation("PKI directory exists. Skipping initialization...");
+            _logger.LogInformation($"PKI directory exists. Skipping initialization... _pkiPath: {_pkiPath}");
         }
     }
 

@@ -11,6 +11,7 @@ jobs:
     name: Build and Deploy on Raspberry Pi
     env:
       ASPNETCORE_ENVIRONMENT: Production
+      TARGETARCH: arm
 
     steps:
       - name: Checkout repository
@@ -38,9 +39,9 @@ jobs:
             fi
           done
 
-      - name: Build Docker image
+      - name: Build Docker image for ARM
         run: |
-          docker build -t datagatevpn-main -f DataGateVPNBot/Dockerfile .
+          docker build --build-arg TARGETARCH=arm -t datagatevpn-main -f Dockerfile .
 
       - name: Deploy Docker container
         run: |
