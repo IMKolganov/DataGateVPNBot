@@ -1,25 +1,30 @@
-# Define architecture before the build
-ARG TARGETARCH=amd64
+# Debug: Show working directory
+RUN pwd && ls -la
 
-# Use .NET SDK for building
+# Debug: Show contents of DataGateVPNBot/
+RUN ls -la DataGateVPNBot || true
+
+# Define architecture as a build argument
+ARG TARGETARCH
+
+# Use the .NET SDK image
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-
-# Set environment variable for persistence
-ENV TARGETARCH=${TARGETARCH}
 
 # Set the working directory
 WORKDIR /src
 
-# Copy project file and restore dependencies
-COPY ["DataGateVPNBot.csproj", "./"]
+# Copy the project file and restore dependencies (FIXED PATH)
+COPY DataGateVPNBot/DataGateVPNBot.csproj DataGateVPNBot/
+
+WORKDIR /src/DataGateVPNBot
 RUN dotnet restore "DataGateVPNBot.csproj"
 
 # Copy the rest of the application source code
-WORKDIR /src
-COPY . .
+COPY DataGateVPNBot/ DataGateVPNBot/
 
-# Build the application for the correct architecture
+# Build the application
 ARG BUILD_CONFIGURATION=Release
+WORKDIR /src/DataGateVPNBot
 RUN echo "Building for TARGETARCH=${TARGETARCH}" && \
     dotnet build "DataGateVPNBot.csproj" -c ${BUILD_CONFIGURATION} -o /app/build --runtime linux-${TARGETARCH} --self-contained false
 
@@ -27,19 +32,18 @@ RUN echo "Building for TARGETARCH=${TARGETARCH}" && \
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 ARG TARGETARCH
-# Ensure TARGETARCH is passed again
+WORKDIR /src/DataGateVPNBot
 RUN echo "Publishing for TARGETARCH=${TARGETARCH}" && \
     dotnet publish "DataGateVPNBot.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish --runtime linux-${TARGETARCH} --self-contained false
 
 # Use the final ASP.NET runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 
-# Install curl (if needed for debugging or HTTP requests)
+# Install curl (optional, useful for debugging)
 RUN apt-get update && apt-get install -y curl
 
 # Create a non-root user for security
-RUN if ! id -u app > /dev/null 2>&1; then useradd -m app; fi
-RUN mkdir -p /app && chown -R app:app /app
+RUN useradd -m app && mkdir -p /app && chown -R app:app /app
 
 # Switch to the non-root user
 USER app
@@ -50,9 +54,9 @@ WORKDIR /app
 # Copy the published application from the previous stage
 COPY --from=publish /app/publish .
 
-# Copy configuration files (if they exist in the context)
-COPY appsettings.json .
-COPY appsettings.Development.json .
+# Copy configuration files if they exist in the context
+COPY appsettings.json . || true
+COPY appsettings.Development.json . || true
 
-# Set the entry point for the application
+# Set the entry point
 ENTRYPOINT ["dotnet", "DataGateVPNBot.dll"]
