@@ -18,15 +18,14 @@ RUN echo "Contents before copying:" && ls -la
 # Copy the solution file
 COPY DataGateVPNBot.sln ./
 
-# Copy all projects before restore
-COPY DataGateVPNBot/*.csproj DataGateVPNBot/
-COPY DataGateVPNBot.DataBase/*.csproj DataGateVPNBot.DataBase/
-COPY DataGateVPNBot.Models/*.csproj DataGateVPNBot.Models/
+# Copy only .csproj files to optimize caching
+COPY . /
+RUN find / -name "*.csproj" -exec cp --parents {} . \;
 
-# Debug: Display the contents after copying .csproj files
-RUN echo "Contents after copying .csproj:" && ls -la
+# Debug: Display copied .csproj files
+RUN echo "Copied .csproj files:" && find . -name "*.csproj"
 
-# Restore dependencies
+# Restore dependencies (this gets cached if files don’t change)
 RUN dotnet restore DataGateVPNBot.sln
 
 # Copy the entire source code after restore
@@ -42,7 +41,7 @@ RUN echo "BUILD_CONFIGURATION=${BUILD_CONFIGURATION}"
 
 # Build the solution
 RUN echo "Building for TARGETARCH=${TARGETARCH}, BUILD_CONFIGURATION=${BUILD_CONFIGURATION}" && \
-    dotnet build DataGateVPNBot.sln -c ${BUILD_CONFIGURATION} -o /app/build
+    dotnet build DataGateVPNBot.sln -c ${BUILD_CONFIGURATION} --no-restore
 
 # Pass the TARGETARCH variable to the next FROM stage
 FROM build AS publish
