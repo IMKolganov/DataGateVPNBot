@@ -53,8 +53,7 @@ jobs:
 
       - name: Build Docker image for ARM
         run: |
-          docker build --build-arg TARGETARCH=arm -t datagatevpn-develop -f Dockerfile .
-
+          docker build --build-arg TARGETARCH=arm -t datagatevpn-develop -f DataGateVPNBot/Dockerfile DataGateVPNBot/
 
       - name: Deploy Docker container
         run: |
