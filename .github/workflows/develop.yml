@@ -12,6 +12,7 @@ jobs:
     env:
       ASPNETCORE_ENVIRONMENT: Development
       TARGETARCH: arm
+      BUILD_CONFIGURATION: Debug
 
     steps:
       - name: Checkout repository
@@ -50,7 +51,7 @@ jobs:
 
       - name: Build Docker image for ARM
         run: |
-          docker build --build-arg TARGETARCH=${TARGETARCH} -t datagatevpn-develop -f Dockerfile .
+          docker build --build-arg TARGETARCH=${TARGETARCH} --build-arg BUILD_CONFIGURATION=${BUILD_CONFIGURATION} -t datagatevpn-develop -f Dockerfile .
 
       - name: Deploy Docker container
         run: |
