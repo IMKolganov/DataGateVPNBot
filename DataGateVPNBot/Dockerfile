@@ -11,8 +11,8 @@ ENV TARGETARCH=${TARGETARCH}
 WORKDIR /src
 
 # Copy project file and restore dependencies
-COPY ["DataGateVPNBotV1.csproj", "./"]
-RUN dotnet restore "DataGateVPNBotV1.csproj"
+COPY ["DataGateVPNBot.csproj", "./"]
+RUN dotnet restore "DataGateVPNBot.csproj"
 
 # Copy the rest of the application source code
 WORKDIR /src
@@ -21,7 +21,7 @@ COPY . .
 # Build the application for the correct architecture
 ARG BUILD_CONFIGURATION=Release
 RUN echo "Building for TARGETARCH=${TARGETARCH}" && \
-    dotnet build "DataGateVPNBotV1.csproj" -c ${BUILD_CONFIGURATION} -o /app/build --runtime linux-${TARGETARCH} --self-contained false
+    dotnet build "DataGateVPNBot.csproj" -c ${BUILD_CONFIGURATION} -o /app/build --runtime linux-${TARGETARCH} --self-contained false
 
 # Publish the application
 FROM build AS publish
@@ -29,7 +29,7 @@ ARG BUILD_CONFIGURATION=Release
 ARG TARGETARCH
 # Ensure TARGETARCH is passed again
 RUN echo "Publishing for TARGETARCH=${TARGETARCH}" && \
-    dotnet publish "DataGateVPNBotV1.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish --runtime linux-${TARGETARCH} --self-contained false
+    dotnet publish "DataGateVPNBot.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish --runtime linux-${TARGETARCH} --self-contained false
 
 # Use the final ASP.NET runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
@@ -55,4 +55,4 @@ COPY appsettings.json .
 COPY appsettings.Development.json .
 
 # Set the entry point for the application
-ENTRYPOINT ["dotnet", "DataGateVPNBotV1.dll"]
+ENTRYPOINT ["dotnet", "DataGateVPNBot.dll"]
