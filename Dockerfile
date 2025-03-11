@@ -1,28 +1,31 @@
 ﻿# Use the appropriate .NET SDK image based on platform
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+# Set environment variable for persistence
+ENV TARGETARCH=$TARGETARCH
 
 # Set the working directory
 WORKDIR /src
 
 # Copy the project file and restore dependencies
-COPY ["DataGateVPNBot/DataGateVPNBot.csproj", "DataGateVPNBot/"]
-WORKDIR /src/DataGateVPNBot
-RUN dotnet restore "DataGateVPNBot.csproj"
+COPY ["DataGateVPNBotV1.csproj", "./"]
+RUN dotnet restore "DataGateVPNBotV1.csproj"
 
 # Copy the rest of the application source code
-WORKDIR /src
 COPY . .
 
 # Build the application for the correct architecture
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet build "DataGateVPNBot/DataGateVPNBot.csproj" -c $BUILD_CONFIGURATION -o /app/build --runtime linux-$TARGETARCH --self-contained false
+RUN echo "Building for TARGETARCH=$TARGETARCH" && \
+    dotnet build "DataGateVPNBotV1.csproj" -c $BUILD_CONFIGURATION -o /app/build --runtime linux-$TARGETARCH --self-contained false
 
 # Publish the application
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN echo "Using build configuration: $BUILD_CONFIGURATION for $TARGETARCH" && \
-    dotnet publish "DataGateVPNBot/DataGateVPNBot.csproj" -c $BUILD_CONFIGURATION -o /app/publish --runtime linux-$TARGETARCH --self-contained false
+ENV TARGETARCH=$TARGETARCH
+RUN echo "Publishing for TARGETARCH=$TARGETARCH" && \
+    dotnet publish "DataGateVPNBotV1.csproj" -c $BUILD_CONFIGURATION -o /app/publish --runtime linux-$TARGETARCH --self-contained false
 
 # Use the ASP.NET runtime for the final image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
@@ -48,4 +51,4 @@ COPY appsettings.json .
 COPY appsettings.Development.json .
 
 # Specify the entry point for the application
-ENTRYPOINT ["dotnet", "DataGateVPNBot.dll"]
+ENTRYPOINT ["dotnet", "DataGateVPNBotV1.dll"]
