@@ -38,7 +38,7 @@ jobs:
               exit 1;
             fi
           done
-          
+
       - name: Debug working directory
         run: |
           echo "Current working directory:"
@@ -47,13 +47,10 @@ jobs:
           ls -la
           echo "Checking DataGateVPNBot folder:"
           ls -la DataGateVPNBot || echo "DataGateVPNBot folder not found"
-          echo "Checking DataGateVPNBot/DataGateVPNBot folder:"
-          ls -la DataGateVPNBot/DataGateVPNBot || echo "DataGateVPNBot/DataGateVPNBot folder not found"
-
 
       - name: Build Docker image for ARM
         run: |
-          docker build --build-arg TARGETARCH=arm -t datagatevpn-develop -f DataGateVPNBot/Dockerfile DataGateVPNBot/
+          docker build --build-arg TARGETARCH=${TARGETARCH} -t datagatevpn-develop -f Dockerfile .
 
       - name: Deploy Docker container
         run: |
