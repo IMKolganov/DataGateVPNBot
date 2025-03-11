@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  datagatevpn-bot:
+    container_name: datagatevpn_develop_container
+    image: datagatevpn_develop_container
+    build:
+      context: .
+      dockerfile: DataGateVPNBot/Dockerfile-develop
+    restart: unless-stopped
+    ports:
+      - "88:88"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./appsettings.json:/app/appsettings.json
+      - ./appsettings.Development.json:/app/appsettings.Development.json
+      - ./datagatetgbot.pem:/app/datagatetgbot.pem
+      - ./datagatetgbot.key:/app/datagatetgbot.key
+      - ./bot.gif:/app/bot.gif
+      - /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa
+      - /etc/openvpn/clients:/etc/openvpn/clients
+      - /etc/openvpn/crl.pem:/etc/openvpn/crl.pem
+      - /var/log/openvpn-status.log:/var/log/openvpn-status.log
+
