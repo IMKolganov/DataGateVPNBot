@@ -1,61 +1,90 @@
-# Define architecture as a build argument
-ARG TARGETARCH=amd64
+# Define the TARGETARCH argument
+ARG TARGETARCH
 
-# Use .NET SDK for building
+# Use the .NET SDK for building
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-# Debug: Show working directory and contents
-RUN pwd && ls -la
+# Check if the argument is passed
+ARG TARGETARCH
+RUN if [ -z "$TARGETARCH" ]; then echo "ERROR: TARGETARCH is not set!"; exit 1; fi
+RUN echo "BUILD STAGE: TARGETARCH=${TARGETARCH}"
 
-# Set working directory
+# Set the working directory
 WORKDIR /src
 
-# Copy solution file
+# Debug: Display the directory contents before copying
+RUN echo "Contents before copying:" && ls -la
+
+# Copy the solution file
 COPY DataGateVPNBot.sln ./
 
-# Copy all project files before restore
+# Copy all projects before restore
 COPY DataGateVPNBot/*.csproj DataGateVPNBot/
 COPY DataGateVPNBot.DataBase/*.csproj DataGateVPNBot.DataBase/
 COPY DataGateVPNBot.Models/*.csproj DataGateVPNBot.Models/
 
-# Restore dependencies (optimize caching)
+# Debug: Display the contents after copying .csproj files
+RUN echo "Contents after copying .csproj:" && ls -la
+
+# Restore dependencies
 RUN dotnet restore DataGateVPNBot.sln
 
-# Copy full source code after restore
+# Copy the entire source code after restore
 COPY . .
 
-# Build the solution (not just .csproj)
+# Debug: Display the contents before building
+RUN echo "Contents before building:" && ls -la
+
+# Build the solution
 ARG BUILD_CONFIGURATION=Release
+RUN if [ -z "$TARGETARCH" ]; then echo "ERROR: TARGETARCH is not set!"; exit 1; fi
 RUN echo "Building for TARGETARCH=${TARGETARCH}" && \
     dotnet build DataGateVPNBot.sln -c ${BUILD_CONFIGURATION} -o /app/build
 
-# Publish the application
+# Pass the TARGETARCH variable to the next FROM stage
 FROM build AS publish
-RUN echo "Publishing for TARGETARCH=${TARGETARCH}" && \
-    dotnet publish DataGateVPNBot.sln -c ${BUILD_CONFIGURATION} -o /app/publish --runtime linux-${TARGETARCH:-amd64} --self-contained false
+ARG TARGETARCH
 
-# Use the final ASP.NET runtime image
+# Check if TARGETARCH is passed in this stage
+RUN if [ -z "$TARGETARCH" ]; then echo "ERROR: TARGETARCH is not set!"; exit 1; fi
+RUN echo "PUBLISH STAGE: TARGETARCH=${TARGETARCH}"
+
+# Publish the application (Runtime is required)
+RUN dotnet publish DataGateVPNBot/DataGateVPNBot.csproj -c ${BUILD_CONFIGURATION} -o /app/publish --runtime linux-${TARGETARCH} --self-contained false
+
+# Final image with .NET runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 
-# Install curl (optional, useful for debugging)
+# Check if TARGETARCH is still available
+ARG TARGETARCH
+RUN if [ -z "$TARGETARCH" ]; then echo "ERROR: TARGETARCH is not set!"; exit 1; fi
+RUN echo "FINAL STAGE: TARGETARCH=${TARGETARCH}"
+
+# Update packages
 RUN apt-get update && apt-get install -y curl
 
-# Ensure the non-root user exists
+# Create a non-root user
 RUN id -u app >/dev/null 2>&1 || useradd -m app
 
-# Ensure the working directory exists and has correct permissions
+# Debug: Check the current user
+RUN echo "Current user: $(whoami)"
+
+# Create the application directory
 RUN mkdir -p /app && chown -R app:app /app
 
-# Switch to the non-root user
+# Switch to a non-root user
 USER app
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy published application from the build stage
+# Copy the compiled application
 COPY --from=publish /app/publish .
 
-# Copy configuration files if they exist
+# Debug: Display the contents before running
+RUN echo "Contents before execution:" && ls -la
+
+# Copy configuration files
 COPY appsettings.json .
 COPY appsettings.Development.json .
 
