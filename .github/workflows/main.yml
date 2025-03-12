@@ -8,24 +8,24 @@ on:
 jobs:
   build-and-deploy:
     runs-on: self-hosted
-    name: Build and Deploy on Raspberry Pi
+    name: Build and Deploy on Raspberry Pi (Main)
     env:
-      ASPNETCORE_ENVIRONMENT: Release
-      TARGETARCH: arm64
-      BUILD_CONFIGURATION: Debug
+      DEPLOY_ENV: main
+      ENV_FILE: .env.main
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Load Environment Variables
+        run: cat $ENV_FILE >> $GITHUB_ENV
+
       - name: Use existing configuration files
         run: |
           cp /home/rackot/configs/appsettings.json ./appsettings.json
           cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
-          
           cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
           cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
-          
           cp /home/rackot/Photo/bot.gif ./bot.gif
 
       - name: Verify files
@@ -40,33 +40,10 @@ jobs:
             fi
           done
 
-      - name: Debug working directory
+      - name: Stop and Remove Existing Container
         run: |
-          echo "Current working directory:"
-          pwd
-          echo "Listing files in current directory:"
-          ls -la
-          echo "Checking DataGateVPNBot folder:"
-          ls -la DataGateVPNBot || echo "DataGateVPNBot folder not found"
+          docker compose --env-file $ENV_FILE down || true
 
-      - name: Build Docker image for ARM
+      - name: Build and Deploy with Docker Compose
         run: |
-          docker build --build-arg TARGETARCH=${TARGETARCH} --build-arg BUILD_CONFIGURATION=${BUILD_CONFIGURATION} -t datagatevpn-main -f Dockerfile .
-
-      - name: Deploy Docker container
-        run: |
-          docker stop datagatevpn_main_container || true
-          docker rm datagatevpn_main_container || true
-          docker run -d --name datagatevpn_main_container \
-          -p 88:88 \
-          -e ASPNETCORE_ENVIRONMENT=Release \
-          -v $PWD/appsettings.json:/app/appsettings.json \
-          -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
-          -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
-          -v $PWD/datagatetgbot.key:/app/datagatetgbot.key \
-          -v $PWD/bot.gif:/app/bot.gif \
-          -v /etc/openvpn/easy-rsa:/etc/openvpn/easy-rsa \
-          -v /etc/openvpn/clients:/etc/openvpn/clients \
-          -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
-          -v /var/log/openvpn-status.log:/var/log/openvpn-status.log \
-          datagatevpn-main
+          docker compose --env-file $ENV_FILE up --build -d
