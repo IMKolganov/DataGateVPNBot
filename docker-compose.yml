@@ -1,5 +1,6 @@
 version: "3.8"
 
+name: datagatevpntgbot_${DEPLOY_ENV}
 services:
   datagatevpn:
     build:
