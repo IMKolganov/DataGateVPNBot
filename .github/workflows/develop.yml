@@ -11,27 +11,21 @@ jobs:
     name: Build and Deploy on Raspberry Pi
     env:
       ASPNETCORE_ENVIRONMENT: Development
+      TARGETARCH: arm64
+      BUILD_CONFIGURATION: Debug
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log current directory and files
-        run: |
-          echo "Current working directory:"
-          pwd
-          echo "Listing files in repository root before copying configs:"
-          ls -l || echo "Error: No files found"
-          echo "Listing files in DataGateVPNBot:"
-          ls -l DataGateVPNBot || echo "Warning: Directory DataGateVPNBot not found"
-
       - name: Use existing configuration files
         run: |
-          echo "Copying configuration files..."
           cp /home/rackot/configs/appsettings.json ./appsettings.json
           cp /home/rackot/configs/appsettings.Development.json ./appsettings.Development.json
+          
           cp /home/rackot/certs/datagatetgbot.pem ./datagatetgbot.pem
           cp /home/rackot/certs/datagatetgbot.key ./datagatetgbot.key
+          
           cp /home/rackot/Photo/bot.gif ./bot.gif
 
       - name: Verify files
@@ -41,35 +35,28 @@ jobs:
             if [ -s ./$file ]; then
               echo "$file is present and not empty.";
             else
-              echo "ERROR: $file is missing or empty!";
+              echo "$file is missing or empty!";
               exit 1;
             fi
           done
-          echo "✅ All required files are present."
 
-      - name: Log files before Docker build
+      - name: Debug working directory
         run: |
-          echo "Files in current directory before Docker build:"
-          ls -l || echo "Error: No files found"
-          echo "Files in DataGateVPNBot before Docker build:"
-          ls -l DataGateVPNBot || echo "Warning: Directory DataGateVPNBot not found"
+          echo "Current working directory:"
+          pwd
+          echo "Listing files in current directory:"
+          ls -la
+          echo "Checking DataGateVPNBot folder:"
+          ls -la DataGateVPNBot || echo "DataGateVPNBot folder not found"
 
-      - name: Build Docker image
+      - name: Build Docker image for ARM
         run: |
-          echo "Building Docker image..."
-          docker build -t datagatevpn-develop -f DataGateVPNBot/Dockerfile-develop .
-
-      - name: Verify Docker image
-        run: |
-          echo "Listing Docker images:"
-          docker images | grep datagatevpn-develop || echo "ERROR: Image datagatevpn-develop not found"
+          docker build --build-arg TARGETARCH=${TARGETARCH} --build-arg BUILD_CONFIGURATION=${BUILD_CONFIGURATION} -t datagatevpn-develop -f Dockerfile .
 
       - name: Deploy Docker container
         run: |
-          echo "Stopping and removing old container if exists..."
           docker stop datagatevpn_develop_container || true
           docker rm datagatevpn_develop_container || true
-          echo "Starting new container..."
           docker run -d --name datagatevpn_develop_container \
           -p 88:88 \
           -e ASPNETCORE_ENVIRONMENT=Development \
@@ -83,10 +70,3 @@ jobs:
           -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
           -v /var/log/openvpn-status.log:/var/log/openvpn-status.log \
           datagatevpn-develop
-
-      - name: Verify container and mounted files
-        run: |
-          echo "Checking running containers:"
-          docker ps -a | grep datagatevpn_develop_container || echo "ERROR: Container not running"
-          echo "Listing files inside the container:"
-          docker exec datagatevpn_develop_container ls -l /app || echo "ERROR: Files inside the container not found"

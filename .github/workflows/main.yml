@@ -10,8 +10,9 @@ jobs:
     runs-on: self-hosted
     name: Build and Deploy on Raspberry Pi
     env:
-      ASPNETCORE_ENVIRONMENT: Production
-      TARGETARCH: arm
+      ASPNETCORE_ENVIRONMENT: Release
+      TARGETARCH: arm64
+      BUILD_CONFIGURATION: Debug
 
     steps:
       - name: Checkout repository
@@ -39,17 +40,26 @@ jobs:
             fi
           done
 
+      - name: Debug working directory
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "Listing files in current directory:"
+          ls -la
+          echo "Checking DataGateVPNBot folder:"
+          ls -la DataGateVPNBot || echo "DataGateVPNBot folder not found"
+
       - name: Build Docker image for ARM
         run: |
-          docker build --build-arg TARGETARCH=arm -t datagatevpn-main -f Dockerfile .
+          docker build --build-arg TARGETARCH=${TARGETARCH} --build-arg BUILD_CONFIGURATION=${BUILD_CONFIGURATION} -t datagatevpn-main -f Dockerfile .
 
       - name: Deploy Docker container
         run: |
-          docker stop datagatevpn_develop_container || true
-          docker rm datagatevpn_develop_container || true
-          docker run -d --name datagatevpn_develop_container \
+          docker stop datagatevpn_main_container || true
+          docker rm datagatevpn_main_container || true
+          docker run -d --name datagatevpn_main_container \
           -p 88:88 \
-          -e ASPNETCORE_ENVIRONMENT=Development \
+          -e ASPNETCORE_ENVIRONMENT=Release \
           -v $PWD/appsettings.json:/app/appsettings.json \
           -v $PWD/appsettings.Development.json:/app/appsettings.Development.json \
           -v $PWD/datagatetgbot.pem:/app/datagatetgbot.pem \
@@ -59,4 +69,4 @@ jobs:
           -v /etc/openvpn/clients:/etc/openvpn/clients \
           -v /etc/openvpn/crl.pem:/etc/openvpn/crl.pem \
           -v /var/log/openvpn-status.log:/var/log/openvpn-status.log \
-          datagatevpn-develop
+          datagatevpn-main
