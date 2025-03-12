@@ -8,7 +8,7 @@ services:
       args:
         TARGETARCH: ${TARGETARCH}
         BUILD_CONFIGURATION: ${BUILD_CONFIGURATION}
-    container_name: datagatevpn_${DEPLOY_ENV}_container
+    container_name: datagatevpn_tgbot_${DEPLOY_ENV}_container
     restart: always
     ports:
       - "${PORT}:88"
