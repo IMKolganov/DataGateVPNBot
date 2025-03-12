@@ -12,7 +12,7 @@ jobs:
     env:
       ASPNETCORE_ENVIRONMENT: Release
       TARGETARCH: arm64
-      BUILD_CONFIGURATION: Debug
+      BUILD_CONFIGURATION: Release
 
     steps:
       - name: Checkout repository
