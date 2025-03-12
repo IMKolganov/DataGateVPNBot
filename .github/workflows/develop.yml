@@ -11,7 +11,7 @@ jobs:
     name: Build and Deploy on Raspberry Pi
     env:
       ASPNETCORE_ENVIRONMENT: Development
-      TARGETARCH: arm
+      TARGETARCH: arm64
       BUILD_CONFIGURATION: Debug
 
     steps:
