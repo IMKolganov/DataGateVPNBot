@@ -11,7 +11,7 @@ services:
     container_name: datagatevpn_tgbot_${DEPLOY_ENV}_container
     restart: always
     ports:
-      - "${PORT}:88"
+      - "${PORT}:${PORT}"
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
     volumes:
