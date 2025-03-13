@@ -1,6 +1,7 @@
 using DataGateVPNBot.Models.Configurations;
 using DataGateVPNBot.Models.Enums;
 using DataGateVPNBot.Services.BotServices.Interfaces;
+using DataGateVPNBot.Services.DashboardServices;
 using DataGateVPNBot.Services.DataServices.Interfaces;
 using DataGateVPNBot.Services.Interfaces;
 using Telegram.Bot;
@@ -14,26 +15,31 @@ namespace DataGateVPNBot.Handlers;
 
 public partial class TelegramUpdateHandler : IUpdateHandler
 {
+    private readonly ILogger<TelegramUpdateHandler> _logger;
     private readonly ITelegramBotClient _botClient;
     private readonly IServiceProvider _serviceProvider;
     private readonly IOpenVpnClientService _openVpnClientService;
     private readonly ITelegramSettingsService _telegramSettingsService;
-    private readonly ILogger<TelegramUpdateHandler> _logger;
+    private readonly DashBoardApiAuthService _dashBoardApiAuthService;
+    
     private readonly string _pathBotLog;
     private readonly string _pathBotPhoto;
     
     public TelegramUpdateHandler(
+        ILogger<TelegramUpdateHandler> logger,
         ITelegramBotClient botClient,
         IServiceProvider serviceProvider,
         IOpenVpnClientService openVpnClientService,
         ITelegramSettingsService telegramSettingsService,
-        ILogger<TelegramUpdateHandler> logger,
+        DashBoardApiAuthService dashBoardApiAuthService,
         IConfiguration configuration)
     {
         _botClient = botClient ?? throw new ArgumentNullException(nameof(botClient));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _openVpnClientService = openVpnClientService ?? throw new ArgumentNullException(nameof(openVpnClientService));
         _telegramSettingsService = telegramSettingsService ?? throw new ArgumentNullException(nameof(telegramSettingsService));
+        _dashBoardApiAuthService = dashBoardApiAuthService;
+        
         _pathBotLog = configuration.GetSection("BotConfiguration").Get<BotConfiguration>()?.LogFile ?? throw new InvalidOperationException();
         _pathBotPhoto = configuration.GetSection("BotConfiguration").Get<BotConfiguration>()?.BotPhotoPath ?? throw new InvalidOperationException();
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -134,6 +140,8 @@ public partial class TelegramUpdateHandler : IUpdateHandler
             "/english" => ChangeLanguage(msg, command),
             "/русский" => ChangeLanguage(msg, command),
             "/ελληνικά" => ChangeLanguage(msg, command),
+            
+            "/DashBoardApiGetToken" => DashBoardApiGetToken(msg),
 
             "/photo" => SendPhoto(msg),
             "/inline_buttons" => SendInlineKeyboard(msg),

@@ -7,10 +7,32 @@ namespace DataGateVPNBot.Handlers;
 
 public partial class TelegramUpdateHandler
 {
+    
+    private async Task<Message> DashBoardApiGetToken(Message msg)
+    {
+        string? token = await _dashBoardApiAuthService.GetTokenAsync();
+        
+        if (token == null)
+        {
+            return await _botClient.SendMessage(msg.Chat, 
+                $"Authentication failed. Please try again. Token: {token}",
+                parseMode: ParseMode.Html,
+                replyMarkup: new ReplyKeyboardRemove());
+        }
+        
+        return await _botClient.SendMessage(msg.Chat, 
+            $"Authentication successful! Token received. Token: {token}",
+            parseMode: ParseMode.Html,
+            replyMarkup: new ReplyKeyboardRemove());
+    }
 
     private async Task<Message> GetMyFiles(Message msg)
     {
         _logger.LogInformation("GetMyFiles started for user: {TelegramId}", msg.From?.Id);
+        var token = await _dashBoardApiAuthService.GetTokenAsync();
+        //get_token
+        //get_files_from_api
+        //send to telegram
 
         try
         {

@@ -2,13 +2,19 @@
 using DataGateVPNBot.Models.Helpers.Configurations;
 using DataGateVPNBot.Services;
 using DataGateVPNBot.Services.DashboardServices;
+using StackExchange.Redis;
 
 namespace DataGateVPNBot.Configurations;
 
 public static class DashboardApiConfiguration
 {
-    public static void ConfigureDashboardApi(this IServiceCollection services, DashboardApiConfig dashboardApiConfig)
+    public static void ConfigureDashboardApi(this IServiceCollection services, IConfiguration configuration, DashboardApiConfig dashboardApiConfig)
     {
+        var redisConfig = configuration.GetSection("Redis").Get<RedisConfig>() ?? new RedisConfig();
+
+        services.AddSingleton<IConnectionMultiplexer>(
+            ConnectionMultiplexer.Connect(redisConfig.ConnectionString));
+
         services.AddHttpClient("DashboardClient", client =>
         {
             client.BaseAddress = new Uri(dashboardApiConfig.Url);
@@ -17,12 +23,14 @@ public static class DashboardApiConfiguration
         });
 
         services.AddSingleton<IHttpClientFactoryService, HttpClientFactoryService>();
+        services.AddSingleton<RedisCacheService>();
 
-        services.AddSingleton<DashBoardAuthService>(provider =>
-            new DashBoardAuthService(
+        services.AddSingleton(provider =>
+            new DashBoardApiAuthService(
                 provider.GetRequiredService<IHttpClientFactoryService>(),
+                provider.GetRequiredService<RedisCacheService>(),
                 dashboardApiConfig.ClientId,
                 dashboardApiConfig.ClientSecret,
-                provider.GetRequiredService<ILogger<DashBoardAuthService>>()));
+                provider.GetRequiredService<ILogger<DashBoardApiAuthService>>()));
     }
 }

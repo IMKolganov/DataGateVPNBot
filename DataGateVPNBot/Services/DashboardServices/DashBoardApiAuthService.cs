@@ -1,21 +1,26 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace DataGateVPNBot.Services.DashboardServices;
-public class DashBoardAuthService
+
+public class DashBoardApiAuthService
 {
     private readonly IHttpClientFactoryService _httpClientFactoryService;
+    private readonly RedisCacheService _redisCacheService;
     private readonly string _clientId;
     private readonly string _clientSecret;
-    private readonly ILogger<DashBoardAuthService> _logger;
+    private readonly ILogger<DashBoardApiAuthService> _logger;
 
-    public DashBoardAuthService(
+    public DashBoardApiAuthService(
         IHttpClientFactoryService httpClientFactoryService,
+        RedisCacheService redisCacheService,
         string clientId,
         string clientSecret,
-        ILogger<DashBoardAuthService> logger)
+        ILogger<DashBoardApiAuthService> logger)
     {
         _httpClientFactoryService = httpClientFactoryService;
+        _redisCacheService = redisCacheService;
         _clientId = clientId;
         _clientSecret = clientSecret;
         _logger = logger;
@@ -23,15 +28,24 @@ public class DashBoardAuthService
 
     public async Task<string?> GetTokenAsync()
     {
-        var httpClient = _httpClientFactoryService.CreateDashboardClient();
+        var cachedToken = await _redisCacheService.GetTokenAsync();//todo: check expired date
+        if (!string.IsNullOrEmpty(cachedToken))
+        {
+            _logger.LogInformation("Using cached token from Redis.");
+            return cachedToken;
+        }
 
+        _logger.LogInformation("Cached token not found. Requesting new token...");
+
+        var httpClient = _httpClientFactoryService.CreateDashboardClient();
         var requestBody = new
         {
             ClientId = _clientId,
             ClientSecret = _clientSecret
         };
 
-        var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+        var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, 
+            "application/json");
 
         for (int attempt = 1; attempt <= 3; attempt++)
         {
@@ -43,8 +57,8 @@ public class DashBoardAuthService
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning(
-                        $"Failed to get token (Attempt {attempt}): {response.StatusCode} - {response.ReasonPhrase}");
+                    _logger.LogWarning($"Failed to get token (Attempt {attempt}): " +
+                                       $"{response.StatusCode} - {response.ReasonPhrase}");
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {
                         return null;
@@ -59,7 +73,13 @@ public class DashBoardAuthService
 
                 if (jsonResponse.TryGetProperty("token", out var tokenProperty))
                 {
-                    return tokenProperty.GetString();
+                    var newToken = tokenProperty.GetString();
+                    if (!string.IsNullOrEmpty(newToken))
+                    {
+                        await _redisCacheService.SetTokenAsync(newToken);
+                        _logger.LogInformation("New token saved in Redis.");
+                        return newToken;
+                    }
                 }
 
                 _logger.LogError("Invalid response format: 'token' field not found.");
