@@ -1,26 +1,43 @@
 using StackExchange.Redis;
-using System;
-using System.Threading.Tasks;
+using System.Text.Json;
+using DataGateVPNBot.Models.Redis;
 
 namespace DataGateVPNBot.Services.DashboardServices;
 
 public class RedisCacheService
 {
     private readonly IDatabase _cache;
-    private readonly TimeSpan _tokenExpiration = TimeSpan.FromHours(1);
 
     public RedisCacheService(IConnectionMultiplexer redis)
     {
         _cache = redis.GetDatabase();
     }
 
-    public async Task<string?> GetTokenAsync()
+    public async Task<string?> GetTokenWithExpirationAsync(string key)
     {
-        return await _cache.StringGetAsync("dashboard_openvpn_token");
+        var tokenData = await _cache.StringGetAsync(key);
+
+        if (tokenData.IsNullOrEmpty) return null;
+        
+        var tokenObject = JsonSerializer.Deserialize<TokenCacheModel>(tokenData.ToString());
+        
+        if (tokenObject != null && tokenObject.Expiration > DateTime.UtcNow)
+        {
+            return tokenObject.Token;
+        }
+
+        return null;
     }
 
-    public async Task SetTokenAsync(string token)
+    public async Task SetTokenWithExpirationAsync(string key, string token, TimeSpan expiration)
     {
-        await _cache.StringSetAsync("dashboard_openvpn_token", token, _tokenExpiration);
+        var tokenObject = new TokenCacheModel
+        {
+            Token = token,
+            Expiration = DateTime.UtcNow.Add(expiration)
+        };
+
+        var json = JsonSerializer.Serialize(tokenObject);
+        await _cache.StringSetAsync(key, json, expiration);
     }
 }

@@ -1,25 +1,30 @@
-using System.Text;
+using System;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using DataGateVPNBot.Services.Http;
 
 namespace DataGateVPNBot.Services.DashboardServices;
 
 public class DashBoardApiAuthService
 {
-    private readonly IHttpClientFactoryService _httpClientFactoryService;
+    private readonly IHttpRequestService _httpRequestService;
     private readonly RedisCacheService _redisCacheService;
     private readonly string _clientId;
     private readonly string _clientSecret;
     private readonly ILogger<DashBoardApiAuthService> _logger;
 
+    private const string TokenCacheKey = "dashboard_openvpn_token";
+    private readonly TimeSpan _tokenExpiration = TimeSpan.FromHours(1);
+
     public DashBoardApiAuthService(
-        IHttpClientFactoryService httpClientFactoryService,
+        IHttpRequestService httpRequestService,
         RedisCacheService redisCacheService,
         string clientId,
         string clientSecret,
         ILogger<DashBoardApiAuthService> logger)
     {
-        _httpClientFactoryService = httpClientFactoryService;
+        _httpRequestService = httpRequestService;
         _redisCacheService = redisCacheService;
         _clientId = clientId;
         _clientSecret = clientSecret;
@@ -28,80 +33,35 @@ public class DashBoardApiAuthService
 
     public async Task<string?> GetTokenAsync()
     {
-        var cachedToken = await _redisCacheService.GetTokenAsync();//todo: check expired date
-        if (!string.IsNullOrEmpty(cachedToken))
+        var cachedToken = await _redisCacheService.GetTokenWithExpirationAsync(TokenCacheKey);
+        if (cachedToken != null)
         {
             _logger.LogInformation("Using cached token from Redis.");
             return cachedToken;
         }
 
-        _logger.LogInformation("Cached token not found. Requesting new token...");
+        _logger.LogInformation("Cached token not found or expired. Requesting new token...");
 
-        var httpClient = _httpClientFactoryService.CreateDashboardClient();
         var requestBody = new
         {
             ClientId = _clientId,
             ClientSecret = _clientSecret
         };
 
-        var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, 
-            "application/json");
+        var response = await _httpRequestService.PostAsync<JsonElement>("api/token", requestBody);
 
-        for (int attempt = 1; attempt <= 3; attempt++)
+        if (response.TryGetProperty("token", out var tokenProperty))
         {
-            try
+            var newToken = tokenProperty.GetString();
+            if (!string.IsNullOrEmpty(newToken))
             {
-                _logger.LogInformation($"Attempt {attempt}: Requesting token from dashboard...");
-
-                var response = await httpClient.PostAsync("api/token", content);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning($"Failed to get token (Attempt {attempt}): " +
-                                       $"{response.StatusCode} - {response.ReasonPhrase}");
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        return null;
-                    }
-
-                    await Task.Delay(1000 * attempt);
-                    continue;
-                }
-
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var jsonResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
-
-                if (jsonResponse.TryGetProperty("token", out var tokenProperty))
-                {
-                    var newToken = tokenProperty.GetString();
-                    if (!string.IsNullOrEmpty(newToken))
-                    {
-                        await _redisCacheService.SetTokenAsync(newToken);
-                        _logger.LogInformation("New token saved in Redis.");
-                        return newToken;
-                    }
-                }
-
-                _logger.LogError("Invalid response format: 'token' field not found.");
-                return null;
+                await _redisCacheService.SetTokenWithExpirationAsync(TokenCacheKey, newToken, _tokenExpiration);
+                _logger.LogInformation("New token saved in Redis.");
+                return newToken;
             }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError($"Network error (Attempt {attempt}): {ex.Message}");
-            }
-            catch (TaskCanceledException ex)
-            {
-                _logger.LogError($"Request timeout (Attempt {attempt}): {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Unexpected error (Attempt {attempt}): {ex.Message}");
-            }
-
-            await Task.Delay(1000 * attempt);
         }
 
-        _logger.LogError("Failed to obtain token after 3 attempts.");
+        _logger.LogError("Failed to obtain a valid token from API.");
         return null;
     }
 }

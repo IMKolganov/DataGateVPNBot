@@ -26,28 +26,26 @@ public partial class TelegramUpdateHandler
             replyMarkup: new ReplyKeyboardRemove());
     }
 
-    private async Task<Message> GetMyFiles(Message msg)
+    private async Task<Message> GetMyFiles(Message msg, CancellationToken cancellationToken)
     {
         _logger.LogInformation("GetMyFiles started for user: {TelegramId}", msg.From?.Id);
-        var token = await _dashBoardApiAuthService.GetTokenAsync();
-        //get_token
-        //get_files_from_api
-        //send to telegram
+        var issuedOvpnFileResponses = await _dashBoardApiOvpnFileService.GetAllOvpnFilesByExternalIdAsync(
+            8, msg.From!.Id.ToString(), CancellationToken.None);
 
         try
         {
-            if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
+            if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg, cancellationToken);
             _logger.LogInformation("Fetching client configurations...");
-            var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
+            var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id, cancellationToken);
             _logger.LogInformation("Fetched {Count} configuration files.", clientConfigFiles.FileInfo.Count);
 
             if (clientConfigFiles.FileInfo.Count <= 0)
             {
                 return await _botClient.SendMessage(
                     chatId: msg.Chat.Id,
-                    text: await GetLocalizationTextAsync("FilesNotFoundError", msg.From!.Id),
-                    replyMarkup: new ReplyKeyboardRemove()
-                );
+                    text: await GetLocalizationTextAsync("FilesNotFoundError", msg.From!.Id, cancellationToken),
+                    replyMarkup: new ReplyKeyboardRemove(), 
+                    cancellationToken: cancellationToken);
             }
 
             if (clientConfigFiles.FileInfo.Count >= 2)
@@ -76,8 +74,7 @@ public partial class TelegramUpdateHandler
                     _logger.LogInformation("Sending media group...");
                     var m = await _botClient.SendMediaGroup(
                         chatId: msg.Chat.Id,
-                        media: mediaGroup
-                    );
+                        media: mediaGroup, cancellationToken: cancellationToken);
                     _logger.LogInformation("Media group sent successfully.");
 
                     return m.FirstOrDefault() ?? throw new InvalidOperationException("No messages returned after sending media group.");
@@ -98,7 +95,7 @@ public partial class TelegramUpdateHandler
             }
             else
             {
-                await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
+                await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument, cancellationToken: cancellationToken);
                 _logger.LogInformation("Single configuration file detected.");
                 var clientConfigFile = clientConfigFiles.FileInfo.FirstOrDefault()
                                        ?? throw new InvalidOperationException("No configuration file found.");
@@ -112,8 +109,7 @@ public partial class TelegramUpdateHandler
                 var sentMessage = await _botClient.SendDocument(
                     chatId: msg.Chat.Id,
                     document: InputFile.FromStream(fileStream, clientConfigFile.Name),
-                    caption: clientConfigFiles.Message
-                );
+                    caption: clientConfigFiles.Message, cancellationToken: cancellationToken);
                 _logger.LogInformation("Document sent successfully.");
 
                 return sentMessage;
@@ -126,52 +122,54 @@ public partial class TelegramUpdateHandler
         }
     }
 
-    private async Task<Message> MakeNewVpnFile(Message msg)
+    private async Task<Message> MakeNewVpnFile(Message msg, CancellationToken cancellationToken)
     {
         // if (check )//todo: need check
         //throw
         
         // Generate the client configuration file
-        if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
-        var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.Chat.Id);
+        if (!_openVpnClientService.CheckHealthFileSystem()) 
+            return await InformationClientAboutCertCriticalError(msg, cancellationToken);
+        var clientConfigFile = await _openVpnClientService.CreateClientConfiguration(msg.Chat.Id, cancellationToken);
         if (clientConfigFile.FileInfo != null)
         {
             _logger.LogInformation("Client configuration created successfully in UpdateHandler.");
-            await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument);
+            await _botClient.SendChatAction(msg.Chat.Id, ChatAction.UploadDocument, cancellationToken: cancellationToken);
             // Send the .ovpn file to the user
             await using var fileStream = new FileStream(clientConfigFile.FileInfo.FullName, FileMode.Open, FileAccess.Read,
                 FileShare.Read);
             return await _botClient.SendDocument(
                 chatId: msg.Chat.Id,
                 document: InputFile.FromStream(fileStream, clientConfigFile.FileInfo.Name),
-                caption: clientConfigFile.Message
-            );
+                caption: clientConfigFile.Message, 
+                cancellationToken: cancellationToken);
         }
         else
         {
             return await _botClient.SendMessage(
                 chatId: msg.Chat.Id,
                 text: clientConfigFile.Message,
-                replyMarkup: new ReplyKeyboardRemove()
-            );
+                replyMarkup: new ReplyKeyboardRemove(), cancellationToken: cancellationToken);
         }
     }
     
-    private async Task<Message> DeleteAllFiles(Message msg)
+    private async Task<Message> DeleteAllFiles(Message msg, CancellationToken cancellationToken)
     {
-        if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
+        if (!_openVpnClientService.CheckHealthFileSystem()) 
+            return await InformationClientAboutCertCriticalError(msg, cancellationToken);
         await _openVpnClientService.DeleteAllClientConfigurations(msg.From!.Id);
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: await GetLocalizationTextAsync("SuccessfullyDeletedAllFile", msg.From!.Id),
-            replyMarkup: new ReplyKeyboardRemove()
-        );
+            text: await GetLocalizationTextAsync("SuccessfullyDeletedAllFile", msg.From!.Id, cancellationToken),
+            replyMarkup: new ReplyKeyboardRemove(), 
+            cancellationToken: cancellationToken);
     }
 
-    private async Task<Message> DeleteSelectedFile(Message msg)
+    private async Task<Message> DeleteSelectedFile(Message msg, CancellationToken cancellationToken)
     {
-        if (!_openVpnClientService.CheckHealthFileSystem()) return await InformationClientAboutCertCriticalError(msg);
-        var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id);
+        if (!_openVpnClientService.CheckHealthFileSystem()) 
+            return await InformationClientAboutCertCriticalError(msg, cancellationToken);
+        var clientConfigFiles = await _openVpnClientService.GetAllClientConfigurations(msg.From!.Id, cancellationToken);
         var rows = new List<InlineKeyboardButton[]>();
 
         var currentRow = new List<InlineKeyboardButton>();
@@ -194,28 +192,29 @@ public partial class TelegramUpdateHandler
         var inlineMarkup = new InlineKeyboardMarkup(rows);
         return await _botClient.SendMessage(
             msg.Chat,
-            await GetLocalizationTextAsync("ChooseFileForDelete", msg.From!.Id),
-            replyMarkup: inlineMarkup
-        );
+            await GetLocalizationTextAsync("ChooseFileForDelete", msg.From!.Id, cancellationToken),
+            replyMarkup: inlineMarkup, 
+            cancellationToken: cancellationToken);
     }
 
-    private async Task DeleteFile(long telegramId, string fileName)
+    private async Task DeleteFile(long telegramId, string fileName, CancellationToken cancellationToken)
     {
         if (!_openVpnClientService.CheckHealthFileSystem()) throw new Exception("Unable to delete file");
         await _openVpnClientService.DeleteClientConfiguration(telegramId, fileName);
         await _botClient.SendMessage(
             chatId: telegramId,
-            text: await GetLocalizationTextAsync("SuccessfullyDeletedFile", telegramId),
-            replyMarkup: new ReplyKeyboardRemove()
-        );
+            text: await GetLocalizationTextAsync("SuccessfullyDeletedFile", telegramId, cancellationToken),
+            replyMarkup: new ReplyKeyboardRemove(), 
+            cancellationToken: cancellationToken);
     }
 
-    private async Task<Message>  InformationClientAboutCertCriticalError(Message msg)
+    private async Task<Message>  InformationClientAboutCertCriticalError(Message msg, 
+        CancellationToken cancellationToken)
     {
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: await GetLocalizationTextAsync("CertCriticalError", msg.From!.Id),
-            replyMarkup: new ReplyKeyboardRemove()
-        );
+            text: await GetLocalizationTextAsync("CertCriticalError", msg.From!.Id, cancellationToken),
+            replyMarkup: new ReplyKeyboardRemove(), 
+            cancellationToken: cancellationToken);
     }
 }
