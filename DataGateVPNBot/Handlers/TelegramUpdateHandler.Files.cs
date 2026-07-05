@@ -86,18 +86,32 @@ public partial class TelegramUpdateHandler
         IServiceScope scope,
         CancellationToken cancellationToken)
     {
-        var gate = await scope.ServiceProvider
-            .GetRequiredService<IFreeTierAccessComplianceBotService>()
-            .EnsureVpnAccessAsync(msg.Chat.Id, auditContext, cancellationToken);
+        var telegramId = msg.From?.Id ?? msg.Chat.Id;
 
-        if (gate.IsAllowed)
-            return null;
+        try
+        {
+            var gate = await scope.ServiceProvider
+                .GetRequiredService<IFreeTierAccessComplianceBotService>()
+                .EnsureVpnAccessAsync(telegramId, auditContext, cancellationToken);
 
-        return await _botClient.SendMessage(
-            msg.Chat.Id,
-            gate.UserMessage!,
-            replyMarkup: new ReplyKeyboardRemove(),
-            cancellationToken: cancellationToken);
+            if (gate.IsAllowed)
+                return null;
+
+            return await _botClient.SendMessage(
+                msg.Chat.Id,
+                gate.UserMessage!,
+                replyMarkup: new ReplyKeyboardRemove(),
+                cancellationToken: cancellationToken);
+        }
+        catch (System.Security.Authentication.AuthenticationException ex)
+        {
+            _logger.LogWarning(ex, "VPN access audit skipped: bot API authentication failed.");
+            return await _botClient.SendMessage(
+                msg.Chat.Id,
+                "Сервис временно недоступен. Попробуйте позже.\nService temporarily unavailable. Please try again later.",
+                replyMarkup: new ReplyKeyboardRemove(),
+                cancellationToken: cancellationToken);
+        }
     }
 
     private async Task<Message> GetMyFiles(Message msg, string? vpnServerIdArg, CancellationToken cancellationToken)

@@ -31,6 +31,8 @@ public partial class TelegramUpdateHandler
                 "✅ " + (string.IsNullOrWhiteSpace(ok.Message)
                     ? "Accounts linked successfully."
                     : ok.Message),
+            { Message: var message } when message.Contains("not registered", StringComparison.OrdinalIgnoreCase) =>
+                "❌ " + message + "\n\nИспользуйте /register в боте.\nUse /register in the bot first.",
             _ =>
                 "❌ " + (string.IsNullOrWhiteSpace(result?.Message)
                     ? "Could not link accounts. Check the code and try again."
@@ -58,12 +60,18 @@ public partial class TelegramUpdateHandler
                 cancellationToken: cancellationToken);
         }
 
-        return await CompleteAccountLinkFromBotAsync(msg, codeArgument.Trim(), cancellationToken);
+        if (!AccountLinkCodeParser.TryNormalizeToken(codeArgument, out var code))
+        {
+            return await _botClient.SendMessage(
+                msg.Chat,
+                "❌ Неверный формат кода. Нужны 8 символов (A-Z, 2-9).\n" +
+                "❌ Invalid code format. Expected 8 characters (A-Z, 2-9).",
+                cancellationToken: cancellationToken);
+        }
+
+        return await CompleteAccountLinkFromBotAsync(msg, code, cancellationToken);
     }
 
     private static bool TryExtractAccountLinkCode(string messageText, out string code)
         => AccountLinkCodeParser.TryExtract(messageText, out code);
-
-    private static bool IsAccountLinkCodeChar(char ch)
-        => AccountLinkCodeParser.IsCodeChar(ch);
 }

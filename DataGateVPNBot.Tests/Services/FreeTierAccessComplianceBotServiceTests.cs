@@ -29,7 +29,7 @@ public class FreeTierAccessComplianceBotServiceTests
     }
 
     [Fact]
-    public void BuildChannelSubscriptionRequiredMessage_IncludesConfiguredChannel()
+    public void BuildAccessDeniedMessage_IncludesChannelAndLinkAccountHint()
     {
         var service = new FreeTierAccessComplianceBotService(
             Mock.Of<Telegram.Bot.ITelegramBotClient>(),
@@ -42,10 +42,11 @@ public class FreeTierAccessComplianceBotServiceTests
             null!,
             Mock.Of<Microsoft.Extensions.Logging.ILogger<FreeTierAccessComplianceBotService>>());
 
-        var message = service.BuildChannelSubscriptionRequiredMessage();
+        var message = service.BuildAccessDeniedMessage();
 
         Assert.Contains("@DataGateVPNBot", message);
-        Assert.Contains("не обнаружена подписка", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/link_account", message);
+        Assert.Contains("linked account", message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
