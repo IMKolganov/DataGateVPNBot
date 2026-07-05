@@ -80,6 +80,26 @@ public partial class TelegramUpdateHandler
             cancellationToken: cancellationToken);
     }
 
+    private async Task<Message?> SendVpnAccessDeniedMessageIfNeededAsync(
+        Message msg,
+        string auditContext,
+        IServiceScope scope,
+        CancellationToken cancellationToken)
+    {
+        var gate = await scope.ServiceProvider
+            .GetRequiredService<IFreeTierAccessComplianceBotService>()
+            .EnsureVpnAccessAsync(msg.Chat.Id, auditContext, cancellationToken);
+
+        if (gate.IsAllowed)
+            return null;
+
+        return await _botClient.SendMessage(
+            msg.Chat.Id,
+            gate.UserMessage!,
+            replyMarkup: new ReplyKeyboardRemove(),
+            cancellationToken: cancellationToken);
+    }
+
     private async Task<Message> GetMyFiles(Message msg, string? vpnServerIdArg, CancellationToken cancellationToken)
     {
         await _botClient.SendChatAction(msg.Chat.Id, ChatAction.Typing, cancellationToken: cancellationToken);
@@ -90,6 +110,14 @@ public partial class TelegramUpdateHandler
         }
 
         _logger.LogInformation($"GetMyFiles started for user: {msg.Chat.Id}, ServerId: {vpnServerId}");
+
+        var deniedDownload = await SendVpnAccessDeniedMessageIfNeededAsync(
+            msg,
+            "Download OVPN files",
+            scope,
+            cancellationToken);
+        if (deniedDownload is not null)
+            return deniedDownload;
 
         var isXray = await IsXrayServerAsync(scope, vpnServerId, cancellationToken);
         var mediaGroupOpenVpnFiles = isXray
@@ -129,6 +157,14 @@ public partial class TelegramUpdateHandler
         }
 
         _logger.LogInformation($"GetMyFiles started for user: {msg.Chat.Id}, ServerId: {vpnServerId}");
+
+        var deniedDownloadWithToken = await SendVpnAccessDeniedMessageIfNeededAsync(
+            msg,
+            "Download OVPN files with token",
+            scope,
+            cancellationToken);
+        if (deniedDownloadWithToken is not null)
+            return deniedDownloadWithToken;
 
         var isXray = await IsXrayServerAsync(scope, vpnServerId, cancellationToken);
         if (isXray)
@@ -205,6 +241,14 @@ public partial class TelegramUpdateHandler
                 return await GetOpenVpnServers(msg, BotCommands.CommandMakeNewFile, cancellationToken);
             }
 
+            var denied = await SendVpnAccessDeniedMessageIfNeededAsync(
+                msg,
+                "Create OVPN file",
+                scope,
+                cancellationToken);
+            if (denied is not null)
+                return denied;
+
             var isXray = await IsXrayServerAsync(scope, vpnServerId, cancellationToken);
             var atLimit = isXray
                 ? await scope.ServiceProvider.GetRequiredService<IXrayClientLinkBotService>()
@@ -269,6 +313,14 @@ public partial class TelegramUpdateHandler
             {
                 return await GetOpenVpnServers(msg, BotCommands.CommandMakeNewFileWithToken, cancellationToken);
             }
+
+            var denied = await SendVpnAccessDeniedMessageIfNeededAsync(
+                msg,
+                "Create OVPN file with token",
+                scope,
+                cancellationToken);
+            if (denied is not null)
+                return denied;
 
             var isXray = await IsXrayServerAsync(scope, vpnServerId, cancellationToken);
             var atLimit = isXray

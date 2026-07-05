@@ -112,6 +112,16 @@ public class TelegramSettingsService : ITelegramSettingsService
         },
         new()
         {
+            Command = BotCommands.CommandLinkAccount,
+            Descriptions = new()
+            {
+                ["en"] = "Link your app account using a code from the client",
+                ["ru"] = "Привязать аккаунт приложения кодом из клиента",
+                ["el"] = "Σύνδεση λογαριασμού εφαρμογής με κωδικό από τον client"
+            }
+        },
+        new()
+        {
             Command = BotCommands.CommandRefreshProfilePhotos,
             Descriptions = new()
             {

@@ -18,6 +18,7 @@ public static class TelegramConfigurationHelper
         var envCertPemPath = Environment.GetEnvironmentVariable("CERTIFICATE_PEM_PATH");
         var envUseCert = Environment.GetEnvironmentVariable("USE_CERTIFICATE");
         var envAutoGen = Environment.GetEnvironmentVariable("AUTO_GENERATE_CERTIFICATE");
+        var envRequiredChannel = Environment.GetEnvironmentVariable("TELEGRAM_REQUIRED_CHANNEL_USERNAME");
 
         if (!string.IsNullOrWhiteSpace(envBotToken)) botConfig.BotToken = envBotToken;
         if (!string.IsNullOrWhiteSpace(envHost)) botConfig.HostAddress = envHost;
@@ -29,6 +30,8 @@ public static class TelegramConfigurationHelper
 
         if (bool.TryParse(envUseCert, out var useCert)) botConfig.UseCertificate = useCert;
         if (bool.TryParse(envAutoGen, out var autoGen)) botConfig.AutoGenerateCertificate = autoGen;
+        if (!string.IsNullOrWhiteSpace(envRequiredChannel))
+            botConfig.RequiredChannelUsername = envRequiredChannel.Trim().TrimStart('@');
 
         if (!string.IsNullOrWhiteSpace(botConfig.HostAddress))
             botConfig.HostAddress = HostAddressNormalizer.Normalize(botConfig.HostAddress);
