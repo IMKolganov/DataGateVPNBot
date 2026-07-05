@@ -1,3 +1,4 @@
+using DataGateVPNBot.Helpers;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -61,25 +62,8 @@ public partial class TelegramUpdateHandler
     }
 
     private static bool TryExtractAccountLinkCode(string messageText, out string code)
-    {
-        code = string.Empty;
-        var trimmed = messageText.Trim();
-        if (trimmed.StartsWith('/'))
-            return false;
-
-        if (trimmed.Length != 8)
-            return false;
-
-        foreach (var ch in trimmed)
-        {
-            if (!IsAccountLinkCodeChar(ch))
-                return false;
-        }
-
-        code = trimmed.ToUpperInvariant();
-        return true;
-    }
+        => AccountLinkCodeParser.TryExtract(messageText, out code);
 
     private static bool IsAccountLinkCodeChar(char ch)
-        => ch is >= 'A' and <= 'Z' or >= '2' and <= '9';
+        => AccountLinkCodeParser.IsCodeChar(ch);
 }

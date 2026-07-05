@@ -3,6 +3,7 @@ using DataGateVPNBot.Services.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
 using DataGateMonitor.SharedModels.DataGateMonitor.Auth.Responses;
+using DataGateMonitor.SharedModels.DataGateMonitor.User.Responses;
 using DataGateMonitor.SharedModels.Responses;
 using Xunit;
 
@@ -76,5 +77,48 @@ public class AuthServiceTests
         Assert.Equal("cached-token", first);
         Assert.Equal("cached-token", second);
         Assert.Equal(1, callCount);
+    }
+
+    [Fact]
+    public async Task CompleteAccountLinkAsync_ReturnsNull_WhenTokenUnavailable()
+    {
+        var httpRequest = new Mock<IHttpRequestService>();
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<TokenResponse>>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<TokenResponse> { Success = false });
+
+        var sut = new AuthService(httpRequest.Object, "clientId", "secret", Mock.Of<ILogger<AuthService>>());
+
+        var result = await sut.CompleteAccountLinkAsync("ABCD2345", 12345, CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task CompleteAccountLinkAsync_ReturnsResponse_WhenApiSucceeds()
+    {
+        var httpRequest = new Mock<IHttpRequestService>();
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<TokenResponse>>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<TokenResponse>
+            {
+                Success = true,
+                Data = new TokenResponse { Token = "jwt", Expiration = DateTimeOffset.UtcNow.AddHours(1) },
+            });
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<CompleteTelegramAccountLinkResponse>>(
+                "api/users/merge-telegram-google/by-link-code",
+                It.IsAny<object>(),
+                "jwt",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<CompleteTelegramAccountLinkResponse>
+            {
+                Success = true,
+                Data = new CompleteTelegramAccountLinkResponse { Success = true, Message = "Linked" },
+            });
+
+        var sut = new AuthService(httpRequest.Object, "clientId", "secret", Mock.Of<ILogger<AuthService>>());
+
+        var result = await sut.CompleteAccountLinkAsync("ABCD2345", 12345, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.True(result!.Success);
     }
 }
