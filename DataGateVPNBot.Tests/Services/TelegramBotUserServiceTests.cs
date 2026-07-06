@@ -38,4 +38,27 @@ public class TelegramBotUserServiceTests
         await Assert.ThrowsAsync<System.Security.Authentication.AuthenticationException>(() =>
             sut.GetAdminsAsync(CancellationToken.None));
     }
+
+    [Fact]
+    public async Task UserExistsAsync_ReturnsFalse_WhenApiReportsNotRegistered_WithoutWarning()
+    {
+        var httpRequest = new Mock<IHttpRequestService>();
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<DataGateMonitor.SharedModels.DataGateMonitor.Auth.Responses.TokenResponse>>(
+                It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<DataGateMonitor.SharedModels.DataGateMonitor.Auth.Responses.TokenResponse>
+            {
+                Success = true,
+                Data = new DataGateMonitor.SharedModels.DataGateMonitor.Auth.Responses.TokenResponse { Token = "t" },
+            });
+        httpRequest.Setup(h => h.GetAsync<ApiResponse<bool>>(
+                "api/tgbot-users/check-exists/372608421", "t", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<bool> { Success = true, Data = false, Message = "Success" });
+
+        var authService = new AuthService(httpRequest.Object, "c", "s", Mock.Of<ILogger<AuthService>>());
+        var sut = new TelegramBotUserService(Mock.Of<ILogger<TelegramBotUserService>>(), httpRequest.Object, authService, Mock.Of<IErrorService>());
+
+        var exists = await sut.UserExistsAsync(372608421, CancellationToken.None);
+
+        Assert.False(exists);
+    }
 }

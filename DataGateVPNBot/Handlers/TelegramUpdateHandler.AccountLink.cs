@@ -1,12 +1,13 @@
 using DataGateVPNBot.Helpers;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 
 namespace DataGateVPNBot.Handlers;
 
 public partial class TelegramUpdateHandler
 {
+    private const string TelegramAlreadyLinkedToGooglePrefix = "TelegramAlreadyLinkedToGoogle|";
+
     private async Task<Message> CompleteAccountLinkFromBotAsync(
         Message msg,
         string code,
@@ -18,26 +19,39 @@ public partial class TelegramUpdateHandler
         var telegramId = msg.From.Id;
         var result = await authService.CompleteAccountLinkAsync(code, telegramId, cancellationToken);
 
-        var text = result switch
+        string text;
+        if (result is { Success: true, Merge: not null } mergeOk)
         {
-            { Success: true, Merge: not null } mergeOk =>
-                "✅ Аккаунты успешно связаны.\n" +
-                "✅ Accounts linked successfully.\n\n" +
-                $"User #{mergeOk.Merge!.SurvivorUserId}" +
-                (mergeOk.Merge.Warnings.Count > 0
-                    ? "\n\n⚠️ " + string.Join("\n⚠️ ", mergeOk.Merge.Warnings)
-                    : string.Empty),
-            { Success: true } ok =>
-                "✅ " + (string.IsNullOrWhiteSpace(ok.Message)
-                    ? "Accounts linked successfully."
-                    : ok.Message),
-            { Message: var message } when message.Contains("not registered", StringComparison.OrdinalIgnoreCase) =>
-                "❌ " + message + "\n\nИспользуйте /register в боте.\nUse /register in the bot first.",
-            _ =>
-                "❌ " + (string.IsNullOrWhiteSpace(result?.Message)
-                    ? "Could not link accounts. Check the code and try again."
-                    : result!.Message),
-        };
+            text = "✅ " + await GetLocalizationTextAsync(
+                "AccountLinkSuccess",
+                telegramId,
+                new Dictionary<string, string> { ["userId"] = mergeOk.Merge!.SurvivorUserId.ToString() },
+                cancellationToken);
+
+            if (mergeOk.Merge.Warnings.Count > 0)
+                text += "\n\n⚠️ " + string.Join("\n⚠️ ", mergeOk.Merge.Warnings);
+        }
+        else if (result is { Success: true })
+        {
+            text = "✅ " + await GetLocalizationTextAsync("AccountLinkAlreadyLinked", telegramId, cancellationToken);
+        }
+        else if (result?.Message?.StartsWith(TelegramAlreadyLinkedToGooglePrefix, StringComparison.Ordinal) == true)
+        {
+            var label = result.Message[TelegramAlreadyLinkedToGooglePrefix.Length..];
+            text = "❌ " + await GetLocalizationTextAsync(
+                "AccountLinkTelegramAlreadyLinkedToGoogle",
+                telegramId,
+                new Dictionary<string, string> { ["accountLabel"] = label },
+                cancellationToken);
+        }
+        else if (result?.Message?.Contains("not registered", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            text = "❌ " + await GetLocalizationTextAsync("AccountLinkNotRegistered", telegramId, cancellationToken);
+        }
+        else
+        {
+            text = "❌ " + await GetLocalizationTextAsync("AccountLinkFailed", telegramId, cancellationToken);
+        }
 
         return await _botClient.SendMessage(
             msg.Chat,
@@ -50,13 +64,14 @@ public partial class TelegramUpdateHandler
         string? codeArgument,
         CancellationToken cancellationToken)
     {
+        if (msg.From is null)
+            return msg;
+
         if (string.IsNullOrWhiteSpace(codeArgument))
         {
             return await _botClient.SendMessage(
                 msg.Chat,
-                "Введите код из приложения:\n/link_account КОД\n\n" +
-                "Or send the 8-character code alone in this chat.\n\n" +
-                "Enter the code from the app:\n/link_account CODE",
+                await GetLocalizationTextAsync("AccountLinkEnterCodePrompt", msg.From.Id, cancellationToken),
                 cancellationToken: cancellationToken);
         }
 
@@ -64,8 +79,7 @@ public partial class TelegramUpdateHandler
         {
             return await _botClient.SendMessage(
                 msg.Chat,
-                "❌ Неверный формат кода. Нужны 8 символов (A-Z, 2-9).\n" +
-                "❌ Invalid code format. Expected 8 characters (A-Z, 2-9).",
+                "❌ " + await GetLocalizationTextAsync("AccountLinkInvalidCodeFormat", msg.From.Id, cancellationToken),
                 cancellationToken: cancellationToken);
         }
 
