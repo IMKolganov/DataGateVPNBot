@@ -7,6 +7,7 @@ using DataGateMonitor.SharedModels.DataGateMonitor.OpenVpnFiles.Responses;
 using DataGateMonitor.SharedModels.DataGateMonitor.OpenVpnFiles.Responses.Dto;
 using DataGateMonitor.SharedModels.Responses;
 using DataGateVPNBot.Services.BotServices;
+using DataGateVPNBot.Services.BotServices.Interfaces;
 using DataGateVPNBot.Services.Interfaces;
 using DataGateMonitor.SharedModels.DataGateMonitor.Auth.Responses;
 using BotServices = DataGateVPNBot.Services.BotServices;

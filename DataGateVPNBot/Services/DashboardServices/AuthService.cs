@@ -1,6 +1,8 @@
 using DataGateVPNBot.Services.Http;
 using DataGateMonitor.SharedModels.DataGateMonitor.Auth.Requests;
 using DataGateMonitor.SharedModels.DataGateMonitor.Auth.Responses;
+using DataGateMonitor.SharedModels.DataGateMonitor.User.Requests;
+using DataGateMonitor.SharedModels.DataGateMonitor.User.Responses;
 using DataGateMonitor.SharedModels.Responses;
 
 namespace DataGateVPNBot.Services.DashboardServices;
@@ -105,6 +107,58 @@ public class AuthService(
         {
             logger.LogError(ex, "Failed to request dashboard login code for TelegramId {TelegramId}", telegramId);
             return null;
+        }
+    }
+
+    public async Task<CompleteTelegramAccountLinkResponse?> CompleteAccountLinkAsync(
+        string code,
+        long telegramId,
+        CancellationToken ct = default)
+    {
+        var token = await GetTokenAsync();
+        if (string.IsNullOrEmpty(token))
+        {
+            logger.LogWarning("Cannot complete account link: App token unavailable.");
+            return null;
+        }
+
+        var body = new CompleteTelegramAccountLinkRequest
+        {
+            Code = code.Trim(),
+            TelegramId = telegramId,
+        };
+
+        try
+        {
+            var response = await httpRequestService.PostAsync<ApiResponse<CompleteTelegramAccountLinkResponse>>(
+                "api/users/merge-telegram-google/by-link-code",
+                body,
+                token,
+                ct);
+
+            if (response is not { Success: true, Data: not null })
+            {
+                logger.LogWarning(
+                    "Account link failed for TelegramId {TelegramId}: {Message}",
+                    telegramId,
+                    response?.Message);
+                return response?.Data ?? new CompleteTelegramAccountLinkResponse
+                {
+                    Success = false,
+                    Message = response?.Message ?? "Account link request failed.",
+                };
+            }
+
+            return response.Data;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to complete account link for TelegramId {TelegramId}", telegramId);
+            return new CompleteTelegramAccountLinkResponse
+            {
+                Success = false,
+                Message = "Could not reach the server. Try again later.",
+            };
         }
     }
 }

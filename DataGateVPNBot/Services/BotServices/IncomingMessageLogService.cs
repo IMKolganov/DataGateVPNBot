@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using DataGateVPNBot.Helpers;
 using DataGateVPNBot.Services.BotServices.Interfaces;
 using DataGateVPNBot.Services.DashboardServices.Interfaces;
 using DataGateVPNBot.Services.Interfaces;
@@ -22,7 +23,7 @@ public class IncomingMessageLogService(IIncomingMessageLogSenderService incoming
                 Username = msg.From?.Username,
                 FirstName = msg.From?.FirstName,
                 LastName = msg.From?.LastName,
-                MessageText = msg.Text ?? string.Empty,
+                MessageText = AccountLinkCodeParser.RedactSensitiveMessageText(msg.Text),
                 ReceivedAt = DateTime.UtcNow
             }
         };
