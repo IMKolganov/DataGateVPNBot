@@ -87,8 +87,16 @@ public class TelegramBotUserService(
                 return true;
             }
 
-            logger.LogWarning("UserExistsAsync: user {TelegramUserId} does not exist or API returned error. Message: {Message}",
-                telegramUserId, response?.Message);
+            if (response is { Success: true, Data: false })
+            {
+                logger.LogDebug("UserExistsAsync: user {TelegramUserId} not registered yet.", telegramUserId);
+                return false;
+            }
+
+            logger.LogWarning(
+                "UserExistsAsync: API error while checking user {TelegramUserId}. Message: {Message}",
+                telegramUserId,
+                response?.Message ?? "null response");
         }
         catch (Exception ex)
         {

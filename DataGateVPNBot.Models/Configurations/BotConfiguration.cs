@@ -11,4 +11,10 @@ public class BotConfiguration
     public string? CertificatePfxPath { get; set; } = "app/resources/certs/datagatetgbot.pfx";
     public string? CertificatePemPath { get; set; } = "app/resources/certs/datagatetgbot.pem";
     public TimeSpan? InitDataLifetime { get; set; }
+
+    /// <summary>Required public channel username without @ (default: DataGateVPNBot).</summary>
+    public string RequiredChannelUsername { get; set; } = "DataGateVPNBot";
+
+    public string RequiredChannelChatId =>
+        $"@{RequiredChannelUsername.Trim().TrimStart('@')}";
 }

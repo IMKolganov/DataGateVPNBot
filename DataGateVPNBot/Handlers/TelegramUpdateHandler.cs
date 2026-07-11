@@ -99,6 +99,11 @@ public partial class TelegramUpdateHandler(
 
         await RegisterNewUserAsync(msg, cancellationToken); // optional user registration
 
+        if (isPrivate && TryExtractAccountLinkCode(messageText, out var bareCode))
+        {
+            return await CompleteAccountLinkFromBotAsync(msg, bareCode, cancellationToken);
+        }
+
         var isLocalizationCommand = command is BotCommands.CommandStart
             or BotCommands.CommandChangeLanguage
             or BotCommands.CommandEnglish
@@ -119,6 +124,7 @@ public partial class TelegramUpdateHandler(
         {
             BotCommands.CommandRegister,
             BotCommands.CommandLoginCode,
+            BotCommands.CommandLinkAccount,
             BotCommands.CommandGetMyFiles,
             BotCommands.CommandMakeNewFile,
             BotCommands.CommandMakeNewFileWithToken,
@@ -144,6 +150,7 @@ public partial class TelegramUpdateHandler(
             BotCommands.CommandHowToUse => HowToUseVpn(msg, cancellationToken),
             BotCommands.CommandRegister => RegisterForVpn(msg, cancellationToken),
             BotCommands.CommandLoginCode => SendDashboardLoginCodeAsync(msg, cancellationToken),
+            BotCommands.CommandLinkAccount => LinkAccountCommandAsync(msg, argument, cancellationToken),
             BotCommands.CommandGetMyFiles => GetMyFilesWithToken(msg, argument, cancellationToken),
             BotCommands.CommandGetMyFilesWithToken => GetMyFilesWithToken(msg, argument, cancellationToken),
             BotCommands.CommandGetMyFilesWithoutToken => GetMyFiles(msg, argument, cancellationToken),

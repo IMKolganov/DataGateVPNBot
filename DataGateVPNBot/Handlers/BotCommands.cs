@@ -8,6 +8,8 @@ public static class BotCommands
     public const string CommandRegister = "/register";
     /// <summary>One-time dashboard login code (5 minutes).</summary>
     public const string CommandLoginCode = "/login_code";
+    /// <summary>Link dashboard (Google/password) account using a code from the client app.</summary>
+    public const string CommandLinkAccount = "/link_account";
     public const string CommandGetMyFiles = "/get_my_files";
     public const string CommandGetMyFilesWithToken = "/get_my_files_with_token";
     public const string CommandGetMyFilesWithoutToken = "/get_my_files_without_token";

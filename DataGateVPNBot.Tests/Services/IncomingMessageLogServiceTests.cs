@@ -84,4 +84,27 @@ public class IncomingMessageLogServiceTests
                 Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public async Task Log_Message_RedactsAccountLinkCode()
+    {
+        AddMessageRequest? capturedRequest = null;
+        var sender = new Mock<IIncomingMessageLogSenderService>();
+        sender.Setup(s => s.TelegramBotIncomingMessageLogAddMessageAsync(It.IsAny<AddMessageRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<AddMessageRequest, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync(new AddMessageResponse());
+
+        var sut = new IncomingMessageLogService(sender.Object, Mock.Of<IErrorService>(), Mock.Of<ILogger<IncomingMessageLogService>>());
+        var msg = new Message
+        {
+            From = new User { Id = 42, IsBot = false },
+            Date = DateTime.UtcNow,
+            Chat = new Chat { Id = 1, Type = ChatType.Private },
+            Text = "ABCD2345",
+        };
+
+        await sut.Log(Mock.Of<ITelegramBotClient>(), msg, CancellationToken.None);
+
+        Assert.Equal("[account-link-code-redacted]", capturedRequest!.Message!.MessageText);
+    }
 }
