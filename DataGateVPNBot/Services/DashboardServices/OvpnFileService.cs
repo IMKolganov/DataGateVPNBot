@@ -185,20 +185,7 @@ public class OvpnFileService(
             await httpRequestService.PostAsync<ApiResponse<OvpnFileResponse>>(EndpointAddOpenVpnFile, 
                 request, token, cancellationToken);
 
-        if (response is { Success: true, Data: not null, Data.IssuedOvpnFile.Id: > 0 })
-        {
-        }
-        else
-        {
-            logger.LogWarning($"Failed to get VPN servers: {response?.Message}");
-        }
-
-        if (response == null)
-        {
-            logger.LogError("Failed to fetch Open VPN Servers from API.");
-        }
-
-        return response!.Data!;
+        return RequireSuccessData(response, "create OVPN file");
     }
     
     public async Task<OvpnFileWithTokenResponse> AddOvpnFileWithTokenAsync(AddFileRequest request,
@@ -226,20 +213,20 @@ public class OvpnFileService(
             await httpRequestService.PostAsync<ApiResponse<OvpnFileWithTokenResponse>>(
                 EndpointAddClientOvpnFileWithToken, request, token, cancellationToken);
 
-        if (response is { Success: true, Data: not null, Data.IssuedOvpnFile.Id: > 0 })
-        {
-        }
-        else
-        {
-            logger.LogWarning($"Failed to get VPN servers: {response?.Message}");
-        }
+        return RequireSuccessData(response, "create OVPN file with token");
+    }
 
-        if (response == null)
-        {
-            logger.LogError("Failed to fetch Open VPN Servers from API.");
-        }
+    private T RequireSuccessData<T>(ApiResponse<T>? response, string operation)
+    {
+        if (response is { Success: true, Data: not null })
+            return response.Data;
 
-        return response!.Data!;
+        var message = string.IsNullOrWhiteSpace(response?.Message)
+            ? $"Failed to {operation}."
+            : response.Message;
+
+        logger.LogWarning("Failed to {Operation}: {Message}", operation, message);
+        throw new InvalidOperationException(message);
     }
     
     public async Task<OvpnFileResponse> RevokeOvpnFileAsync(RevokeFileRequest request, 

@@ -1,4 +1,5 @@
 ﻿using DataGateVPNBot.Helpers;
+using DataGateVPNBot.Localization;
 using DataGateVPNBot.Services.BotServices.Interfaces;
 using DataGateVPNBot.Services.DashboardServices;
 using DataGateVPNBot.Services.Interfaces;
@@ -302,17 +303,9 @@ public partial class TelegramUpdateHandler
             return messages.FirstOrDefault() ??
                    throw new InvalidOperationException("No messages returned after sending media group.");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            using var scope = serviceProvider.CreateScope();
-            var errorService = scope.ServiceProvider.GetRequiredService<IErrorService>();
-            await errorService.NotifyAdminsAboutExceptionAsync(ex, null, cancellationToken);
-            return await _botClient.SendMessage(
-                msg.Chat,
-                await GetLocalizationTextAsync("SomethingWentWrongWhenTryMakeNewFile", 
-                    msg.Chat.Id, cancellationToken) + " Details: " + ex.Message,
-                replyMarkup: new ReplyKeyboardRemove(),
-                cancellationToken: cancellationToken);
+            return await SendMakeNewFileErrorAsync(msg, ex, cancellationToken);
         }
     }
     
@@ -408,18 +401,50 @@ public partial class TelegramUpdateHandler
             return messages.FirstOrDefault() ??
                    throw new InvalidOperationException("No messages returned after sending media group.");
         }
-        catch(Exception ex)
+        catch (Exception ex)
+        {
+            return await SendMakeNewFileErrorAsync(msg, ex, cancellationToken);
+        }
+    }
+
+    private async Task<Message> SendMakeNewFileErrorAsync(
+        Message msg,
+        Exception ex,
+        CancellationToken cancellationToken)
+    {
+        var telegramId = msg.Chat.Id;
+        string text;
+        var isExpectedBusinessError = false;
+
+        if (ApiErrorMessageMapper.TryMap(ex.Message, out var mapped))
+        {
+            isExpectedBusinessError = mapped.IsExpectedBusinessError;
+            text = await GetLocalizationTextAsync(
+                mapped.LocalizationKey,
+                telegramId,
+                mapped.Placeholders ?? new Dictionary<string, string>(),
+                cancellationToken);
+        }
+        else
+        {
+            text = await GetLocalizationTextAsync(
+                "SomethingWentWrongWhenTryMakeNewFile",
+                telegramId,
+                cancellationToken);
+        }
+
+        if (!isExpectedBusinessError)
         {
             using var scope = serviceProvider.CreateScope();
             var errorService = scope.ServiceProvider.GetRequiredService<IErrorService>();
             await errorService.NotifyAdminsAboutExceptionAsync(ex, null, cancellationToken);
-            return await _botClient.SendMessage(
-                msg.Chat,
-                await GetLocalizationTextAsync("SomethingWentWrongWhenTryMakeNewFile", 
-                    msg.Chat.Id, cancellationToken) + " Details: " + ex.Message,
-                replyMarkup: new ReplyKeyboardRemove(),
-                cancellationToken: cancellationToken);
         }
+
+        return await _botClient.SendMessage(
+            msg.Chat,
+            text,
+            replyMarkup: new ReplyKeyboardRemove(),
+            cancellationToken: cancellationToken);
     }
     
     private async Task<Message> DeleteAllFiles(Message msg, string? vpnServerIdArg, CancellationToken cancellationToken)

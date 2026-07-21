@@ -1,4 +1,5 @@
 using DataGateVPNBot.Helpers;
+using DataGateVPNBot.Localization;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -6,8 +7,6 @@ namespace DataGateVPNBot.Handlers;
 
 public partial class TelegramUpdateHandler
 {
-    private const string TelegramAlreadyLinkedToGooglePrefix = "TelegramAlreadyLinkedToGoogle|";
-
     private async Task<Message> CompleteAccountLinkFromBotAsync(
         Message msg,
         string code,
@@ -35,13 +34,12 @@ public partial class TelegramUpdateHandler
         {
             text = "✅ " + await GetLocalizationTextAsync("AccountLinkAlreadyLinked", telegramId, cancellationToken);
         }
-        else if (result?.Message?.StartsWith(TelegramAlreadyLinkedToGooglePrefix, StringComparison.Ordinal) == true)
+        else if (ApiErrorMessageMapper.TryMap(result?.Message, out var mapped))
         {
-            var label = result.Message[TelegramAlreadyLinkedToGooglePrefix.Length..];
             text = "❌ " + await GetLocalizationTextAsync(
-                "AccountLinkTelegramAlreadyLinkedToGoogle",
+                mapped.LocalizationKey,
                 telegramId,
-                new Dictionary<string, string> { ["accountLabel"] = label },
+                mapped.Placeholders ?? new Dictionary<string, string>(),
                 cancellationToken);
         }
         else if (result?.Message?.Contains("not registered", StringComparison.OrdinalIgnoreCase) == true)
