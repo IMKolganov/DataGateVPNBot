@@ -244,20 +244,7 @@ public class OvpnFileService(
         var response =
             await httpRequestService.PostAsync<ApiResponse<OvpnFileResponse>>(EndpointRevokeOvpnFile, 
                 request, token, cancellationToken);
-        
-        if (response is { Success: true, Data: not null })
-        {
-            logger.LogInformation("Successfully revoked OVPN file for " +
-                                   $"CommonName: {request.CommonName}, ServerId: {request.VpnServerId}, " +
-                                   $"Response: {response}");
-        }
-        else
-        {
-            logger.LogError("Failed to revoke OVPN file for " +
-                             $"CommonName: {request.CommonName}, ServerId: {request.VpnServerId}, " +
-                             $"Response: {response}");
-        }
 
-        return response!.Data!;
+        return RequireSuccessData(response, "revoke OVPN file");
     }
 }

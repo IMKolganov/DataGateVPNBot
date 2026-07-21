@@ -155,15 +155,16 @@ public class AuthService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to complete account link for TelegramId {TelegramId}", telegramId);
-            var extracted = ApiErrorMessageMapper.ExtractPrimaryMessage(ex.Message);
-            var message = ApiErrorMessageMapper.TryMap(extracted, out _)
-                || ApiErrorMessageMapper.TryMap(ex.Message, out _)
-                ? extracted
-                : "Could not reach the server. Try again later.";
+            var primary = ApiErrorMessageMapper.ExtractPrimaryMessage(ex.Message);
+            if (string.IsNullOrWhiteSpace(primary))
+                primary = ex.Message;
+
             return new CompleteTelegramAccountLinkResponse
             {
                 Success = false,
-                Message = message,
+                Message = ApiErrorMessageMapper.TryMap(primary, out _)
+                    ? primary
+                    : "Could not reach the server. Try again later.",
             };
         }
     }
