@@ -66,10 +66,21 @@ public partial class TelegramUpdateHandler(
             { ChosenInlineResult: { } chosenInlineResult } => OnChosenInlineResult(chosenInlineResult),
             { Poll: { } poll } => OnPoll(poll),
             { PollAnswer: { } pollAnswer } => OnPollAnswer(pollAnswer),
-            // ChannelPost:
-            // EditedChannelPost:
-            // ShippingQuery:
-            // PreCheckoutQuery:
+            { ChatBoost: { } chatBoost } => OnChatBoostUpdateAsync(chatBoost, cancellationToken),
+            { RemovedChatBoost: { } removedChatBoost } => OnRemovedChatBoostUpdateAsync(removedChatBoost, cancellationToken),
+            { ChatJoinRequest: { } chatJoinRequest } => OnChatJoinRequestUpdateAsync(chatJoinRequest, cancellationToken),
+            { MessageReaction: { } messageReaction } => OnMessageReactionUpdateAsync(messageReaction, cancellationToken),
+            { MessageReactionCount: { } messageReactionCount } => OnMessageReactionCountUpdateAsync(messageReactionCount, cancellationToken),
+            { BusinessConnection: { } businessConnection } => OnBusinessConnectionUpdateAsync(businessConnection, cancellationToken),
+            { BusinessMessage: { } businessMessage } => OnUnsupportedChannelUpdateAsync("BusinessMessage", businessMessage, cancellationToken),
+            { EditedBusinessMessage: { } editedBusinessMessage } => OnUnsupportedChannelUpdateAsync("EditedBusinessMessage", editedBusinessMessage, cancellationToken),
+            { DeletedBusinessMessages: { } deletedBusinessMessages } => OnDeletedBusinessMessagesUpdateAsync(deletedBusinessMessages, cancellationToken),
+            { GuestMessage: { } guestMessage } => OnUnsupportedChannelUpdateAsync("GuestMessage", guestMessage, cancellationToken),
+            { ShippingQuery: { } shippingQuery } => OnShippingQueryUpdateAsync(shippingQuery, cancellationToken),
+            { PreCheckoutQuery: { } preCheckoutQuery } => OnPreCheckoutQueryUpdateAsync(preCheckoutQuery, cancellationToken),
+            { PurchasedPaidMedia: { } purchasedPaidMedia } => OnPurchasedPaidMediaUpdateAsync(purchasedPaidMedia, cancellationToken),
+            { ManagedBot: { } managedBot } => OnManagedBotUpdateAsync(managedBot, cancellationToken),
+            { Subscription: { } subscription } => OnSubscriptionUpdateAsync(subscription, cancellationToken),
             _ => UnknownUpdateHandlerAsync(update, cancellationToken)
         });
     }
@@ -313,19 +324,28 @@ public partial class TelegramUpdateHandler(
         var chat = DescribeChat(message.Chat);
         var actor = DescribeUser(message.From);
         var payload = string.IsNullOrWhiteSpace(message.Text)
-            ? "<empty>"
+            ? "—"
             : message.Text.Length > 500
-                ? message.Text[..500] + "... (truncated)"
+                ? message.Text[..500] + "…"
                 : message.Text;
 
+        var title = updateType switch
+        {
+            "ChannelPost" => "Channel post",
+            "EditedChannelPost" => "Channel post edited",
+            "BusinessMessage" => "Business message",
+            "EditedBusinessMessage" => "Business message edited",
+            "GuestMessage" => "Guest message",
+            _ => updateType
+        };
+
         var text =
-            "ℹ️ Unsupported Telegram update received\n" +
+            $"ℹ️ {title}\n" +
             $"Type: {updateType}\n" +
-            "Status: currently not supported by this bot\n" +
             $"Chat: {chat}\n" +
-            $"Actor: {actor}\n" +
+            $"User: {actor}\n" +
             $"MessageId: {message.Id}\n" +
-            $"Payload: {payload}\n" +
+            $"Text: {payload}\n" +
             $"Time: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
 
         _logger.LogInformation("Unsupported update {UpdateType} received. Chat={Chat}; MessageId={MessageId}",
