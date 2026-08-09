@@ -291,6 +291,12 @@ public partial class TelegramUpdateHandler(
             _logger.LogInformation("Admin email channel-subscribe remind for userId: {UserId}", userId);
             await AdminRemindChannelEmailFromCallbackAsync(message, callbackQuery.From, userId, cancellationToken);
         }
+        else if (lowerData.StartsWith($"{BotCommands.CommandRemindChannelSubscribe} "))
+        {
+            var target = data.Substring(BotCommands.CommandRemindChannelSubscribe.Length + 1).Trim();
+            _logger.LogInformation("Admin Telegram channel-subscribe remind for target: {Target}", target);
+            await AdminRemindChannelSubscribeFromCallbackAsync(message, callbackQuery.From, target, cancellationToken);
+        }
         else if (data is BotCommands.CommandEnglish or BotCommands.CommandRussian or BotCommands.CommandGreek)
         {
             _logger.LogInformation("User selected language: {Language}", data);

@@ -3,7 +3,6 @@ using DataGateVPNBot.Services.BotServices;
 using DataGateVPNBot.Services.DashboardServices;
 using DataGateVPNBot.Services.Http;
 using DataGateMonitor.SharedModels.DataGateMonitor.FreeTierEnforcement.Dto;
-using DataGateMonitor.SharedModels.DataGateMonitor.FreeTierEnforcement.Enums;
 using DataGateMonitor.SharedModels.DataGateMonitor.FreeTierEnforcement.Responses;
 using DataGateMonitor.SharedModels.Responses;
 using Microsoft.Extensions.Logging;
@@ -72,32 +71,50 @@ public class FreeTierUnsubscribedVpnDigestBotServiceTests
     }
 }
 
-public class FreeTierEmailRemindKeyboardTests
+public class FreeTierRemindKeyboardTests
 {
     [Fact]
-    public void BuildEmailRemindKeyboard_OnlyCandidatesWithEmail()
+    public void BuildRemindKeyboard_IncludesTgAndEmailButtons()
     {
-        var keyboard = DataGateVPNBot.Handlers.TelegramUpdateHandler.BuildEmailRemindKeyboard(
+        var keyboard = DataGateVPNBot.Handlers.TelegramUpdateHandler.BuildRemindKeyboard(
         [
-            new FreeTierEnforcementCandidateDto { UserId = 150, DisplayName = "A", Email = "a@x.com" },
-            new FreeTierEnforcementCandidateDto { UserId = 7, DisplayName = "B", Email = null },
-            new FreeTierEnforcementCandidateDto { UserId = 9, DisplayName = "C", Email = "  " },
-            new FreeTierEnforcementCandidateDto { UserId = 3, DisplayName = "D", Email = "d@x.com" },
+            new FreeTierEnforcementCandidateDto
+            {
+                UserId = 22,
+                DisplayName = "Irina",
+                Email = "irina@x.com",
+                TelegramId = 439938925,
+            },
+            new FreeTierEnforcementCandidateDto
+            {
+                UserId = 150,
+                DisplayName = "Tatyana",
+                Email = "t@x.com",
+                TelegramId = null,
+            },
+            new FreeTierEnforcementCandidateDto
+            {
+                UserId = 7,
+                DisplayName = "NoContact",
+                Email = null,
+                TelegramId = null,
+            },
         ]);
 
         Assert.NotNull(keyboard);
         var buttons = keyboard!.InlineKeyboard.SelectMany(r => r).ToList();
-        Assert.Equal(2, buttons.Count);
+        Assert.Contains(buttons, b => b.Text == "TG #22" && b.CallbackData == "/remind_channel_subscribe 22");
+        Assert.Contains(buttons, b => b.Text == "Email #22" && b.CallbackData == "/remind_channel_email 22");
         Assert.Contains(buttons, b => b.Text == "Email #150" && b.CallbackData == "/remind_channel_email 150");
-        Assert.Contains(buttons, b => b.Text == "Email #3" && b.CallbackData == "/remind_channel_email 3");
+        Assert.DoesNotContain(buttons, b => b.CallbackData!.Contains(" 7"));
     }
 
     [Fact]
-    public void BuildEmailRemindKeyboard_ReturnsNull_WhenNoEmails()
+    public void BuildRemindKeyboard_ReturnsNull_WhenNoContacts()
     {
-        var keyboard = DataGateVPNBot.Handlers.TelegramUpdateHandler.BuildEmailRemindKeyboard(
+        var keyboard = DataGateVPNBot.Handlers.TelegramUpdateHandler.BuildRemindKeyboard(
         [
-            new FreeTierEnforcementCandidateDto { UserId = 1, Email = null },
+            new FreeTierEnforcementCandidateDto { UserId = 1, Email = null, TelegramId = null },
         ]);
 
         Assert.Null(keyboard);

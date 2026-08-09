@@ -51,7 +51,7 @@ public partial class TelegramUpdateHandler
             if (liveText.Length > 4090)
                 liveText = liveText[..4090] + "…";
 
-            var keyboard = BuildEmailRemindKeyboard(digest.Candidates);
+            var keyboard = BuildRemindKeyboard(digest.Candidates);
             return await _botClient.SendMessage(
                 msg.Chat.Id,
                 liveText,
@@ -76,32 +76,50 @@ public partial class TelegramUpdateHandler
         }
     }
 
-    public static InlineKeyboardMarkup? BuildEmailRemindKeyboard(
+    /// <summary>
+    /// One row per candidate that can be reminded: optional TG and/or Email buttons.
+    /// </summary>
+    public static InlineKeyboardMarkup? BuildRemindKeyboard(
         IReadOnlyList<FreeTierEnforcementCandidateDto>? candidates)
     {
         if (candidates is null || candidates.Count == 0)
             return null;
 
-        var withEmail = candidates
-            .Where(c => !string.IsNullOrWhiteSpace(c.Email))
+        var actionable = candidates
+            .Where(c => c.TelegramId is > 0 || !string.IsNullOrWhiteSpace(c.Email))
             .OrderBy(c => c.DisplayName)
-            .Take(24)
+            .Take(20)
             .ToList();
-        if (withEmail.Count == 0)
+        if (actionable.Count == 0)
             return null;
 
         var rows = new List<InlineKeyboardButton[]>();
-        const int perRow = 2;
-        for (var i = 0; i < withEmail.Count; i += perRow)
+        foreach (var c in actionable)
         {
-            var chunk = withEmail.Skip(i).Take(perRow)
-                .Select(c => InlineKeyboardButton.WithCallbackData(
+            var buttons = new List<InlineKeyboardButton>(2);
+            if (c.TelegramId is > 0)
+            {
+                buttons.Add(InlineKeyboardButton.WithCallbackData(
+                    $"TG #{c.UserId}",
+                    $"{BotCommands.CommandRemindChannelSubscribe} {c.UserId}"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(c.Email))
+            {
+                buttons.Add(InlineKeyboardButton.WithCallbackData(
                     $"Email #{c.UserId}",
-                    $"{BotCommands.CommandRemindChannelEmail} {c.UserId}"))
-                .ToArray();
-            rows.Add(chunk);
+                    $"{BotCommands.CommandRemindChannelEmail} {c.UserId}"));
+            }
+
+            if (buttons.Count > 0)
+                rows.Add(buttons.ToArray());
         }
 
-        return new InlineKeyboardMarkup(rows);
+        return rows.Count == 0 ? null : new InlineKeyboardMarkup(rows);
     }
+
+    [Obsolete("Use BuildRemindKeyboard")]
+    public static InlineKeyboardMarkup? BuildEmailRemindKeyboard(
+        IReadOnlyList<FreeTierEnforcementCandidateDto>? candidates)
+        => BuildRemindKeyboard(candidates);
 }

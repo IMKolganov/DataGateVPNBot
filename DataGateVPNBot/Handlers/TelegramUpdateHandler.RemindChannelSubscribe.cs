@@ -43,6 +43,18 @@ public partial class TelegramUpdateHandler
             FreeTierChannelSubscribeRemindChannel.Email,
             cancellationToken);
 
+    private async Task<Message> AdminRemindChannelSubscribeFromCallbackAsync(
+        Message chatMessage,
+        User admin,
+        string? argument,
+        CancellationToken cancellationToken)
+        => await AdminRemindChannelAsync(
+            chatMessage,
+            admin,
+            argument,
+            FreeTierChannelSubscribeRemindChannel.Telegram,
+            cancellationToken);
+
     private async Task<Message> AdminRemindChannelAsync(
         Message msg,
         User? admin,
