@@ -66,10 +66,21 @@ public partial class TelegramUpdateHandler(
             { ChosenInlineResult: { } chosenInlineResult } => OnChosenInlineResult(chosenInlineResult),
             { Poll: { } poll } => OnPoll(poll),
             { PollAnswer: { } pollAnswer } => OnPollAnswer(pollAnswer),
-            // ChannelPost:
-            // EditedChannelPost:
-            // ShippingQuery:
-            // PreCheckoutQuery:
+            { ChatBoost: { } chatBoost } => OnChatBoostUpdateAsync(chatBoost, cancellationToken),
+            { RemovedChatBoost: { } removedChatBoost } => OnRemovedChatBoostUpdateAsync(removedChatBoost, cancellationToken),
+            { ChatJoinRequest: { } chatJoinRequest } => OnChatJoinRequestUpdateAsync(chatJoinRequest, cancellationToken),
+            { MessageReaction: { } messageReaction } => OnMessageReactionUpdateAsync(messageReaction, cancellationToken),
+            { MessageReactionCount: { } messageReactionCount } => OnMessageReactionCountUpdateAsync(messageReactionCount, cancellationToken),
+            { BusinessConnection: { } businessConnection } => OnBusinessConnectionUpdateAsync(businessConnection, cancellationToken),
+            { BusinessMessage: { } businessMessage } => OnUnsupportedChannelUpdateAsync("BusinessMessage", businessMessage, cancellationToken),
+            { EditedBusinessMessage: { } editedBusinessMessage } => OnUnsupportedChannelUpdateAsync("EditedBusinessMessage", editedBusinessMessage, cancellationToken),
+            { DeletedBusinessMessages: { } deletedBusinessMessages } => OnDeletedBusinessMessagesUpdateAsync(deletedBusinessMessages, cancellationToken),
+            { GuestMessage: { } guestMessage } => OnUnsupportedChannelUpdateAsync("GuestMessage", guestMessage, cancellationToken),
+            { ShippingQuery: { } shippingQuery } => OnShippingQueryUpdateAsync(shippingQuery, cancellationToken),
+            { PreCheckoutQuery: { } preCheckoutQuery } => OnPreCheckoutQueryUpdateAsync(preCheckoutQuery, cancellationToken),
+            { PurchasedPaidMedia: { } purchasedPaidMedia } => OnPurchasedPaidMediaUpdateAsync(purchasedPaidMedia, cancellationToken),
+            { ManagedBot: { } managedBot } => OnManagedBotUpdateAsync(managedBot, cancellationToken),
+            { Subscription: { } subscription } => OnSubscriptionUpdateAsync(subscription, cancellationToken),
             _ => UnknownUpdateHandlerAsync(update, cancellationToken)
         });
     }
@@ -131,7 +142,10 @@ public partial class TelegramUpdateHandler(
             BotCommands.CommandDeleteSelectedFile,
             BotCommands.CommandDeleteAllFiles,
             BotCommands.CommandDashboardApiGetToken,
-            BotCommands.CommandRefreshProfilePhotos
+            BotCommands.CommandRefreshProfilePhotos,
+            BotCommands.CommandUnsubscribedVpnUsers,
+            BotCommands.CommandRemindChannelSubscribe,
+            BotCommands.CommandRemindChannelEmail
         };
 
         if (!isPrivate && privateOnlyCommands.Contains(command))
@@ -177,6 +191,9 @@ public partial class TelegramUpdateHandler(
             BotCommands.CommandPollAnonymous => SendAnonymousPoll(msg),
             BotCommands.CommandThrow => FailingHandler(),
             BotCommands.CommandRefreshProfilePhotos => AdminRefreshAllProfilePhotosAsync(msg, cancellationToken),
+            BotCommands.CommandUnsubscribedVpnUsers => AdminUnsubscribedVpnUsersDigestAsync(msg, cancellationToken),
+            BotCommands.CommandRemindChannelSubscribe => AdminRemindChannelSubscribeAsync(msg, argument, cancellationToken),
+            BotCommands.CommandRemindChannelEmail => AdminRemindChannelEmailAsync(msg, argument, cancellationToken),
 
             _ => Usage(msg, cancellationToken)
         });
@@ -268,6 +285,18 @@ public partial class TelegramUpdateHandler(
             _logger.LogInformation("Delete all files for vpnServerId: {VpnServerId}", vpnServerId);
             await DeleteAllFiles(message, vpnServerId, cancellationToken);
         }
+        else if (lowerData.StartsWith($"{BotCommands.CommandRemindChannelEmail} "))
+        {
+            var userId = data.Substring(BotCommands.CommandRemindChannelEmail.Length + 1).Trim();
+            _logger.LogInformation("Admin email channel-subscribe remind for userId: {UserId}", userId);
+            await AdminRemindChannelEmailFromCallbackAsync(message, callbackQuery.From, userId, cancellationToken);
+        }
+        else if (lowerData.StartsWith($"{BotCommands.CommandRemindChannelSubscribe} "))
+        {
+            var target = data.Substring(BotCommands.CommandRemindChannelSubscribe.Length + 1).Trim();
+            _logger.LogInformation("Admin Telegram channel-subscribe remind for target: {Target}", target);
+            await AdminRemindChannelSubscribeFromCallbackAsync(message, callbackQuery.From, target, cancellationToken);
+        }
         else if (data is BotCommands.CommandEnglish or BotCommands.CommandRussian or BotCommands.CommandGreek)
         {
             _logger.LogInformation("User selected language: {Language}", data);
@@ -313,19 +342,28 @@ public partial class TelegramUpdateHandler(
         var chat = DescribeChat(message.Chat);
         var actor = DescribeUser(message.From);
         var payload = string.IsNullOrWhiteSpace(message.Text)
-            ? "<empty>"
+            ? "—"
             : message.Text.Length > 500
-                ? message.Text[..500] + "... (truncated)"
+                ? message.Text[..500] + "…"
                 : message.Text;
 
+        var title = updateType switch
+        {
+            "ChannelPost" => "Channel post",
+            "EditedChannelPost" => "Channel post edited",
+            "BusinessMessage" => "Business message",
+            "EditedBusinessMessage" => "Business message edited",
+            "GuestMessage" => "Guest message",
+            _ => updateType
+        };
+
         var text =
-            "ℹ️ Unsupported Telegram update received\n" +
+            $"ℹ️ {title}\n" +
             $"Type: {updateType}\n" +
-            "Status: currently not supported by this bot\n" +
             $"Chat: {chat}\n" +
-            $"Actor: {actor}\n" +
+            $"User: {actor}\n" +
             $"MessageId: {message.Id}\n" +
-            $"Payload: {payload}\n" +
+            $"Text: {payload}\n" +
             $"Time: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
 
         _logger.LogInformation("Unsupported update {UpdateType} received. Chat={Chat}; MessageId={MessageId}",
@@ -425,15 +463,61 @@ public partial class TelegramUpdateHandler(
 
     private async Task<Message> RegisterCommandsAsync(Message msg, CancellationToken cancellationToken)
     {
-        await _botClient.SetMyCommands(_telegramSettingsService.GetTelegramMenuByLanguage(Language.English), 
-            languageCode: "en", cancellationToken: cancellationToken);
-        await _botClient.SetMyCommands(_telegramSettingsService.GetTelegramMenuByLanguage(Language.Russian), 
-            languageCode: "ru", cancellationToken: cancellationToken);
-        await _botClient.SetMyCommands(_telegramSettingsService.GetTelegramMenuByLanguage(Language.Greek), 
-            languageCode: "el", cancellationToken: cancellationToken);
+        using var scope = _serviceProvider.CreateScope();
+        var tgUserService = scope.ServiceProvider.GetRequiredService<ITelegramBotUserService>();
+
+        long[] adminTelegramIds = [];
+        try
+        {
+            var admins = await tgUserService.GetAdminsAsync(cancellationToken);
+            adminTelegramIds = admins.TelegramBotAdmins?
+                .Select(a => a.TelegramId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray() ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load dashboard admins for scoped command registration");
+        }
+
+        (Language Language, string Code)[] languages =
+        [
+            (Language.English, "en"),
+            (Language.Russian, "ru"),
+            (Language.Greek, "el"),
+        ];
+
+        foreach (var (language, code) in languages)
+        {
+            var publicCommands = _telegramSettingsService.GetTelegramMenuByLanguage(language);
+            var adminCommands = _telegramSettingsService.GetTelegramMenuByLanguage(language, includeAdminCommands: true);
+
+            // Default scope: visible to everyone — no admin-only commands.
+            await _botClient.SetMyCommands(
+                publicCommands,
+                scope: BotCommandScope.Default(),
+                languageCode: code,
+                cancellationToken: cancellationToken);
+
+            // Per-admin private chat scope: full menu including admin tools.
+            foreach (var adminId in adminTelegramIds)
+            {
+                await _botClient.SetMyCommands(
+                    adminCommands,
+                    scope: BotCommandScope.Chat(adminId),
+                    languageCode: code,
+                    cancellationToken: cancellationToken);
+            }
+        }
+
+        var adminNote = adminTelegramIds.Length == 0
+            ? " Admin commands were not scoped (no admins loaded)."
+            : $" Admin commands scoped to {adminTelegramIds.Length} admin chat(s).";
+
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: "\u2705 All commands have been successfully registered...",
+            text: "\u2705 All commands have been successfully registered..." + adminNote,
             replyMarkup: new ReplyKeyboardRemove(), cancellationToken: cancellationToken);
     }
     

@@ -3,7 +3,6 @@ using DataGateVPNBot.Services.DashboardServices.Interfaces;
 using DataGateMonitor.SharedModels.DataGateMonitor.TelegramBotUser.Requests;
 using DataGateMonitor.SharedModels.DataGateMonitor.TelegramBotUser.Responses.Dto;
 using Microsoft.Extensions.Options;
-using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using ProfilePhotoRefreshOptions = DataGateVPNBot.Models.Configurations.ProfilePhotoRefreshOptions;
 
@@ -11,7 +10,7 @@ namespace DataGateVPNBot.Services.BotServices;
 
 public sealed class TelegramUserProfilePhotoRefreshService(
     ILogger<TelegramUserProfilePhotoRefreshService> logger,
-    ITelegramBotClient botClient,
+    ITelegramProfilePhotoDownloader profilePhotoDownloader,
     ITelegramBotUserService telegramBotUserService,
     IOptions<ProfilePhotoRefreshOptions> options)
     : ITelegramUserProfilePhotoRefreshService
@@ -48,26 +47,8 @@ public sealed class TelegramUserProfilePhotoRefreshService(
 
             try
             {
-                var photos = await botClient.GetUserProfilePhotos(user.TelegramId, offset: 0, limit: 1,
-                    cancellationToken);
-                if (photos.TotalCount == 0 || photos.Photos.Length == 0)
-                {
-                    skipped++;
-                    continue;
-                }
-
-                var sizes = photos.Photos[^1];
-                if (sizes.Length == 0)
-                {
-                    skipped++;
-                    continue;
-                }
-
-                var biggest = sizes[^1];
-                await using var ms = new MemoryStream();
-                await botClient.GetInfoAndDownloadFile(biggest.FileId, ms, cancellationToken);
-                var bytes = ms.ToArray();
-                if (bytes.Length == 0)
+                var downloaded = await profilePhotoDownloader.TryDownloadAsync(user.TelegramId, cancellationToken);
+                if (downloaded is null)
                 {
                     skipped++;
                     continue;
@@ -76,9 +57,9 @@ public sealed class TelegramUserProfilePhotoRefreshService(
                 var request = new UpsertTelegramBotUserProfilePhotoRequest
                 {
                     TelegramId = user.TelegramId,
-                    ProfilePhotoBase64 = Convert.ToBase64String(bytes),
+                    ProfilePhotoBase64 = Convert.ToBase64String(downloaded.Value.Bytes),
                     ProfilePhotoMimeType = "image/jpeg",
-                    ProfilePhotoFileUniqueId = string.IsNullOrEmpty(biggest.FileUniqueId) ? null : biggest.FileUniqueId
+                    ProfilePhotoFileUniqueId = downloaded.Value.FileUniqueId
                 };
 
                 var upsert = await telegramBotUserService.UpsertProfilePhotoAsync(request, cancellationToken);
@@ -125,6 +106,33 @@ public sealed class TelegramUserProfilePhotoRefreshService(
             Failed = failed,
             Errors = errors
         };
+    }
+
+    public async Task<byte[]?> TryDownloadProfilePhotoAsync(
+        long telegramId,
+        bool upsertToDashboard = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (telegramId <= 0)
+            return null;
+
+        var downloaded = await profilePhotoDownloader.TryDownloadAsync(telegramId, cancellationToken);
+        if (downloaded is null)
+            return null;
+
+        if (upsertToDashboard)
+        {
+            var request = new UpsertTelegramBotUserProfilePhotoRequest
+            {
+                TelegramId = telegramId,
+                ProfilePhotoBase64 = Convert.ToBase64String(downloaded.Value.Bytes),
+                ProfilePhotoMimeType = "image/jpeg",
+                ProfilePhotoFileUniqueId = downloaded.Value.FileUniqueId
+            };
+            await telegramBotUserService.UpsertProfilePhotoAsync(request, cancellationToken);
+        }
+
+        return downloaded.Value.Bytes;
     }
 
     private static void AppendError(List<string> errors, long telegramId, string message)

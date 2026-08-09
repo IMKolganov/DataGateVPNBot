@@ -39,4 +39,13 @@ public static class BotCommands
 
     /// <summary>Admin only: push current Telegram profile photos into the dashboard for every registered user.</summary>
     public const string CommandRefreshProfilePhotos = "/refresh_profile_photos";
+
+    /// <summary>Admin only: force the Free/Default unsubscribed-online VPN digest (same as daily admin alert).</summary>
+    public const string CommandUnsubscribedVpnUsers = "/unsubscribed_vpn_users";
+
+    /// <summary>Admin only: send a localized channel-subscribe reminder to a user (userId or Telegram id).</summary>
+    public const string CommandRemindChannelSubscribe = "/remind_channel_subscribe";
+
+    /// <summary>Admin only: email a channel-subscribe reminder to a dashboard userId.</summary>
+    public const string CommandRemindChannelEmail = "/remind_channel_email";
 }
