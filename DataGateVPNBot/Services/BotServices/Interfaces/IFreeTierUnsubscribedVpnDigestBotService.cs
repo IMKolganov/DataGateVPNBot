@@ -1,9 +1,8 @@
+using DataGateMonitor.SharedModels.DataGateMonitor.FreeTierEnforcement.Responses;
+
 namespace DataGateVPNBot.Services.BotServices.Interfaces;
 
 public interface IFreeTierUnsubscribedVpnDigestBotService
 {
-    /// <summary>
-    /// Fetches the on-demand unsubscribed VPN digest text from the dashboard API.
-    /// </summary>
-    Task<string?> GetDigestTextAsync(CancellationToken cancellationToken);
+    Task<FreeTierUnsubscribedVpnDigestResponse?> GetDigestAsync(CancellationToken cancellationToken);
 }

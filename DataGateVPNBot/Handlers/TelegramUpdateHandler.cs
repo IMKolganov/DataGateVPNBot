@@ -143,7 +143,9 @@ public partial class TelegramUpdateHandler(
             BotCommands.CommandDeleteAllFiles,
             BotCommands.CommandDashboardApiGetToken,
             BotCommands.CommandRefreshProfilePhotos,
-            BotCommands.CommandUnsubscribedVpnUsers
+            BotCommands.CommandUnsubscribedVpnUsers,
+            BotCommands.CommandRemindChannelSubscribe,
+            BotCommands.CommandRemindChannelEmail
         };
 
         if (!isPrivate && privateOnlyCommands.Contains(command))
@@ -190,6 +192,8 @@ public partial class TelegramUpdateHandler(
             BotCommands.CommandThrow => FailingHandler(),
             BotCommands.CommandRefreshProfilePhotos => AdminRefreshAllProfilePhotosAsync(msg, cancellationToken),
             BotCommands.CommandUnsubscribedVpnUsers => AdminUnsubscribedVpnUsersDigestAsync(msg, cancellationToken),
+            BotCommands.CommandRemindChannelSubscribe => AdminRemindChannelSubscribeAsync(msg, argument, cancellationToken),
+            BotCommands.CommandRemindChannelEmail => AdminRemindChannelEmailAsync(msg, argument, cancellationToken),
 
             _ => Usage(msg, cancellationToken)
         });
@@ -280,6 +284,12 @@ public partial class TelegramUpdateHandler(
             var vpnServerId = data.Substring(BotCommands.CommandDeleteAllFiles.Length + 1);
             _logger.LogInformation("Delete all files for vpnServerId: {VpnServerId}", vpnServerId);
             await DeleteAllFiles(message, vpnServerId, cancellationToken);
+        }
+        else if (lowerData.StartsWith($"{BotCommands.CommandRemindChannelEmail} "))
+        {
+            var userId = data.Substring(BotCommands.CommandRemindChannelEmail.Length + 1).Trim();
+            _logger.LogInformation("Admin email channel-subscribe remind for userId: {UserId}", userId);
+            await AdminRemindChannelEmailFromCallbackAsync(message, callbackQuery.From, userId, cancellationToken);
         }
         else if (data is BotCommands.CommandEnglish or BotCommands.CommandRussian or BotCommands.CommandGreek)
         {
@@ -447,15 +457,61 @@ public partial class TelegramUpdateHandler(
 
     private async Task<Message> RegisterCommandsAsync(Message msg, CancellationToken cancellationToken)
     {
-        await _botClient.SetMyCommands(_telegramSettingsService.GetTelegramMenuByLanguage(Language.English), 
-            languageCode: "en", cancellationToken: cancellationToken);
-        await _botClient.SetMyCommands(_telegramSettingsService.GetTelegramMenuByLanguage(Language.Russian), 
-            languageCode: "ru", cancellationToken: cancellationToken);
-        await _botClient.SetMyCommands(_telegramSettingsService.GetTelegramMenuByLanguage(Language.Greek), 
-            languageCode: "el", cancellationToken: cancellationToken);
+        using var scope = _serviceProvider.CreateScope();
+        var tgUserService = scope.ServiceProvider.GetRequiredService<ITelegramBotUserService>();
+
+        long[] adminTelegramIds = [];
+        try
+        {
+            var admins = await tgUserService.GetAdminsAsync(cancellationToken);
+            adminTelegramIds = admins.TelegramBotAdmins?
+                .Select(a => a.TelegramId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray() ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load dashboard admins for scoped command registration");
+        }
+
+        (Language Language, string Code)[] languages =
+        [
+            (Language.English, "en"),
+            (Language.Russian, "ru"),
+            (Language.Greek, "el"),
+        ];
+
+        foreach (var (language, code) in languages)
+        {
+            var publicCommands = _telegramSettingsService.GetTelegramMenuByLanguage(language);
+            var adminCommands = _telegramSettingsService.GetTelegramMenuByLanguage(language, includeAdminCommands: true);
+
+            // Default scope: visible to everyone — no admin-only commands.
+            await _botClient.SetMyCommands(
+                publicCommands,
+                scope: BotCommandScope.Default(),
+                languageCode: code,
+                cancellationToken: cancellationToken);
+
+            // Per-admin private chat scope: full menu including admin tools.
+            foreach (var adminId in adminTelegramIds)
+            {
+                await _botClient.SetMyCommands(
+                    adminCommands,
+                    scope: BotCommandScope.Chat(adminId),
+                    languageCode: code,
+                    cancellationToken: cancellationToken);
+            }
+        }
+
+        var adminNote = adminTelegramIds.Length == 0
+            ? " Admin commands were not scoped (no admins loaded)."
+            : $" Admin commands scoped to {adminTelegramIds.Length} admin chat(s).";
+
         return await _botClient.SendMessage(
             chatId: msg.Chat.Id,
-            text: "\u2705 All commands have been successfully registered...",
+            text: "\u2705 All commands have been successfully registered..." + adminNote,
             replyMarkup: new ReplyKeyboardRemove(), cancellationToken: cancellationToken);
     }
     

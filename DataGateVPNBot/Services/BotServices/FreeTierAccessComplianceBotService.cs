@@ -1,8 +1,11 @@
 using System.Security.Authentication;
+using DataGateVPNBot.Localization;
 using DataGateVPNBot.Models.Configurations;
 using DataGateVPNBot.Services.BotServices.Interfaces;
 using DataGateVPNBot.Services.DashboardServices;
+using DataGateVPNBot.Services.DashboardServices.Interfaces;
 using DataGateVPNBot.Services.Http;
+using DataGateMonitor.SharedModels.DataGateMonitor.TelegramBotLocalization.Requests;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
@@ -16,8 +19,11 @@ public sealed class FreeTierAccessComplianceBotService(
     IOptions<BotConfiguration> botOptions,
     AuthService authService,
     IHttpRequestService httpRequestService,
+    ILocalizationService localizationService,
     ILogger<FreeTierAccessComplianceBotService> logger) : IFreeTierAccessComplianceBotService
 {
+    public const string AccessDeniedLocalizationKey = "FreeTierAccessDenied";
+
     private const string AuditEndpointPrefix = "api/users/audit-free-tier-access/by-telegram/";
 
     public static string BuildAuditEndpoint(long telegramId, bool? channelSubscribed, string? context = null)
@@ -36,13 +42,26 @@ public sealed class FreeTierAccessComplianceBotService(
         return $"{endpoint}{separator}context={Uri.EscapeDataString(context)}";
     }
 
-    public string BuildAccessDeniedMessage()
+    public async Task<string> BuildAccessDeniedMessageAsync(long telegramId, CancellationToken cancellationToken)
     {
         var channel = botOptions.Value.RequiredChannelChatId;
-        return $"Для тарифа Free/Default нужна подписка на канал {channel}.\n" +
-               $"Подпишитесь на канал и повторите запрос.\n\n" +
-               $"Free/Default access requires subscription to {channel}.\n" +
-               $"Please subscribe to the channel and try again.";
+        var channelUrl = botOptions.Value.RequiredChannelUrl;
+        var response = await localizationService.GetTextForTelegramUser(
+            new GetTextForTelegramUserRequest
+            {
+                TelegramId = telegramId > 0 ? telegramId : 0,
+                Key = AccessDeniedLocalizationKey,
+            },
+            cancellationToken);
+
+        var template = response.Text;
+        return LocalizationPlaceholderFormatter.Apply(
+            template,
+            new Dictionary<string, string>
+            {
+                ["channel"] = channel,
+                ["channelUrl"] = channelUrl,
+            });
     }
 
     public async Task<bool?> IsSubscribedToRequiredChannelAsync(long telegramId, CancellationToken cancellationToken)
@@ -56,6 +75,15 @@ public sealed class FreeTierAccessComplianceBotService(
             var member = await botClient.GetChatMember(chatId, telegramId, cancellationToken);
             return IsActiveMember(member);
         }
+        catch (Exception ex) when (IsExpectedNonMembershipError(ex))
+        {
+            logger.LogDebug(
+                ex,
+                "Telegram user {TelegramId} is not a member of {Channel} (expected getChatMember response)",
+                telegramId,
+                botOptions.Value.RequiredChannelChatId);
+            return false;
+        }
         catch (Exception ex)
         {
             logger.LogWarning(
@@ -67,13 +95,28 @@ public sealed class FreeTierAccessComplianceBotService(
         }
     }
 
+    public static bool IsExpectedNonMembershipError(Exception ex)
+    {
+        var text = ex.Message;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var lower = text.ToLowerInvariant();
+        return lower.Contains("participant_id_invalid", StringComparison.Ordinal)
+               || lower.Contains("user not found", StringComparison.Ordinal)
+               || lower.Contains("member not found", StringComparison.Ordinal)
+               || lower.Contains("user is deactivated", StringComparison.Ordinal)
+               || lower.Contains("user_deactivated", StringComparison.Ordinal)
+               || lower.Contains("peer_id_invalid", StringComparison.Ordinal);
+    }
+
     public async Task<VpnAccessGateResult> EnsureVpnAccessAsync(
         long telegramId,
         string context,
         CancellationToken cancellationToken)
     {
         if (telegramId <= 0)
-            return VpnAccessGateResult.Denied(BuildAccessDeniedMessage());
+            return VpnAccessGateResult.Denied(await BuildAccessDeniedMessageAsync(0, cancellationToken));
 
         var channelSubscribed = await IsSubscribedToRequiredChannelAsync(telegramId, cancellationToken);
         if (channelSubscribed == true)
@@ -108,7 +151,7 @@ public sealed class FreeTierAccessComplianceBotService(
                 response?.Message);
         }
 
-        return VpnAccessGateResult.Denied(BuildAccessDeniedMessage());
+        return VpnAccessGateResult.Denied(await BuildAccessDeniedMessageAsync(telegramId, cancellationToken));
     }
 
     public static bool IsActiveMember(ChatMember member)

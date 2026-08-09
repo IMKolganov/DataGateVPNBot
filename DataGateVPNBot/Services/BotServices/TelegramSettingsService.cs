@@ -8,7 +8,7 @@ namespace DataGateVPNBot.Services.BotServices;
 
 public class TelegramSettingsService : ITelegramSettingsService
 {
-    private static readonly LocalizedBotCommand[] AllCommands =
+    private static readonly LocalizedBotCommand[] UserCommands =
     [
         new()
         {
@@ -120,6 +120,10 @@ public class TelegramSettingsService : ITelegramSettingsService
                 ["el"] = "Σύνδεση λογαριασμού εφαρμογής με κωδικό από τον client"
             }
         },
+    ];
+
+    private static readonly LocalizedBotCommand[] AdminCommands =
+    [
         new()
         {
             Command = BotCommands.CommandRefreshProfilePhotos,
@@ -139,10 +143,30 @@ public class TelegramSettingsService : ITelegramSettingsService
                 ["ru"] = "Админ: список Free/Default VPN без подписки на канал",
                 ["el"] = "Διαχειριστής: λίστα Free/Default VPN χωρίς συνδρομή καναλιού"
             }
+        },
+        new()
+        {
+            Command = BotCommands.CommandRemindChannelSubscribe,
+            Descriptions = new()
+            {
+                ["en"] = "Admin: remind a user to subscribe to the required channel",
+                ["ru"] = "Админ: напомнить пользователю подписаться на канал",
+                ["el"] = "Διαχειριστής: υπενθύμιση εγγραφής στο κανάλι"
+            }
+        },
+        new()
+        {
+            Command = BotCommands.CommandRemindChannelEmail,
+            Descriptions = new()
+            {
+                ["en"] = "Admin: email a user to subscribe to the required channel",
+                ["ru"] = "Админ: отправить email с просьбой подписаться на канал",
+                ["el"] = "Διαχειριστής: email υπενθύμισης εγγραφής στο κανάλι"
+            }
         }
     ];
 
-    public BotCommand[] GetTelegramMenuByLanguage(Language language)
+    public BotCommand[] GetTelegramMenuByLanguage(Language language, bool includeAdminCommands = false)
     {
         var langCode = language switch
         {
@@ -152,6 +176,10 @@ public class TelegramSettingsService : ITelegramSettingsService
             _ => throw new ArgumentOutOfRangeException(nameof(language), language, null)
         };
 
-        return AllCommands.Select(c => c.ToTelegramCommand(langCode)).ToArray();
+        IEnumerable<LocalizedBotCommand> source = UserCommands;
+        if (includeAdminCommands)
+            source = UserCommands.Concat(AdminCommands);
+
+        return source.Select(c => c.ToTelegramCommand(langCode)).ToArray();
     }
 }

@@ -35,6 +35,7 @@ public static class ServiceConfiguration
         services.AddScoped<IOvpnFileService, OvpnFileService>();
         services.AddScoped<IFreeTierAccessComplianceBotService, FreeTierAccessComplianceBotService>();
         services.AddScoped<IFreeTierUnsubscribedVpnDigestBotService, FreeTierUnsubscribedVpnDigestBotService>();
+        services.AddScoped<IFreeTierChannelSubscribeRemindBotService, FreeTierChannelSubscribeRemindBotService>();
         services.AddScoped<IXrayClientLinkBotService, XrayClientLinkBotService>();
         services.AddScoped<IVpnProfileTokenDownloadService, VpnProfileTokenDownloadService>();
         services.AddSingleton<ServerService>();

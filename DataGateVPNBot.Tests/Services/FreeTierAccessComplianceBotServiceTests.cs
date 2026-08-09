@@ -1,4 +1,7 @@
 using DataGateVPNBot.Services.BotServices;
+using DataGateVPNBot.Services.DashboardServices.Interfaces;
+using DataGateMonitor.SharedModels.DataGateMonitor.TelegramBotLocalization.Requests;
+using DataGateMonitor.SharedModels.DataGateMonitor.TelegramBotLocalization.Responses;
 using Moq;
 using Telegram.Bot.Types;
 using Xunit;
@@ -29,26 +32,46 @@ public class FreeTierAccessComplianceBotServiceTests
     }
 
     [Fact]
-    public void BuildAccessDeniedMessage_RequiresChannelSubscriptionOnly()
+    public async Task BuildAccessDeniedMessageAsync_AppliesLocalizationPlaceholders()
     {
+        var localization = new Mock<ILocalizationService>();
+        localization.Setup(l => l.GetTextForTelegramUser(
+                It.Is<GetTextForTelegramUserRequest>(r =>
+                    r.Key == FreeTierAccessComplianceBotService.AccessDeniedLocalizationKey &&
+                    r.TelegramId == 42),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetTextForTelegramUserResponse
+            {
+                Text = "Need {channel}\n{channelUrl}",
+            });
+
         var service = new FreeTierAccessComplianceBotService(
             Mock.Of<Telegram.Bot.ITelegramBotClient>(),
             Microsoft.Extensions.Options.Options.Create(
                 new DataGateVPNBot.Models.Configurations.BotConfiguration
                 {
-                    RequiredChannelUsername = "DataGateVPNBot",
+                    RequiredChannelUsername = "datagateapp",
                 }),
             null!,
             null!,
+            localization.Object,
             Mock.Of<Microsoft.Extensions.Logging.ILogger<FreeTierAccessComplianceBotService>>());
 
-        var message = service.BuildAccessDeniedMessage();
+        var message = await service.BuildAccessDeniedMessageAsync(42, CancellationToken.None);
 
-        Assert.Contains("@DataGateVPNBot", message);
-        Assert.DoesNotContain("/link_account", message);
-        Assert.DoesNotContain("linked account", message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("subscription", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Need @datagateapp\nhttps://t.me/datagateapp", message);
+        Assert.DoesNotContain("Для тарифа", message);
+        Assert.DoesNotContain("Free/Default access requires", message);
     }
+
+    [Theory]
+    [InlineData("Bad Request: PARTICIPANT_ID_INVALID", true)]
+    [InlineData("Bad Request: user not found", true)]
+    [InlineData("Forbidden: bot is not a member of the channel chat", false)]
+    public void IsExpectedNonMembershipError_ClassifiesMessages(string message, bool expected)
+        => Assert.Equal(
+            expected,
+            FreeTierAccessComplianceBotService.IsExpectedNonMembershipError(new Exception(message)));
 
     [Fact]
     public void VpnAccessGateResult_Denied_CarriesUserMessage()
