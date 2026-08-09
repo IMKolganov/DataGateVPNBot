@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using DataGateVPNBot.Services.Interfaces;
@@ -41,6 +42,7 @@ public class HttpRequestService(
         if (response == null || !response.IsSuccessStatusCode)
         {
             logger.LogError("Failed to fetch data from {Url}. StatusCode: {StatusCode}", url, response?.StatusCode);
+            response?.Dispose();
             return default;
         }
 
@@ -48,6 +50,7 @@ public class HttpRequestService(
 
         logger.LogInformation("Received JSON from {Url}: {Json}", url, json);
 
+        response.Dispose();
         return JsonConvert.DeserializeObject<T>(json, JsonSettings);
     }
 
@@ -126,10 +129,31 @@ public class HttpRequestService(
                     errorDetails.AppendLine($"Attempt {attempt}: {response.StatusCode} - {response.ReasonPhrase}");
                     errorDetails.AppendLine($"Response body: {responseContent}");
 
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
                         response.Dispose();
                         return default;
+                    }
+
+                    if (IsNonRetriableClientError(response.StatusCode))
+                    {
+                        if (typeof(T) == typeof(HttpResponseMessage))
+                            return (T)(object)response;
+
+                        T? errorResult = default;
+                        try
+                        {
+                            errorResult = JsonConvert.DeserializeObject<T>(responseContent, JsonSettings);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogDebug(ex,
+                                "Could not deserialize client-error body from {Url} as {Type}",
+                                url, typeof(T).Name);
+                        }
+
+                        response.Dispose();
+                        return errorResult;
                     }
 
                     response.Dispose();
@@ -149,7 +173,7 @@ public class HttpRequestService(
             }
             catch (OperationCanceledException ex) when (cts.Token.IsCancellationRequested)
             {
-                logger.LogError("Request to {Url} timed out (Attempt {Attempt}) Error: {Error}", 
+                logger.LogError("Request to {Url} timed out (Attempt {Attempt}) Error: {Error}",
                     url, attempt, ex.Message);
                 errorDetails.AppendLine($"Attempt {attempt}: Timeout after {_defaultTimeout.TotalSeconds} seconds.");
                 return default;
@@ -175,4 +199,16 @@ public class HttpRequestService(
         throw exception;
     }
 
+    /// <summary>
+    /// 4xx except timeouts/rate-limits: business/validation errors that must not be retried.
+    /// </summary>
+    private static bool IsNonRetriableClientError(HttpStatusCode statusCode)
+    {
+        var code = (int)statusCode;
+        if (code is < 400 or >= 500)
+            return false;
+
+        return statusCode is not HttpStatusCode.RequestTimeout
+            and not HttpStatusCode.TooManyRequests;
+    }
 }

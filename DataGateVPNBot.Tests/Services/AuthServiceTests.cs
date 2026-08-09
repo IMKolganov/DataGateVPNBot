@@ -121,4 +121,66 @@ public class AuthServiceTests
         Assert.NotNull(result);
         Assert.True(result!.Success);
     }
+
+    [Fact]
+    public async Task CompleteAccountLinkAsync_Returns_Keyed_Message_WhenApiReturns_BadRequest_Body()
+    {
+        var httpRequest = new Mock<IHttpRequestService>();
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<TokenResponse>>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<TokenResponse>
+            {
+                Success = true,
+                Data = new TokenResponse { Token = "jwt", Expiration = DateTimeOffset.UtcNow.AddHours(1) },
+            });
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<CompleteTelegramAccountLinkResponse>>(
+                "api/users/merge-telegram-google/by-link-code",
+                It.IsAny<object>(),
+                "jwt",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<CompleteTelegramAccountLinkResponse>
+            {
+                Success = false,
+                Message = "TelegramAlreadyLinkedToGoogle|koz_nik (a@b.c)",
+                Data = null,
+            });
+
+        var sut = new AuthService(httpRequest.Object, "clientId", "secret", Mock.Of<ILogger<AuthService>>());
+
+        var result = await sut.CompleteAccountLinkAsync("ABCD2345", 12345, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.False(result!.Success);
+        Assert.Equal("TelegramAlreadyLinkedToGoogle|koz_nik (a@b.c)", result.Message);
+    }
+
+    [Fact]
+    public async Task CompleteAccountLinkAsync_Extracts_Keyed_Message_From_HttpRequestException()
+    {
+        var httpRequest = new Mock<IHttpRequestService>();
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<TokenResponse>>(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ApiResponse<TokenResponse>
+            {
+                Success = true,
+                Data = new TokenResponse { Token = "jwt", Expiration = DateTimeOffset.UtcNow.AddHours(1) },
+            });
+        httpRequest.Setup(h => h.PostAsync<ApiResponse<CompleteTelegramAccountLinkResponse>>(
+                "api/users/merge-telegram-google/by-link-code",
+                It.IsAny<object>(),
+                "jwt",
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException(
+                """
+                Failed to complete HTTP request to api/users/merge-telegram-google/by-link-code after 3 attempts.
+                Attempt 1: BadRequest - Bad Request
+                Response body: {"success":false,"message":"TelegramAlreadyLinkedToGoogle|koz_nik (a@b.c)","data":null}
+                """));
+
+        var sut = new AuthService(httpRequest.Object, "clientId", "secret", Mock.Of<ILogger<AuthService>>());
+
+        var result = await sut.CompleteAccountLinkAsync("ABCD2345", 12345, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.False(result!.Success);
+        Assert.Equal("TelegramAlreadyLinkedToGoogle|koz_nik (a@b.c)", result.Message);
+    }
 }

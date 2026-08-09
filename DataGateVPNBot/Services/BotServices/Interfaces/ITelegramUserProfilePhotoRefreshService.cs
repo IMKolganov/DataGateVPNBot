@@ -7,4 +7,13 @@ public interface ITelegramUserProfilePhotoRefreshService
     /// and upserts it via <c>POST api/tgbot-users/profile-photo</c>.
     /// </summary>
     Task<ProfilePhotoBatchRefreshResult> RefreshAllFromTelegramAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Downloads the current profile photo for a single Telegram user (largest size).
+    /// Returns null when the user has no photo or Telegram refuses access. Optionally upserts to the dashboard.
+    /// </summary>
+    Task<byte[]?> TryDownloadProfilePhotoAsync(
+        long telegramId,
+        bool upsertToDashboard = false,
+        CancellationToken cancellationToken = default);
 }

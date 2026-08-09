@@ -1,3 +1,4 @@
+using DataGateVPNBot.Localization;
 using DataGateVPNBot.Services.Http;
 using DataGateMonitor.SharedModels.DataGateMonitor.Auth.Requests;
 using DataGateMonitor.SharedModels.DataGateMonitor.Auth.Responses;
@@ -154,10 +155,16 @@ public class AuthService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to complete account link for TelegramId {TelegramId}", telegramId);
+            var primary = ApiErrorMessageMapper.ExtractPrimaryMessage(ex.Message);
+            if (string.IsNullOrWhiteSpace(primary))
+                primary = ex.Message;
+
             return new CompleteTelegramAccountLinkResponse
             {
                 Success = false,
-                Message = "Could not reach the server. Try again later.",
+                Message = ApiErrorMessageMapper.TryMap(primary, out _)
+                    ? primary
+                    : "Could not reach the server. Try again later.",
             };
         }
     }

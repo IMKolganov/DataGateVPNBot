@@ -34,6 +34,24 @@ public class TelegramSettingsServiceTests
         Assert.Contains("/get_my_files", commandStrings);
         Assert.Contains("/make_new_file", commandStrings);
         Assert.Contains("/how_to_use", commandStrings);
+        Assert.DoesNotContain("/unsubscribed_vpn_users", commandStrings);
+        Assert.DoesNotContain("/refresh_profile_photos", commandStrings);
+        Assert.DoesNotContain("/remind_channel_subscribe", commandStrings);
+        Assert.DoesNotContain("/remind_channel_email", commandStrings);
+    }
+
+    [Fact]
+    public void GetTelegramMenuByLanguage_WithAdminCommands_IncludesAdminOnlyEntries()
+    {
+        var sut = new TelegramSettingsService();
+        var commands = sut.GetTelegramMenuByLanguage(Language.English, includeAdminCommands: true);
+
+        var commandStrings = commands.Select(c => c.Command).ToArray();
+        Assert.Contains("/unsubscribed_vpn_users", commandStrings);
+        Assert.Contains("/refresh_profile_photos", commandStrings);
+        Assert.Contains("/remind_channel_subscribe", commandStrings);
+        Assert.Contains("/remind_channel_email", commandStrings);
+        Assert.Contains("/get_my_files", commandStrings);
     }
 
     [Fact]

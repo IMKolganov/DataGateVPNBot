@@ -3,6 +3,7 @@ using DataGateVPNBot.Models;
 using DataGateVPNBot.Services.DashboardServices.Interfaces;
 using DataGateVPNBot.Services.Interfaces;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace DataGateVPNBot.Services;
 
@@ -65,7 +66,70 @@ public class ErrorService(
         logger.LogInformation("Admins count: {RecordCount}", admins!.TelegramBotAdmins.Count);
         foreach (var admin in admins.TelegramBotAdmins)
         {
-            await botClient.SendMessage(admin.TelegramId, message, cancellationToken: cancellationToken);
+            try
+            {
+                await botClient.SendMessage(admin.TelegramId, message, cancellationToken: cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex,
+                    "Failed to send admin message to Telegram ID {TelegramId}.",
+                    admin.TelegramId);
+            }
+        }
+    }
+
+    public async Task SendPhotoToAdminsAsync(
+        byte[]? photoBytes,
+        string caption,
+        string fileName = "avatar.jpg",
+        CancellationToken cancellationToken = default)
+    {
+        if (photoBytes is not { Length: > 0 })
+        {
+            await SendMessageToAdminsAsync(caption, cancellationToken);
+            return;
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var telegramUsersService = scope.ServiceProvider.GetRequiredService<ITelegramBotUserService>();
+        var botClient = scope.ServiceProvider.GetRequiredService<ITelegramBotClient>();
+        var admins = await telegramUsersService.GetAdminsAsync(cancellationToken);
+
+        if (admins.TelegramBotAdmins is { Count: 0 })
+        {
+            logger.LogWarning("Admin chat ID is not configured.");
+            return;
+        }
+
+        logger.LogInformation("Sending photo alert to {RecordCount} admins.", admins.TelegramBotAdmins.Count);
+        foreach (var admin in admins.TelegramBotAdmins)
+        {
+            try
+            {
+                await using var stream = new MemoryStream(photoBytes, writable: false);
+                await botClient.SendPhoto(
+                    admin.TelegramId,
+                    new InputFileStream(stream, fileName),
+                    caption: caption,
+                    cancellationToken: cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex,
+                    "Failed to send admin photo to Telegram ID {TelegramId}; falling back to text.",
+                    admin.TelegramId);
+                try
+                {
+                    await botClient.SendMessage(admin.TelegramId, caption, cancellationToken: cancellationToken);
+                }
+                catch (Exception textEx)
+                {
+                    logger.LogError(textEx,
+                        "Failed to send fallback admin text to Telegram ID {TelegramId}.",
+                        admin.TelegramId);
+                }
+            }
         }
     }
 

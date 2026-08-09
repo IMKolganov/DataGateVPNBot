@@ -17,4 +17,7 @@ public class BotConfiguration
 
     public string RequiredChannelChatId =>
         $"@{RequiredChannelUsername.Trim().TrimStart('@')}";
+
+    public string RequiredChannelUrl =>
+        $"https://t.me/{RequiredChannelUsername.Trim().TrimStart('@')}";
 }

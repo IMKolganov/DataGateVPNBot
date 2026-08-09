@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using DataGateVPNBot.Services.Http;
 using DataGateVPNBot.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -37,7 +38,7 @@ public class HttpRequestServiceTests
     [Fact]
     public async Task GetAsync_Throws_After_Retries_When_Response_Not_Success()
     {
-        var handler = new FakeHttpMessageHandler(HttpStatusCode.NotFound, "{}");
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var client = new HttpClient(handler);
         var factory = new Mock<IHttpClientFactoryService>();
         factory.Setup(f => f.CreateDashboardClient()).Returns(client);
@@ -49,6 +50,51 @@ public class HttpRequestServiceTests
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             sut.GetAsync<TestDto>("https://api.example.com/foo", null, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task PostAsync_Returns_Deserialized_ApiResponse_On_BadRequest_Without_Retry()
+    {
+        var json = """{"success":false,"message":"TelegramAlreadyLinkedToGoogle|koz_nik (a@b.c)","data":null}""";
+        var handler = new CountingHttpMessageHandler(HttpStatusCode.BadRequest, json);
+        var client = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactoryService>();
+        factory.Setup(f => f.CreateDashboardClient()).Returns(client);
+        var errorService = new Mock<IErrorService>();
+        var services = new ServiceCollection();
+        services.AddScoped(_ => errorService.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var sut = new HttpRequestService(factory.Object, serviceProvider, Mock.Of<ILogger<HttpRequestService>>());
+        var result = await sut.PostAsync<ApiErrorDto>("https://api.example.com/link", new { }, null, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.False(result!.Success);
+        Assert.Equal("TelegramAlreadyLinkedToGoogle|koz_nik (a@b.c)", result.Message);
+        Assert.Equal(1, handler.SendCount);
+        errorService.Verify(
+            e => e.NotifyAdminsAboutExceptionAsync(It.IsAny<Exception>(), It.IsAny<HttpContext?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PostAsync_Returns_Deserialized_ApiResponse_On_Forbidden_Quota_Denial()
+    {
+        var json = """{"success":false,"message":"VpnServerNotAllowedByQuotaPlan","data":null}""";
+        var handler = new CountingHttpMessageHandler(HttpStatusCode.Forbidden, json);
+        var client = new HttpClient(handler);
+        var factory = new Mock<IHttpClientFactoryService>();
+        factory.Setup(f => f.CreateDashboardClient()).Returns(client);
+        var services = new ServiceCollection();
+        services.AddScoped<IErrorService>(_ => Mock.Of<IErrorService>());
+        var serviceProvider = services.BuildServiceProvider();
+
+        var sut = new HttpRequestService(factory.Object, serviceProvider, Mock.Of<ILogger<HttpRequestService>>());
+        var result = await sut.PostAsync<ApiErrorDto>("https://api.example.com/ovpn", new { }, null, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("VpnServerNotAllowedByQuotaPlan", result!.Message);
+        Assert.Equal(1, handler.SendCount);
     }
 
     [Fact]
@@ -95,6 +141,12 @@ public class HttpRequestServiceTests
         public string? Name { get; set; }
     }
 
+    private sealed class ApiErrorDto
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+    }
+
     private sealed class FakeHttpMessageHandler : HttpMessageHandler
     {
         private readonly HttpStatusCode _statusCode;
@@ -115,6 +167,21 @@ public class HttpRequestServiceTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             return Task.FromResult(new HttpResponseMessage(_statusCode)
+            {
+                Content = new ByteArrayContent(_content)
+            });
+        }
+    }
+
+    private sealed class CountingHttpMessageHandler(HttpStatusCode statusCode, string content) : HttpMessageHandler
+    {
+        private readonly byte[] _content = Encoding.UTF8.GetBytes(content);
+        public int SendCount { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            SendCount++;
+            return Task.FromResult(new HttpResponseMessage(statusCode)
             {
                 Content = new ByteArrayContent(_content)
             });
