@@ -39,10 +39,10 @@ public sealed class FreeTierAccessComplianceBotService(
     public string BuildAccessDeniedMessage()
     {
         var channel = botOptions.Value.RequiredChannelChatId;
-        return $"Для тарифа Free/Default нужна подписка на канал {channel} или связанный аккаунт (Telegram + Google/пароль).\n" +
-               $"Подпишитесь на канал или получите код связки в приложении и отправьте /link_account КОД.\n\n" +
-               $"Free/Default access requires subscription to {channel} or a linked account (Telegram + Google/password).\n" +
-               $"Subscribe to the channel, or request a link code in the app and send /link_account CODE.";
+        return $"Для тарифа Free/Default нужна подписка на канал {channel}.\n" +
+               $"Подпишитесь на канал и повторите запрос.\n\n" +
+               $"Free/Default access requires subscription to {channel}.\n" +
+               $"Please subscribe to the channel and try again.";
     }
 
     public async Task<bool?> IsSubscribedToRequiredChannelAsync(long telegramId, CancellationToken cancellationToken)

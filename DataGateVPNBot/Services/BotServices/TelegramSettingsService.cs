@@ -129,6 +129,16 @@ public class TelegramSettingsService : ITelegramSettingsService
                 ["ru"] = "Админ: обновить аватарки всех пользователей в панели",
                 ["el"] = "Διαχειριστής: συγχρονισμός φωτογραφιών προφίλ όλων των χρηστών"
             }
+        },
+        new()
+        {
+            Command = BotCommands.CommandUnsubscribedVpnUsers,
+            Descriptions = new()
+            {
+                ["en"] = "Admin: list Free/Default VPN users without channel subscription",
+                ["ru"] = "Админ: список Free/Default VPN без подписки на канал",
+                ["el"] = "Διαχειριστής: λίστα Free/Default VPN χωρίς συνδρομή καναλιού"
+            }
         }
     ];
 

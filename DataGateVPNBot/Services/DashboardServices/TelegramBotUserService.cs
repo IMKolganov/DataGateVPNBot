@@ -1,4 +1,5 @@
 using System.Security.Authentication;
+using DataGateVPNBot.Services.BotServices.Interfaces;
 using DataGateVPNBot.Services.DashboardServices.Interfaces;
 using DataGateVPNBot.Services.Http;
 using DataGateVPNBot.Services.Interfaces;
@@ -14,7 +15,8 @@ public class TelegramBotUserService(
     ILogger<TelegramBotUserService> logger,
     IHttpRequestService httpRequestService,
     AuthService authService,
-    IErrorService errorService)
+    IErrorService errorService,
+    ITelegramProfilePhotoDownloader profilePhotoDownloader)
     : ITelegramBotUserService
 {
     private const string EndpointRegisterUser = "api/users/register-from-tgbot";
@@ -46,12 +48,41 @@ public class TelegramBotUserService(
         {
             var fullName = $"{request.FirstName} {request.LastName}".Trim();
             var displayName = string.IsNullOrWhiteSpace(fullName) ? "Unnamed" : fullName;
+            var username = request.Username?.Trim().TrimStart('@');
+            var usernameLine = string.IsNullOrWhiteSpace(username) ? "@" : $"@{username}";
             var message = $"👤 New user registered:\n" +
                           $"ID: `{request.TelegramId}`\n" +
-                          $"Username: @{request.Username?.Trim().TrimStart('@')}\n" +
+                          $"Username: {usernameLine}\n" +
                           $"Name: {displayName}";
 
-            await errorService.SendMessageToAdminsAsync(message, cancellationToken);
+            byte[]? avatar = null;
+            try
+            {
+                var downloaded = await profilePhotoDownloader.TryDownloadAsync(
+                    request.TelegramId,
+                    cancellationToken);
+                if (downloaded is not null)
+                {
+                    avatar = downloaded.Value.Bytes;
+                    await UpsertProfilePhotoAsync(
+                        new UpsertTelegramBotUserProfilePhotoRequest
+                        {
+                            TelegramId = request.TelegramId,
+                            ProfilePhotoBase64 = Convert.ToBase64String(avatar),
+                            ProfilePhotoMimeType = "image/jpeg",
+                            ProfilePhotoFileUniqueId = downloaded.Value.FileUniqueId
+                        },
+                        cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Could not fetch profile photo for new user TelegramId {TelegramId}",
+                    request.TelegramId);
+            }
+
+            await errorService.SendPhotoToAdminsAsync(avatar, message, cancellationToken: cancellationToken);
         }
         else
         {

@@ -29,7 +29,7 @@ public class FreeTierAccessComplianceBotServiceTests
     }
 
     [Fact]
-    public void BuildAccessDeniedMessage_IncludesChannelAndLinkAccountHint()
+    public void BuildAccessDeniedMessage_RequiresChannelSubscriptionOnly()
     {
         var service = new FreeTierAccessComplianceBotService(
             Mock.Of<Telegram.Bot.ITelegramBotClient>(),
@@ -45,8 +45,9 @@ public class FreeTierAccessComplianceBotServiceTests
         var message = service.BuildAccessDeniedMessage();
 
         Assert.Contains("@DataGateVPNBot", message);
-        Assert.Contains("/link_account", message);
-        Assert.Contains("linked account", message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("/link_account", message);
+        Assert.DoesNotContain("linked account", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("subscription", message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

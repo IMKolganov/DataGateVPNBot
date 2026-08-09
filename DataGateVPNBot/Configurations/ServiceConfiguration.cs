@@ -23,6 +23,7 @@ public static class ServiceConfiguration
         
         services.AddScoped<IIncomingMessageLogService, IncomingMessageLogService>();
         services.AddScoped<ITelegramBotUserService, TelegramBotUserService>();
+        services.AddScoped<ITelegramProfilePhotoDownloader, TelegramProfilePhotoDownloader>();
         services.AddScoped<ITelegramUserProfilePhotoRefreshService, TelegramUserProfilePhotoRefreshService>();
         services.AddHostedService<MonthlyProfilePhotoRefreshHostedService>();
         services.AddScoped<ILocalizationService, LocalizationService>();
@@ -33,6 +34,7 @@ public static class ServiceConfiguration
         services.AddScoped<IOpenVpnServersService, OpenVpnServersService>();
         services.AddScoped<IOvpnFileService, OvpnFileService>();
         services.AddScoped<IFreeTierAccessComplianceBotService, FreeTierAccessComplianceBotService>();
+        services.AddScoped<IFreeTierUnsubscribedVpnDigestBotService, FreeTierUnsubscribedVpnDigestBotService>();
         services.AddScoped<IXrayClientLinkBotService, XrayClientLinkBotService>();
         services.AddScoped<IVpnProfileTokenDownloadService, VpnProfileTokenDownloadService>();
         services.AddSingleton<ServerService>();

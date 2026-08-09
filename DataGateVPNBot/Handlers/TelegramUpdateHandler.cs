@@ -142,7 +142,8 @@ public partial class TelegramUpdateHandler(
             BotCommands.CommandDeleteSelectedFile,
             BotCommands.CommandDeleteAllFiles,
             BotCommands.CommandDashboardApiGetToken,
-            BotCommands.CommandRefreshProfilePhotos
+            BotCommands.CommandRefreshProfilePhotos,
+            BotCommands.CommandUnsubscribedVpnUsers
         };
 
         if (!isPrivate && privateOnlyCommands.Contains(command))
@@ -188,6 +189,7 @@ public partial class TelegramUpdateHandler(
             BotCommands.CommandPollAnonymous => SendAnonymousPoll(msg),
             BotCommands.CommandThrow => FailingHandler(),
             BotCommands.CommandRefreshProfilePhotos => AdminRefreshAllProfilePhotosAsync(msg, cancellationToken),
+            BotCommands.CommandUnsubscribedVpnUsers => AdminUnsubscribedVpnUsersDigestAsync(msg, cancellationToken),
 
             _ => Usage(msg, cancellationToken)
         });
