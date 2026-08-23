@@ -1,4 +1,2 @@
-# These are supported funding model platforms
-
-github: IMKolganov
-buy_me_a_coffee: imkolganov
+github: [IMKolganov]
+custom: ["https://buymeacoffee.com/imkolganov"]
